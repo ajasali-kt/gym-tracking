@@ -1,0 +1,55 @@
+# Render .slugignore file
+# Files/directories listed here will be excluded from deployment
+# This reduces slug size and improves deployment speed
+
+# Documentation files
+*.md
+*.MD
+!README.md
+docs/
+MANUAL_TESTING_GUIDE.md
+API_FLOW_COMPARISON.md
+API_OPTIMIZATION_ANALYSIS.md
+API_OPTIMIZATION_RESULTS.md
+CLEANUP_SUMMARY.md
+ENDPOINT_CLEANUP_ANALYSIS.md
+GYM_TRACKER_COMPLETE_PLAN.md
+PHASE_*.md
+WORKOUT_PLAN_IMPORT_GUIDE.md
+QUICK_START.md
+
+# Test files
+tests/
+*.test.js
+*.spec.js
+test-*.json
+
+# Development files
+.env.example
+.gitignore
+.eslintrc*
+.prettierrc*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.log
+nul
+
+# Scripts
+endtask.py
+
+# Claude artifacts
+.claude/
+
+# Git
+.git/
+.gitattributes

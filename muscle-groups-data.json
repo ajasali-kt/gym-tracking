@@ -1,0 +1,44 @@
+{
+  "muscleGroups": [
+    {
+      "name": "Chest",
+      "description": "Pectoral muscles - responsible for pushing movements and arm adduction"
+    },
+    {
+      "name": "Back",
+      "description": "Latissimus dorsi, trapezius, rhomboids - responsible for pulling movements"
+    },
+    {
+      "name": "Shoulders",
+      "description": "Deltoids (anterior, lateral, posterior) - responsible for shoulder movements and overhead pressing"
+    },
+    {
+      "name": "Legs",
+      "description": "Quadriceps, hamstrings, glutes, calves - lower body muscles"
+    },
+    {
+      "name": "Arms",
+      "description": "Biceps, triceps, forearms - responsible for arm flexion and extension"
+    },
+    {
+      "name": "Core",
+      "description": "Abdominals, obliques, lower back - responsible for trunk stability and rotation"
+    },
+    {
+      "name": "Glutes",
+      "description": "Gluteus maximus, medius, minimus - hip extensors and stabilizers"
+    },
+    {
+      "name": "Calves",
+      "description": "Gastrocnemius and soleus - responsible for plantarflexion of the foot"
+    },
+    {
+      "name": "Cardio",
+      "description": "Cardiovascular exercises for heart health and endurance"
+    },
+    {
+      "name": "Full Body",
+      "description": "Compound exercises that work multiple muscle groups simultaneously"
+    }
+  ]
+}

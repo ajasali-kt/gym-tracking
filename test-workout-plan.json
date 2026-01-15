@@ -1,0 +1,79 @@
+{
+  "duration": "4 Weeks",
+  "trainingType": "Gym Only",
+  "split": "Body Part Split",
+  "weeklySchedule": {
+    "Day1": {
+      "bodyPart": "Chest + Triceps",
+      "exercises": [
+        {"name": "Barbell Bench Press", "sets": 4, "reps": "6-8"},
+        {"name": "Incline Dumbbell Press", "sets": 3, "reps": "8-10"},
+        {"name": "Cable Chest Fly", "sets": 3, "reps": "12"},
+        {"name": "Machine Chest Press", "sets": 3, "reps": "10"},
+        {"name": "Triceps Rope Pushdown", "sets": 3, "reps": "10-12"},
+        {"name": "Skull Crushers", "sets": 3, "reps": "8-10"}
+      ]
+    },
+    "Day2": {
+      "bodyPart": "Back + Biceps",
+      "exercises": [
+        {"name": "Lat Pulldown", "sets": 4, "reps": "8-10"},
+        {"name": "Seated Cable Row", "sets": 3, "reps": "10"},
+        {"name": "Barbell Row", "sets": 3, "reps": "6-8"},
+        {"name": "Face Pulls", "sets": 3, "reps": "12"},
+        {"name": "Barbell Curl", "sets": 3, "reps": "8-10"},
+        {"name": "Dumbbell Hammer Curl", "sets": 3, "reps": "10-12"}
+      ]
+    },
+    "Day3": {
+      "bodyPart": "Legs",
+      "exercises": [
+        {"name": "Barbell Squats", "sets": 4, "reps": "6-8"},
+        {"name": "Leg Press", "sets": 4, "reps": "10"},
+        {"name": "Romanian Deadlift", "sets": 3, "reps": "8-10"},
+        {"name": "Leg Extension", "sets": 3, "reps": "12"},
+        {"name": "Lying Leg Curl", "sets": 3, "reps": "12"},
+        {"name": "Standing Calf Raises", "sets": 4, "reps": "15-20"}
+      ]
+    },
+    "Day4": {
+      "bodyPart": "Shoulders + Abs",
+      "exercises": [
+        {"name": "Barbell Overhead Press", "sets": 4, "reps": "6-8"},
+        {"name": "Dumbbell Lateral Raise", "sets": 3, "reps": "12"},
+        {"name": "Rear Delt Fly Machine", "sets": 3, "reps": "12"},
+        {"name": "Upright Row (Cable)", "sets": 3, "reps": "10"},
+        {"name": "Hanging Leg Raises", "sets": 3, "reps": "12"},
+        {"name": "Cable Crunch", "sets": 3, "reps": "15"}
+      ]
+    },
+    "Day5": {
+      "bodyPart": "Arms + Cardio",
+      "exercises": [
+        {"name": "Close Grip Bench Press", "sets": 3, "reps": "8"},
+        {"name": "EZ Bar Curl", "sets": 3, "reps": "10"},
+        {"name": "Preacher Curl Machine", "sets": 3, "reps": "12"},
+        {"name": "Triceps Dips (Assisted if needed)", "sets": 3, "reps": "Max"},
+        {"name": "Cable Kickbacks", "sets": 3, "reps": "12"},
+        {"name": "Treadmill / Stairmaster", "duration": "20-30 minutes"}
+      ]
+    },
+    "Day6": {
+      "bodyPart": "Active Recovery",
+      "exercises": [
+        {"name": "Incline Walk", "duration": "30 minutes"},
+        {"name": "Full Body Stretching", "duration": "20 minutes"}
+      ]
+    },
+    "Day7": {
+      "bodyPart": "Rest",
+      "exercises": []
+    }
+  },
+  "progressionPlan": {
+    "Week1": "Use current working weights",
+    "Week2": "Increase weight by 2.5kg on main lifts",
+    "Week3": "Add 1 extra set to Squat, Bench, OHP",
+    "Week4": "Push last set to near failure"
+  }
+}

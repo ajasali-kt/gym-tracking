@@ -1,0 +1,165 @@
+// Prisma Schema for Gym Tracking Application
+// Database: PostgreSQL
+// Auto-generates TypeScript types for type-safe database access
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// Model 1: Muscle Groups
+// ============================================
+// Represents different muscle groups (Chest, Back, Legs, etc.)
+model MuscleGroup {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique // e.g., "Chest", "Back", "Legs"
+  description String?      // Optional description
+  createdAt   DateTime     @default(now())
+
+  // Relations
+  exercises   Exercise[]   // One muscle group has many exercises
+  workoutDays WorkoutDay[] // One muscle group can be targeted on many workout days
+
+  @@map("muscle_groups") // Maps to snake_case table name
+}
+
+// ============================================
+// Model 2: Exercises
+// ============================================
+// Exercise library with instructions and target muscle
+model Exercise {
+  id              Int                  @id @default(autoincrement())
+  name            String               @unique // e.g., "Bench Press"
+  muscleGroupId   Int                  @map("muscle_group_id")
+  description     String               @db.Text // Long description
+  steps           Json                 // Array of instruction steps stored as JSON
+  youtubeUrl      String?              @map("youtube_url") // Optional YouTube demo link
+  createdAt       DateTime             @default(now()) @map("created_at")
+
+  // Relations
+  muscleGroup         MuscleGroup           @relation(fields: [muscleGroupId], references: [id], onDelete: Cascade)
+  workoutDayExercises WorkoutDayExercise[]  // Exercise can be in many workout days
+  exerciseLogs        ExerciseLog[]         // Exercise can be logged many times
+
+  @@index([muscleGroupId]) // Index for faster queries by muscle group
+  @@map("exercises")
+}
+
+// ============================================
+// Model 3: Workout Plans
+// ============================================
+// Weekly workout plans (only one can be active at a time)
+model WorkoutPlan {
+  id         Int          @id @default(autoincrement())
+  name       String       // e.g., "Week 1 - Strength Focus"
+  startDate  DateTime     @map("start_date") @db.Date
+  endDate    DateTime?    @map("end_date") @db.Date // Optional end date
+  isActive   Boolean      @default(true) @map("is_active") // Only one plan should be active
+  duration   String?      // e.g., "4 Weeks"
+  trainingType String?    @map("training_type") // e.g., "Gym Only"
+  split      String?      // e.g., "Body Part Split"
+  notes      String?      @db.Text // Optional notes (e.g., progression plan)
+  createdAt  DateTime     @default(now()) @map("created_at")
+
+  // Relations
+  workoutDays WorkoutDay[] // One plan has many days
+
+  @@index([isActive]) // Index for quickly finding active plan
+  @@map("workout_plans")
+}
+
+// ============================================
+// Model 4: Workout Days
+// ============================================
+// Individual days within a workout plan (Day 1-7)
+model WorkoutDay {
+  id             Int                  @id @default(autoincrement())
+  planId         Int                  @map("plan_id")
+  dayNumber      Int                  @map("day_number") // 1-7 (Monday-Sunday)
+  dayName        String               @map("day_name") // e.g., "Chest Day", "Leg Day"
+  muscleGroupId  Int?                 @map("muscle_group_id") // Optional primary muscle group
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  // Relations
+  plan                WorkoutPlan           @relation(fields: [planId], references: [id], onDelete: Cascade)
+  muscleGroup         MuscleGroup?          @relation(fields: [muscleGroupId], references: [id], onDelete: SetNull)
+  workoutDayExercises WorkoutDayExercise[]  // One day has many exercises
+  workoutLogs         WorkoutLog[]          // One day can be logged many times
+
+  @@unique([planId, dayNumber]) // Each plan can only have one entry per day number
+  @@index([planId])
+  @@map("workout_days")
+}
+
+// ============================================
+// Model 5: Workout Day Exercises
+// ============================================
+// Junction table: Links exercises to specific workout days with sets/reps/rest
+model WorkoutDayExercise {
+  id            Int         @id @default(autoincrement())
+  workoutDayId  Int         @map("workout_day_id")
+  exerciseId    Int         @map("exercise_id")
+  sets          Int         // Number of sets (e.g., 3, 4, 5)
+  reps          String      // Reps (can be range like "8-12" or fixed like "10")
+  restSeconds   Int         @map("rest_seconds") // Rest time between sets in seconds
+  orderIndex    Int         @map("order_index") // Order of exercise in the day (1, 2, 3...)
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  workoutDay WorkoutDay @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([workoutDayId])
+  @@index([exerciseId])
+  @@map("workout_day_exercises")
+}
+
+// ============================================
+// Model 6: Workout Logs
+// ============================================
+// Records of completed workouts
+model WorkoutLog {
+  id             Int           @id @default(autoincrement())
+  workoutDayId   Int?          @map("workout_day_id") // Optional - null for manual logs
+  workoutName    String?       @map("workout_name") // For manual logs without a workout plan
+  completedDate  DateTime      @map("completed_date") @db.Date // Date when workout was completed
+  notes          String?       @db.Text // Optional notes about the workout
+  isManual       Boolean       @default(false) @map("is_manual") // Flag for manual workout logs
+  createdAt      DateTime      @default(now()) @map("created_at")
+
+  // Relations
+  workoutDay    WorkoutDay?   @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
+  exerciseLogs  ExerciseLog[] // One workout log has many exercise logs
+
+  @@index([workoutDayId])
+  @@index([completedDate]) // Index for finding workouts by date
+  @@map("workout_logs")
+}
+
+// ============================================
+// Model 7: Exercise Logs
+// ============================================
+// Records each set performed during a workout
+model ExerciseLog {
+  id             Int         @id @default(autoincrement())
+  workoutLogId   Int         @map("workout_log_id")
+  exerciseId     Int         @map("exercise_id")
+  setNumber      Int         @map("set_number") // Which set (1, 2, 3, etc.)
+  repsCompleted  Int         @map("reps_completed") // Actual reps performed
+  weightKg       Float       @map("weight_kg") // Weight used in kilograms
+  notes          String?     @db.Text // Optional notes (e.g., "felt easy", "struggled")
+  createdAt      DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  workoutLog WorkoutLog @relation(fields: [workoutLogId], references: [id], onDelete: Cascade)
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([workoutLogId])
+  @@index([exerciseId])
+  @@map("exercise_logs")
+}
