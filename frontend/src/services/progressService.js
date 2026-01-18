@@ -96,6 +96,20 @@ const progressService = {
   },
 
   /**
+   * Update workout log (for manual workouts)
+   * @param {number} workoutLogId - Workout log ID
+   * @param {Object} updateData - Update data
+   * @param {string} [updateData.workoutName] - Updated workout name
+   * @param {string} [updateData.completedDate] - Updated completion date
+   * @param {string} [updateData.notes] - Updated notes
+   * @returns {Promise<Object>} Updated workout log
+   */
+  updateWorkoutLog: async (workoutLogId, updateData) => {
+    const response = await apiClient.put(`/logs/${workoutLogId}`, updateData);
+    return response.data;
+  },
+
+  /**
    * Delete workout log
    * @param {number} workoutLogId - Workout log ID
    * @returns {Promise<Object>} Success message

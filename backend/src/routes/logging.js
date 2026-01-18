@@ -290,6 +290,55 @@ router.post('/:id/sets', async (req, res, next) => {
 });
 
 /**
+ * PUT /api/logs/:id
+ * Update workout log details (for manual workouts)
+ */
+router.put('/:id', async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { workoutName, completedDate, notes } = req.body;
+
+    const updateData = {};
+    if (workoutName !== undefined) updateData.workoutName = workoutName;
+    if (notes !== undefined) updateData.notes = notes || null;
+    if (completedDate !== undefined) {
+      const targetDate = new Date(completedDate);
+      targetDate.setHours(0, 0, 0, 0);
+      updateData.completedDate = targetDate;
+    }
+
+    const workoutLog = await prisma.workoutLog.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+      include: {
+        workoutDay: {
+          include: {
+            muscleGroup: true
+          }
+        },
+        exerciseLogs: {
+          include: {
+            exercise: {
+              include: {
+                muscleGroup: true
+              }
+            }
+          },
+          orderBy: [
+            { exerciseId: 'asc' },
+            { setNumber: 'asc' }
+          ]
+        }
+      }
+    });
+
+    res.json(workoutLog);
+  } catch (error) {
+    next(error);
+  }
+});
+
+/**
  * PUT /api/logs/:id/complete
  * Mark workout as complete and add optional notes
  */

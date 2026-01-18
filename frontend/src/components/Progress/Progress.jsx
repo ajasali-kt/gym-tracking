@@ -262,7 +262,11 @@ function WorkoutHistoryCard({ workout }) {
         <div className="flex items-center space-x-4">
           <div className="text-center">
             <p className="text-xs text-gray-600">Exercises</p>
-            <p className="font-bold text-gray-800">{workout.exerciseLogs?.length || 0}</p>
+            <p className="font-bold text-gray-800">
+              {workout.exerciseLogs?.length > 0
+                ? new Set(workout.exerciseLogs.map(log => log.exercise.id)).size
+                : 0}
+            </p>
           </div>
           <svg
             className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
@@ -280,6 +284,20 @@ function WorkoutHistoryCard({ workout }) {
           {workout.notes && (
             <div className="mb-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-gray-700"><strong>Notes:</strong> {workout.notes}</p>
+            </div>
+          )}
+
+          {isManualWorkout && (
+            <div className="mb-4">
+              <Link
+                to={`/edit-manual/${workout.id}`}
+                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Workout
+              </Link>
             </div>
           )}
 

@@ -33,6 +33,7 @@ function App() {
           {/* Workout Logging */}
           <Route path="/log/:dayId" element={<WorkoutLogger />} />
           <Route path="/log-manual" element={<ManualWorkoutLog />} />
+          <Route path="/edit-manual/:workoutId" element={<ManualWorkoutLog />} />
 
           {/* Progress Tracking */}
           <Route path="/progress" element={<Progress />} />

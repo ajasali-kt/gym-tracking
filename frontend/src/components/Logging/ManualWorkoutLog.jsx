@@ -1,15 +1,19 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { format } from 'date-fns';
+import { useNavigate, useParams } from 'react-router-dom';
+import { format, parseISO } from 'date-fns';
 import exerciseService from '../../services/exerciseService';
 import progressService from '../../services/progressService';
 
 /**
  * Manual Workout Log Component
  * Allows users to manually log workouts without a predefined workout plan
+ * Supports both creating new workouts and editing existing ones
  */
 function ManualWorkoutLog() {
   const navigate = useNavigate();
+  const { workoutId } = useParams(); // If present, we're in edit mode
+  const isEditMode = !!workoutId;
+
   const [exercises, setExercises] = useState([]);
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [workoutDate, setWorkoutDate] = useState(format(new Date(), 'yyyy-MM-dd'));
@@ -20,19 +24,70 @@ function ManualWorkoutLog() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
+  const [originalWorkout, setOriginalWorkout] = useState(null);
 
   useEffect(() => {
-    fetchExercises();
-  }, []);
+    fetchData();
+  }, [workoutId]);
 
-  const fetchExercises = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await exerciseService.getAllExercises();
-      setExercises(data);
+      setError(null);
+
+      if (isEditMode) {
+        // Edit mode: fetch both exercises and existing workout data
+        const [exercisesData, workoutData] = await Promise.all([
+          exerciseService.getAllExercises(),
+          progressService.getWorkoutLog(workoutId)
+        ]);
+
+        setExercises(exercisesData);
+        setOriginalWorkout(workoutData);
+
+        // Populate form with existing data
+        setWorkoutName(workoutData.workoutName || '');
+        setWorkoutDate(format(parseISO(workoutData.completedDate), 'yyyy-MM-dd'));
+        setWorkoutNotes(workoutData.notes || '');
+
+        // Group exercise logs by exercise
+        const groupedLogs = {};
+        const uniqueExercises = [];
+        const exerciseMap = {};
+
+        if (workoutData.exerciseLogs && workoutData.exerciseLogs.length > 0) {
+          workoutData.exerciseLogs.forEach(log => {
+            const exerciseId = log.exercise.id;
+
+            if (!exerciseMap[exerciseId]) {
+              exerciseMap[exerciseId] = log.exercise;
+              uniqueExercises.push(log.exercise);
+            }
+
+            if (!groupedLogs[exerciseId]) {
+              groupedLogs[exerciseId] = [];
+            }
+
+            groupedLogs[exerciseId].push({
+              id: log.id,
+              setNumber: log.setNumber,
+              repsCompleted: log.repsCompleted.toString(),
+              weightKg: log.weightKg.toString(),
+              notes: log.notes || ''
+            });
+          });
+        }
+
+        setSelectedExercises(uniqueExercises);
+        setExerciseLogs(groupedLogs);
+      } else {
+        // Create mode: just fetch exercises
+        const data = await exerciseService.getAllExercises();
+        setExercises(data);
+      }
     } catch (err) {
-      setError('Failed to load exercises');
-      console.error('Error fetching exercises:', err);
+      setError(err.response?.data?.message || 'Failed to load data');
+      console.error('Error fetching data:', err);
     } finally {
       setLoading(false);
     }
@@ -135,39 +190,75 @@ function ManualWorkoutLog() {
     setError(null);
 
     try {
-      // Create manual workout log
-      const workoutLogData = {
-        completedDate: workoutDate,
-        workoutName: workoutName,
-        notes: workoutNotes || null,
-        isManual: true
-      };
+      if (isEditMode) {
+        // Edit mode: update existing workout
+        await progressService.updateWorkoutLog(workoutId, {
+          workoutName: workoutName,
+          completedDate: workoutDate,
+          notes: workoutNotes || null
+        });
 
-      const workoutLog = await progressService.createManualWorkoutLog(workoutLogData);
-
-      // Log all sets for all exercises
-      for (const exercise of selectedExercises) {
-        const sets = exerciseLogs[exercise.id];
-
-        for (const set of sets) {
-          if (set.repsCompleted && set.weightKg) {
-            await progressService.logSet(workoutLog.id, {
-              exerciseId: exercise.id,
-              setNumber: set.setNumber,
-              repsCompleted: parseInt(set.repsCompleted),
-              weightKg: parseFloat(set.weightKg),
-              notes: set.notes || null
-            });
+        // Delete all existing exercise logs and recreate them
+        if (originalWorkout.exerciseLogs && originalWorkout.exerciseLogs.length > 0) {
+          for (const log of originalWorkout.exerciseLogs) {
+            await progressService.deleteSet(log.id);
           }
         }
+
+        // Create all exercise logs
+        for (const exercise of selectedExercises) {
+          const sets = exerciseLogs[exercise.id];
+
+          for (const set of sets) {
+            if (set.repsCompleted && set.weightKg) {
+              await progressService.logSet(workoutId, {
+                exerciseId: exercise.id,
+                setNumber: set.setNumber,
+                repsCompleted: parseInt(set.repsCompleted),
+                weightKg: parseFloat(set.weightKg),
+                notes: set.notes || null
+              });
+            }
+          }
+        }
+
+        alert('Workout updated successfully!');
+      } else {
+        // Create mode: create new workout
+        const workoutLogData = {
+          completedDate: workoutDate,
+          workoutName: workoutName,
+          notes: workoutNotes || null,
+          isManual: true
+        };
+
+        const workoutLog = await progressService.createManualWorkoutLog(workoutLogData);
+
+        // Log all sets for all exercises
+        for (const exercise of selectedExercises) {
+          const sets = exerciseLogs[exercise.id];
+
+          for (const set of sets) {
+            if (set.repsCompleted && set.weightKg) {
+              await progressService.logSet(workoutLog.id, {
+                exerciseId: exercise.id,
+                setNumber: set.setNumber,
+                repsCompleted: parseInt(set.repsCompleted),
+                weightKg: parseFloat(set.weightKg),
+                notes: set.notes || null
+              });
+            }
+          }
+        }
+
+        // Complete the workout
+        await progressService.completeWorkout(workoutLog.id, {
+          notes: workoutNotes || null
+        });
+
+        alert('Workout logged successfully!');
       }
 
-      // Complete the workout
-      await progressService.completeWorkout(workoutLog.id, {
-        notes: workoutNotes || null
-      });
-
-      alert('Workout logged successfully!');
       navigate('/progress');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save workout');
@@ -177,10 +268,27 @@ function ManualWorkoutLog() {
     }
   };
 
+  const handleDeleteWorkout = async () => {
+    if (!confirm('Are you sure you want to delete this workout? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await progressService.deleteWorkoutLog(workoutId);
+      alert('Workout deleted successfully!');
+      navigate('/progress');
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete workout');
+      console.error('Error deleting workout:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-800">Manual Workout Log</h1>
+        <h1 className="text-3xl font-bold text-gray-800">
+          {isEditMode ? 'Edit Manual Workout' : 'Manual Workout Log'}
+        </h1>
         <div className="bg-white rounded-lg shadow p-8 text-center">
           <div className="animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
@@ -191,20 +299,51 @@ function ManualWorkoutLog() {
     );
   }
 
+  if (error && !originalWorkout && isEditMode) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold text-gray-800">Edit Manual Workout</h1>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <p className="text-red-800 font-medium">Error: {error}</p>
+          <button
+            onClick={() => navigate('/progress')}
+            className="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+          >
+            Back to Progress
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Manual Workout Log</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">Log a workout without a predefined plan</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+            {isEditMode ? 'Edit Manual Workout' : 'Manual Workout Log'}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">
+            {isEditMode ? 'Modify exercises and sets' : 'Log a workout without a predefined plan'}
+          </p>
         </div>
-        <button
-          onClick={() => navigate('/progress')}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm sm:text-base w-full sm:w-auto"
-        >
-          Cancel
-        </button>
+        <div className="flex gap-2">
+          {isEditMode && (
+            <button
+              onClick={handleDeleteWorkout}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm sm:text-base"
+            >
+              Delete
+            </button>
+          )}
+          <button
+            onClick={() => navigate('/progress')}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm sm:text-base w-full sm:w-auto"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -311,7 +450,10 @@ function ManualWorkoutLog() {
             disabled={saving}
             className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
           >
-            {saving ? 'Saving Workout...' : 'Save Workout'}
+            {saving
+              ? (isEditMode ? 'Saving Changes...' : 'Saving Workout...')
+              : (isEditMode ? 'Save Changes' : 'Save Workout')
+            }
           </button>
         </div>
       )}
@@ -391,10 +533,117 @@ function ExerciseLogSection({
 function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
   return (
     <div className="p-3 bg-gray-50 rounded-lg">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex-shrink-0 w-7 h-7 sm:w-8 sm:h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs sm:text-sm font-bold">
+      {/* Mobile Layout - Stacked */}
+      <div className="sm:hidden">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex-shrink-0 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+            {set.setNumber}
+          </div>
+          {showRemove && (
+            <button
+              onClick={onRemove}
+              className="flex-shrink-0 px-2 py-1 bg-red-100 text-red-700 rounded hover:bg-red-200 transition text-xs"
+              title="Remove set"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-2 mb-2">
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Reps *
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={set.repsCompleted}
+              onChange={(e) => onUpdate(setIndex, 'repsCompleted', e.target.value)}
+              placeholder="10"
+              className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-700 mb-1">
+              Weight (kg) *
+            </label>
+            <input
+              type="number"
+              step="0.5"
+              min="0"
+              value={set.weightKg}
+              onChange={(e) => onUpdate(setIndex, 'weightKg', e.target.value)}
+              placeholder="20"
+              className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">
+            Notes
+          </label>
+          <input
+            type="text"
+            value={set.notes}
+            onChange={(e) => onUpdate(setIndex, 'notes', e.target.value)}
+            placeholder="Optional"
+            className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+          />
+        </div>
+      </div>
+
+      {/* Desktop Layout - Single Row */}
+      <div className="hidden sm:flex sm:items-center sm:gap-3">
+        <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
           {set.setNumber}
         </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            Reps *
+          </label>
+          <input
+            type="number"
+            min="1"
+            value={set.repsCompleted}
+            onChange={(e) => onUpdate(setIndex, 'repsCompleted', e.target.value)}
+            placeholder="10"
+            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            Weight (kg) *
+          </label>
+          <input
+            type="number"
+            step="0.5"
+            min="0"
+            value={set.weightKg}
+            onChange={(e) => onUpdate(setIndex, 'weightKg', e.target.value)}
+            placeholder="20"
+            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 flex-1">
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            Notes
+          </label>
+          <input
+            type="text"
+            value={set.notes}
+            onChange={(e) => onUpdate(setIndex, 'notes', e.target.value)}
+            placeholder="Optional"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+          />
+        </div>
+
         {showRemove && (
           <button
             onClick={onRemove}
@@ -406,49 +655,6 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
             </svg>
           </button>
         )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 mb-2">
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Reps *
-          </label>
-          <input
-            type="number"
-            min="1"
-            value={set.repsCompleted}
-            onChange={(e) => onUpdate(setIndex, 'repsCompleted', e.target.value)}
-            placeholder="10"
-            className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">
-            Weight (kg) *
-          </label>
-          <input
-            type="number"
-            step="0.5"
-            min="0"
-            value={set.weightKg}
-            onChange={(e) => onUpdate(setIndex, 'weightKg', e.target.value)}
-            placeholder="20"
-            className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-xs font-medium text-gray-700 mb-1">
-          Notes
-        </label>
-        <input
-          type="text"
-          value={set.notes}
-          onChange={(e) => onUpdate(setIndex, 'notes', e.target.value)}
-          placeholder="Optional"
-          className="w-full px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
-        />
       </div>
     </div>
   );
