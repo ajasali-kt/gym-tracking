@@ -12,7 +12,27 @@ datasource db {
 }
 
 // ============================================
-// Model 1: Muscle Groups
+// Model 1: Users
+// ============================================
+// User accounts for multi-user support
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  password  String   // Hashed with bcrypt
+  userType  Int      @default(2) @map("user_type") // 1 = Admin, 2 = Normal User
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  workoutPlans WorkoutPlan[]
+  workoutLogs  WorkoutLog[]
+
+  @@index([username])
+  @@map("users")
+}
+
+// ============================================
+// Model 2: Muscle Groups
 // ============================================
 // Represents different muscle groups (Chest, Back, Legs, etc.)
 model MuscleGroup {
@@ -29,7 +49,7 @@ model MuscleGroup {
 }
 
 // ============================================
-// Model 2: Exercises
+// Model 3: Exercises
 // ============================================
 // Exercise library with instructions and target muscle
 model Exercise {
@@ -51,15 +71,16 @@ model Exercise {
 }
 
 // ============================================
-// Model 3: Workout Plans
+// Model 4: Workout Plans
 // ============================================
-// Weekly workout plans (only one can be active at a time)
+// Weekly workout plans (only one can be active at a time per user)
 model WorkoutPlan {
   id         Int          @id @default(autoincrement())
+  userId     Int?         @map("user_id") // Optional initially for migration
   name       String       // e.g., "Week 1 - Strength Focus"
   startDate  DateTime     @map("start_date") @db.Date
   endDate    DateTime?    @map("end_date") @db.Date // Optional end date
-  isActive   Boolean      @default(true) @map("is_active") // Only one plan should be active
+  isActive   Boolean      @default(true) @map("is_active") // Only one plan should be active per user
   duration   String?      // e.g., "4 Weeks"
   trainingType String?    @map("training_type") // e.g., "Gym Only"
   split      String?      // e.g., "Body Part Split"
@@ -67,14 +88,16 @@ model WorkoutPlan {
   createdAt  DateTime     @default(now()) @map("created_at")
 
   // Relations
+  user        User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
   workoutDays WorkoutDay[] // One plan has many days
 
   @@index([isActive]) // Index for quickly finding active plan
+  @@index([userId])   // Index for filtering by user
   @@map("workout_plans")
 }
 
 // ============================================
-// Model 4: Workout Days
+// Model 5: Workout Days
 // ============================================
 // Individual days within a workout plan (Day 1-7)
 model WorkoutDay {
@@ -97,7 +120,7 @@ model WorkoutDay {
 }
 
 // ============================================
-// Model 5: Workout Day Exercises
+// Model 6: Workout Day Exercises
 // ============================================
 // Junction table: Links exercises to specific workout days with sets/reps/rest
 model WorkoutDayExercise {
@@ -120,11 +143,12 @@ model WorkoutDayExercise {
 }
 
 // ============================================
-// Model 6: Workout Logs
+// Model 7: Workout Logs
 // ============================================
 // Records of completed workouts
 model WorkoutLog {
   id             Int           @id @default(autoincrement())
+  userId         Int?          @map("user_id") // Optional initially for migration
   workoutDayId   Int?          @map("workout_day_id") // Optional - null for manual logs
   workoutName    String?       @map("workout_name") // For manual logs without a workout plan
   completedDate  DateTime      @map("completed_date") @db.Date // Date when workout was completed
@@ -133,16 +157,18 @@ model WorkoutLog {
   createdAt      DateTime      @default(now()) @map("created_at")
 
   // Relations
+  user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   workoutDay    WorkoutDay?   @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
   exerciseLogs  ExerciseLog[] // One workout log has many exercise logs
 
+  @@index([userId])        // Index for filtering by user
   @@index([workoutDayId])
   @@index([completedDate]) // Index for finding workouts by date
   @@map("workout_logs")
 }
 
 // ============================================
-// Model 7: Exercise Logs
+// Model 8: Exercise Logs
 // ============================================
 // Records each set performed during a workout
 model ExerciseLog {

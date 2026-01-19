@@ -15,6 +15,26 @@ router.delete('/:assignmentId', async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
 
+    // Verify ownership through workoutDay.plan before deleting
+    const existingAssignment = await prisma.workoutDayExercise.findFirst({
+      where: {
+        id: parseInt(assignmentId),
+        workoutDay: {
+          plan: {
+            userId: req.userId
+          }
+        }
+      }
+    });
+
+    if (!existingAssignment) {
+      return res.status(404).json({
+        error: true,
+        message: 'Exercise assignment not found',
+        statusCode: 404
+      });
+    }
+
     await prisma.workoutDayExercise.delete({
       where: {
         id: parseInt(assignmentId)
@@ -38,6 +58,26 @@ router.put('/:assignmentId', async (req, res, next) => {
   try {
     const { assignmentId } = req.params;
     const { sets, reps, restSeconds, orderIndex } = req.body;
+
+    // Verify ownership through workoutDay.plan before updating
+    const existingAssignment = await prisma.workoutDayExercise.findFirst({
+      where: {
+        id: parseInt(assignmentId),
+        workoutDay: {
+          plan: {
+            userId: req.userId
+          }
+        }
+      }
+    });
+
+    if (!existingAssignment) {
+      return res.status(404).json({
+        error: true,
+        message: 'Exercise assignment not found',
+        statusCode: 404
+      });
+    }
 
     const updateData = {};
     if (sets !== undefined) updateData.sets = parseInt(sets);

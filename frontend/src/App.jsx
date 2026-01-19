@@ -1,5 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/shared/Layout';
+import ProtectedRoute from './components/Auth/ProtectedRoute';
+
+// Auth components
+import Login from './components/Auth/Login';
+import Register from './components/Auth/Register';
+import AdminRoute from './components/Auth/AdminRoute';
 
 // Page imports - these will be created in Phase 5
 import Dashboard from './components/Dashboard/Dashboard';
@@ -13,38 +20,58 @@ import Admin from './components/Admin/Admin';
 
 /**
  * Main Application Component
- * Configures routing for all pages
+ * Configures routing for all pages with authentication
  */
 function App() {
   return (
     <Router>
-      <Layout>
+      <AuthProvider>
         <Routes>
-          {/* Dashboard - Home page showing today's workout */}
-          <Route path="/" element={<Dashboard />} />
+          {/* Public Routes - Auth */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
 
-          {/* Exercise Library - Browse and manage exercises */}
-          <Route path="/exercises" element={<ExerciseLibrary />} />
+          {/* Protected Routes - Wrapped in Layout */}
+          <Route
+            path="/*"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Routes>
+                    {/* Dashboard - Home page showing today's workout */}
+                    <Route path="/" element={<Dashboard />} />
 
-          {/* Workout Plans */}
-          <Route path="/plans" element={<WorkoutPlanList />} />
-          <Route path="/plans/:id" element={<WorkoutPlanDetail />} />
+                    {/* Exercise Library - Browse and manage exercises */}
+                    <Route path="/exercises" element={<ExerciseLibrary />} />
 
-          {/* Workout Logging */}
-          <Route path="/log/:dayId" element={<WorkoutLogger />} />
-          <Route path="/log-manual" element={<ManualWorkoutLog />} />
-          <Route path="/edit-manual/:workoutId" element={<ManualWorkoutLog />} />
+                    {/* Workout Plans */}
+                    <Route path="/plans" element={<WorkoutPlanList />} />
+                    <Route path="/plans/:id" element={<WorkoutPlanDetail />} />
 
-          {/* Progress Tracking */}
-          <Route path="/progress" element={<Progress />} />
+                    {/* Workout Logging */}
+                    <Route path="/log/:dayId" element={<WorkoutLogger />} />
+                    <Route path="/log-manual" element={<ManualWorkoutLog />} />
+                    <Route path="/edit-manual/:workoutId" element={<ManualWorkoutLog />} />
 
-          {/* Admin Panel */}
-          <Route path="/admin-ajas" element={<Admin />} />
+                    {/* Progress Tracking */}
+                    <Route path="/progress" element={<Progress />} />
 
-          {/* Catch all - redirect to dashboard */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+                    {/* Admin Panel - Hidden route (Admin only) */}
+                    <Route path="/settings/system" element={
+                      <AdminRoute>
+                        <Admin />
+                      </AdminRoute>
+                    } />
+
+                    {/* Catch all - redirect to dashboard */}
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
         </Routes>
-      </Layout>
+      </AuthProvider>
     </Router>
   );
 }

@@ -1,19 +1,19 @@
 const express = require('express');
 const { PrismaClient } = require('@prisma/client');
+const { authenticate, isAdmin } = require('../middleware/auth');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
 /**
  * Admin Routes
- * No authentication required - for development/testing purposes
- * WARNING: Add authentication before deploying to production!
+ * Protected by authentication and admin role check
  */
 
 // ============================================
 // Import Muscle Groups from JSON
 // ============================================
-router.post('/import/muscle-groups', async (req, res) => {
+router.post('/import/muscle-groups', authenticate, isAdmin, async (req, res) => {
   try {
     const { muscleGroups } = req.body;
 
@@ -81,7 +81,7 @@ router.post('/import/muscle-groups', async (req, res) => {
 // ============================================
 // Import Exercises from JSON
 // ============================================
-router.post('/import/exercises', async (req, res) => {
+router.post('/import/exercises', authenticate, isAdmin, async (req, res) => {
   try {
     const { exercises } = req.body;
 
@@ -168,7 +168,7 @@ router.post('/import/exercises', async (req, res) => {
 // ============================================
 // Get Database Stats
 // ============================================
-router.get('/stats', async (req, res) => {
+router.get('/stats', authenticate, isAdmin, async (req, res) => {
   try {
     const stats = {
       muscleGroups: await prisma.muscleGroup.count(),
@@ -197,7 +197,7 @@ router.get('/stats', async (req, res) => {
 // ============================================
 // Clear All Data (Use with caution!)
 // ============================================
-router.delete('/clear/all', async (req, res) => {
+router.delete('/clear/all', authenticate, isAdmin, async (req, res) => {
   try {
     // Delete in correct order to respect foreign key constraints
     await prisma.exerciseLog.deleteMany({});

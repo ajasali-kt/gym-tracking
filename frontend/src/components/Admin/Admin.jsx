@@ -1,12 +1,7 @@
-import { useState } from 'react';
-import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
-const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
+import { useState, useEffect } from 'react';
+import apiClient from '../../services/api';
 
 function Admin() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [password, setPassword] = useState('');
   const [muscleGroupsJson, setMuscleGroupsJson] = useState('');
   const [exercisesJson, setExercisesJson] = useState('');
   const [muscleGroupsResult, setMuscleGroupsResult] = useState(null);
@@ -14,24 +9,20 @@ function Admin() {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-    } else {
-      alert('Incorrect password');
-    }
-  };
+  // Fetch stats on component mount
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
   // Fetch database stats
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/admin/stats`);
+      const response = await apiClient.get('/admin/stats');
       setStats(response.data.stats);
     } catch (error) {
       console.error('Error fetching stats:', error);
-      alert('Failed to fetch stats: ' + error.message);
+      alert('Failed to fetch stats: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -44,7 +35,7 @@ function Admin() {
       setMuscleGroupsResult(null);
 
       const data = JSON.parse(muscleGroupsJson);
-      const response = await axios.post(`${API_URL}/admin/import/muscle-groups`, data);
+      const response = await apiClient.post('/admin/import/muscle-groups', data);
 
       setMuscleGroupsResult(response.data);
       alert(response.data.message);
@@ -68,7 +59,7 @@ function Admin() {
       setExercisesResult(null);
 
       const data = JSON.parse(exercisesJson);
-      const response = await axios.post(`${API_URL}/admin/import/exercises`, data);
+      const response = await apiClient.post('/admin/import/exercises', data);
 
       setExercisesResult(response.data);
       alert(response.data.message);
@@ -93,13 +84,13 @@ function Admin() {
 
     try {
       setLoading(true);
-      await axios.delete(`${API_URL}/admin/clear/all`);
+      await apiClient.delete('/admin/clear/all');
       alert('All data cleared successfully');
       setStats(null);
       fetchStats();
     } catch (error) {
       console.error('Error clearing data:', error);
-      alert('Failed to clear data: ' + error.message);
+      alert('Failed to clear data: ' + (error.response?.data?.message || error.message));
     } finally {
       setLoading(false);
     }
@@ -158,44 +149,6 @@ function Admin() {
     setExercisesJson(JSON.stringify(sample, null, 2));
   };
 
-  // Show login form if not authenticated
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-8">
-        <div className="max-w-md w-full mx-4">
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">Admin Panel</h1>
-            <p className="text-gray-600 mb-6 text-center">Enter password to continue</p>
-
-            <form onSubmit={handleLogin}>
-              <div className="mb-4">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter admin password"
-                  required
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-              >
-                Login
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -203,17 +156,17 @@ function Admin() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h1>
           <p className="text-gray-600 mb-4">Import muscle groups and exercises from JSON</p>
 
-          {/* Warning Banner */}
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+          {/* Info Banner */}
+          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
             <div className="flex">
               <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-yellow-700">
-                  <strong>Warning:</strong> This panel has no authentication. Do not expose in production without adding proper security.
+                <p className="text-sm text-blue-700">
+                  <strong>Admin Panel:</strong> This panel is protected by role-based authentication. Only admin users can access this page.
                 </p>
               </div>
             </div>

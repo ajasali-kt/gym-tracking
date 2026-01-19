@@ -29,9 +29,12 @@ const getCurrentDayNumber = (planStartDate) => {
  */
 router.get('/today-with-log', async (req, res, next) => {
   try {
-    // First get the active plan to know the start date
+    // First get the active plan to know the start date (filtered by user)
     const activePlan = await prisma.workoutPlan.findFirst({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        userId: req.userId
+      },
       select: {
         id: true,
         name: true,
@@ -97,7 +100,8 @@ router.get('/today-with-log', async (req, res, next) => {
     const workoutLog = await prisma.workoutLog.findFirst({
       where: {
         workoutDayId: todayWorkout.id,
-        completedDate: today
+        completedDate: today,
+        userId: req.userId
       },
       include: {
         exerciseLogs: {
@@ -133,8 +137,10 @@ router.get('/today-with-log', async (req, res, next) => {
  */
 router.get('/summary', async (req, res, next) => {
   try {
-    // Total workouts logged
-    const totalWorkouts = await prisma.workoutLog.count();
+    // Total workouts logged (filtered by user)
+    const totalWorkouts = await prisma.workoutLog.count({
+      where: { userId: req.userId }
+    });
 
     // Workouts this week
     const startOfWeek = new Date();
@@ -143,6 +149,7 @@ router.get('/summary', async (req, res, next) => {
 
     const workoutsThisWeek = await prisma.workoutLog.count({
       where: {
+        userId: req.userId,
         completedDate: {
           gte: startOfWeek
         }
@@ -156,14 +163,16 @@ router.get('/summary', async (req, res, next) => {
 
     const workoutsThisMonth = await prisma.workoutLog.count({
       where: {
+        userId: req.userId,
         completedDate: {
           gte: startOfMonth
         }
       }
     });
 
-    // Recent workouts (last 5)
+    // Recent workouts (last 5, filtered by user)
     const recentWorkouts = await prisma.workoutLog.findMany({
+      where: { userId: req.userId },
       take: 5,
       orderBy: { completedDate: 'desc' },
       include: {
@@ -178,9 +187,12 @@ router.get('/summary', async (req, res, next) => {
       }
     });
 
-    // Active plan info
+    // Active plan info (filtered by user)
     const activePlan = await prisma.workoutPlan.findFirst({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        userId: req.userId
+      },
       select: {
         id: true,
         name: true,
@@ -212,7 +224,10 @@ router.get('/summary', async (req, res, next) => {
 router.get('/week', async (req, res, next) => {
   try {
     const activePlan = await prisma.workoutPlan.findFirst({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        userId: req.userId
+      },
       include: {
         workoutDays: {
           include: {

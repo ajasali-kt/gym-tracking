@@ -7,6 +7,7 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 // Import routes
+const authRoutes = require('./routes/auth');
 const muscleGroupRoutes = require('./routes/muscleGroups');
 const exerciseRoutes = require('./routes/exercises');
 const workoutPlanRoutes = require('./routes/workoutPlans');
@@ -17,15 +18,21 @@ const loggingRoutes = require('./routes/logging');
 const progressRoutes = require('./routes/progress');
 const adminRoutes = require('./routes/admin');
 
-// Import error handler
+// Import middleware
 const errorHandler = require('./middleware/errorHandler');
+const { authenticate } = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(helmet()); // Security headers
-app.use(cors()); // Enable CORS for frontend
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+})); // Enable CORS for frontend
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
@@ -40,16 +47,23 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', message: 'Gym Tracker API is running' });
 });
 
-// API Routes
+// API Routes - Public (authentication)
+app.use('/api/auth', authRoutes);
+
+// API Routes - Public (shared data)
 app.use('/api/muscle-groups', muscleGroupRoutes);
 app.use('/api/exercises', exerciseRoutes);
-app.use('/api/plans', workoutPlanRoutes);
-app.use('/api/days', workoutDaysRoutes); // Day-specific routes
-app.use('/api/day-exercises', dayExercisesRoutes); // Day exercise assignment routes
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/logs', loggingRoutes);
-app.use('/api/progress', progressRoutes);
-app.use('/api/admin', adminRoutes); // Admin routes for importing data
+
+// API Routes - Protected (user-specific data)
+app.use('/api/plans', authenticate, workoutPlanRoutes);
+app.use('/api/days', authenticate, workoutDaysRoutes);
+app.use('/api/day-exercises', authenticate, dayExercisesRoutes);
+app.use('/api/dashboard', authenticate, dashboardRoutes);
+app.use('/api/logs', authenticate, loggingRoutes);
+app.use('/api/progress', authenticate, progressRoutes);
+
+// API Routes - Admin (keep unprotected for now)
+app.use('/api/admin', adminRoutes);
 
 // 404 handler
 app.use((req, res) => {

@@ -10,11 +10,18 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 10000, // 10 seconds timeout
+  withCredentials: true, // Enable sending cookies with requests
 });
 
-// Request interceptor - can be used for authentication tokens in future
+// Request interceptor - add JWT token to requests
 apiClient.interceptors.request.use(
   (config) => {
+    // Add JWT token to Authorization header
+    const accessToken = localStorage.getItem('accessToken');
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
     // Log request in development mode
     if (import.meta.env.DEV) {
       console.log(`[API Request] ${config.method.toUpperCase()} ${config.url}`);
@@ -27,7 +34,23 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor - handle errors globally
+// Track if we're currently refreshing to avoid multiple refresh calls
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
+// Response interceptor - handle errors globally and refresh tokens
 apiClient.interceptors.response.use(
   (response) => {
     // Log response in development mode
@@ -36,7 +59,9 @@ apiClient.interceptors.response.use(
     }
     return response;
   },
-  (error) => {
+  async (error) => {
+    const originalRequest = error.config;
+
     // Handle different error scenarios
     if (error.response) {
       // Server responded with error status
@@ -45,6 +70,65 @@ apiClient.interceptors.response.use(
         message: error.response.data?.message || error.message,
         url: error.config?.url,
       });
+
+      // Handle 401 Unauthorized - attempt token refresh
+      if (error.response.status === 401 && !originalRequest._retry) {
+        if (isRefreshing) {
+          // If already refreshing, queue this request
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          })
+            .then((token) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              return apiClient(originalRequest);
+            })
+            .catch((err) => {
+              return Promise.reject(err);
+            });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        const refreshToken = localStorage.getItem('refreshToken');
+
+        if (!refreshToken) {
+          // No refresh token available, redirect to login
+          window.location.href = '/login';
+          return Promise.reject(error);
+        }
+
+        try {
+          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+            refreshToken,
+          });
+
+          const { tokens } = response.data;
+          const newAccessToken = tokens.accessToken;
+
+          // Update access token
+          localStorage.setItem('accessToken', newAccessToken);
+
+          // Update authorization header
+          apiClient.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
+
+          // Process queued requests
+          processQueue(null, newAccessToken);
+
+          // Retry original request
+          return apiClient(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, clear tokens and redirect to login
+          processQueue(refreshError, null);
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          window.location.href = '/login';
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
+        }
+      }
 
       // Handle specific status codes
       switch (error.response.status) {

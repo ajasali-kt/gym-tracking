@@ -11,8 +11,10 @@ router.get('/history', async (req, res, next) => {
   try {
     const { startDate, endDate, limit } = req.query;
 
-    // Build where clause
-    const whereClause = {};
+    // Build where clause (filtered by user)
+    const whereClause = {
+      userId: req.userId
+    };
     if (startDate || endDate) {
       whereClause.completedDate = {};
       if (startDate) whereClause.completedDate.gte = new Date(startDate);
@@ -57,6 +59,7 @@ router.get('/recent', async (req, res, next) => {
     const { limit } = req.query;
 
     const workoutLogs = await prisma.workoutLog.findMany({
+      where: { userId: req.userId },
       take: limit ? parseInt(limit) : 10,
       orderBy: { completedDate: 'desc' },
       include: {
@@ -110,9 +113,14 @@ router.get('/exercise/:id', async (req, res, next) => {
       });
     }
 
-    // Get all logs for this exercise
+    // Get all logs for this exercise (filtered by user through workoutLog)
     const exerciseLogs = await prisma.exerciseLog.findMany({
-      where: { exerciseId: parseInt(id) },
+      where: {
+        exerciseId: parseInt(id),
+        workoutLog: {
+          userId: req.userId
+        }
+      },
       take: limit ? parseInt(limit) : 50,
       orderBy: { createdAt: 'desc' },
       include: {
@@ -151,9 +159,14 @@ router.get('/exercise/:id/personal-record', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    // Get max weight for this exercise
+    // Get max weight for this exercise (filtered by user)
     const maxWeightLog = await prisma.exerciseLog.findFirst({
-      where: { exerciseId: parseInt(id) },
+      where: {
+        exerciseId: parseInt(id),
+        workoutLog: {
+          userId: req.userId
+        }
+      },
       orderBy: { weightKg: 'desc' },
       include: {
         workoutLog: {
@@ -164,9 +177,14 @@ router.get('/exercise/:id/personal-record', async (req, res, next) => {
       }
     });
 
-    // Get max reps at any weight
+    // Get max reps at any weight (filtered by user)
     const maxRepsLog = await prisma.exerciseLog.findFirst({
-      where: { exerciseId: parseInt(id) },
+      where: {
+        exerciseId: parseInt(id),
+        workoutLog: {
+          userId: req.userId
+        }
+      },
       orderBy: { repsCompleted: 'desc' },
       include: {
         workoutLog: {
@@ -177,9 +195,14 @@ router.get('/exercise/:id/personal-record', async (req, res, next) => {
       }
     });
 
-    // Calculate max volume (weight × reps)
+    // Calculate max volume (weight × reps) (filtered by user)
     const allLogs = await prisma.exerciseLog.findMany({
-      where: { exerciseId: parseInt(id) },
+      where: {
+        exerciseId: parseInt(id),
+        workoutLog: {
+          userId: req.userId
+        }
+      },
       select: {
         weightKg: true,
         repsCompleted: true,
@@ -231,14 +254,27 @@ router.get('/exercise/:id/personal-record', async (req, res, next) => {
  */
 router.get('/stats', async (req, res, next) => {
   try {
-    // Total workouts
-    const totalWorkouts = await prisma.workoutLog.count();
+    // Total workouts (filtered by user)
+    const totalWorkouts = await prisma.workoutLog.count({
+      where: { userId: req.userId }
+    });
 
-    // Total sets logged
-    const totalSets = await prisma.exerciseLog.count();
+    // Total sets logged (filtered by user through workoutLog)
+    const totalSets = await prisma.exerciseLog.count({
+      where: {
+        workoutLog: {
+          userId: req.userId
+        }
+      }
+    });
 
-    // Total volume (sum of weight × reps)
+    // Total volume (sum of weight × reps) (filtered by user)
     const allLogs = await prisma.exerciseLog.findMany({
+      where: {
+        workoutLog: {
+          userId: req.userId
+        }
+      },
       select: {
         weightKg: true,
         repsCompleted: true
@@ -250,8 +286,9 @@ router.get('/stats', async (req, res, next) => {
     }, 0);
 
     // Average workout duration (mock - would need actual duration tracking)
-    // For now, we'll just count exercises per workout
+    // For now, we'll just count exercises per workout (filtered by user)
     const workoutsWithCounts = await prisma.workoutLog.findMany({
+      where: { userId: req.userId },
       include: {
         _count: {
           select: { exerciseLogs: true }
@@ -300,7 +337,7 @@ router.get('/stats', async (req, res, next) => {
     }
 
     // Current streak (consecutive days with workouts)
-    const streak = await calculateWorkoutStreak();
+    const streak = await calculateWorkoutStreak(req.userId);
 
     res.json({
       statistics: {
@@ -350,8 +387,9 @@ const calculateExerciseStats = (logs) => {
 /**
  * Helper function to calculate workout streak
  */
-const calculateWorkoutStreak = async () => {
+const calculateWorkoutStreak = async (userId) => {
   const workouts = await prisma.workoutLog.findMany({
+    where: { userId: userId },
     select: {
       completedDate: true
     },
