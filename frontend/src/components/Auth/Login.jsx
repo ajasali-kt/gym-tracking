@@ -42,13 +42,18 @@ function Login() {
       return;
     }
 
-    const result = await login(formData.username, formData.password);
+    try {
+      const result = await login(formData.username, formData.password);
 
-    if (result.success) {
-      // Redirect to the page they tried to visit or dashboard
-      navigate(from, { replace: true });
-    } else {
-      setError(result.error);
+      if (result.success) {
+        // Redirect to the page they tried to visit or dashboard
+        navigate(from, { replace: true });
+      } else {
+        setError(result.error);
+      }
+    } catch (error) {
+      setError('An unexpected error occurred. Please try again.');
+    } finally {
       setLoading(false);
     }
   };

@@ -59,6 +59,12 @@ export const AuthProvider = ({ children }) => {
       return { success: true };
     } catch (error) {
       console.error('Login failed:', error);
+
+      // Clear any existing tokens on failed login
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      setUser(null);
+
       return {
         success: false,
         error: error.response?.data?.message || 'Login failed. Please try again.',
