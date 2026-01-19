@@ -76,7 +76,7 @@ model Exercise {
 // Weekly workout plans (only one can be active at a time per user)
 model WorkoutPlan {
   id         Int          @id @default(autoincrement())
-  userId     Int?         @map("user_id") // Optional initially for migration
+  userId     Int          @map("user_id") // Required - every plan must belong to a user
   name       String       // e.g., "Week 1 - Strength Focus"
   startDate  DateTime     @map("start_date") @db.Date
   endDate    DateTime?    @map("end_date") @db.Date // Optional end date
@@ -88,7 +88,7 @@ model WorkoutPlan {
   createdAt  DateTime     @default(now()) @map("created_at")
 
   // Relations
-  user        User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   workoutDays WorkoutDay[] // One plan has many days
 
   @@index([isActive]) // Index for quickly finding active plan
@@ -148,7 +148,7 @@ model WorkoutDayExercise {
 // Records of completed workouts
 model WorkoutLog {
   id             Int           @id @default(autoincrement())
-  userId         Int?          @map("user_id") // Optional initially for migration
+  userId         Int           @map("user_id") // Required - every log must belong to a user
   workoutDayId   Int?          @map("workout_day_id") // Optional - null for manual logs
   workoutName    String?       @map("workout_name") // For manual logs without a workout plan
   completedDate  DateTime      @map("completed_date") @db.Date // Date when workout was completed
@@ -157,7 +157,7 @@ model WorkoutLog {
   createdAt      DateTime      @default(now()) @map("created_at")
 
   // Relations
-  user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   workoutDay    WorkoutDay?   @relation(fields: [workoutDayId], references: [id], onDelete: Cascade)
   exerciseLogs  ExerciseLog[] // One workout log has many exercise logs
 
