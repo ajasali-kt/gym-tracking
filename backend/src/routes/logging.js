@@ -26,6 +26,7 @@ router.post('/manual', async (req, res, next) => {
     // Create manual workout log
     const workoutLog = await prisma.workoutLog.create({
       data: {
+        userId: req.userId,
         workoutDayId: null,
         workoutName: workoutName,
         completedDate: targetDate,
@@ -72,9 +73,14 @@ router.post('/start', async (req, res, next) => {
       });
     }
 
-    // Verify workout day exists
-    const workoutDay = await prisma.workoutDay.findUnique({
-      where: { id: parseInt(workoutDayId) }
+    // Verify workout day exists and belongs to user
+    const workoutDay = await prisma.workoutDay.findFirst({
+      where: {
+        id: parseInt(workoutDayId),
+        plan: {
+          userId: req.userId
+        }
+      }
     });
 
     if (!workoutDay) {
@@ -89,11 +95,12 @@ router.post('/start', async (req, res, next) => {
     const targetDate = completedDate ? new Date(completedDate) : new Date();
     targetDate.setHours(0, 0, 0, 0);
 
-    // Check if a workout log already exists for this day and workout
+    // Check if a workout log already exists for this day and workout for this user
     const existingLog = await prisma.workoutLog.findFirst({
       where: {
         workoutDayId: parseInt(workoutDayId),
-        completedDate: targetDate
+        completedDate: targetDate,
+        userId: req.userId
       },
       include: {
         workoutDay: {
@@ -135,6 +142,7 @@ router.post('/start', async (req, res, next) => {
     // Create new workout log
     const workoutLog = await prisma.workoutLog.create({
       data: {
+        userId: req.userId,
         workoutDayId: parseInt(workoutDayId),
         completedDate: targetDate,
         notes: null
@@ -185,8 +193,11 @@ router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const workoutLog = await prisma.workoutLog.findUnique({
-      where: { id: parseInt(id) },
+    const workoutLog = await prisma.workoutLog.findFirst({
+      where: {
+        id: parseInt(id),
+        userId: req.userId
+      },
       include: {
         workoutDay: {
           include: {
@@ -251,9 +262,12 @@ router.post('/:id/sets', async (req, res, next) => {
       });
     }
 
-    // Verify workout log exists
-    const workoutLog = await prisma.workoutLog.findUnique({
-      where: { id: parseInt(id) }
+    // Verify workout log exists and belongs to user
+    const workoutLog = await prisma.workoutLog.findFirst({
+      where: {
+        id: parseInt(id),
+        userId: req.userId
+      }
     });
 
     if (!workoutLog) {
@@ -307,6 +321,22 @@ router.put('/:id', async (req, res, next) => {
       updateData.completedDate = targetDate;
     }
 
+    // First verify ownership
+    const existingLog = await prisma.workoutLog.findFirst({
+      where: {
+        id: parseInt(id),
+        userId: req.userId
+      }
+    });
+
+    if (!existingLog) {
+      return res.status(404).json({
+        error: true,
+        message: 'Workout log not found',
+        statusCode: 404
+      });
+    }
+
     const workoutLog = await prisma.workoutLog.update({
       where: { id: parseInt(id) },
       data: updateData,
@@ -347,6 +377,22 @@ router.put('/:id/complete', async (req, res, next) => {
     const { id } = req.params;
     const { notes } = req.body;
 
+    // First verify ownership
+    const existingLog = await prisma.workoutLog.findFirst({
+      where: {
+        id: parseInt(id),
+        userId: req.userId
+      }
+    });
+
+    if (!existingLog) {
+      return res.status(404).json({
+        error: true,
+        message: 'Workout log not found',
+        statusCode: 404
+      });
+    }
+
     const workoutLog = await prisma.workoutLog.update({
       where: { id: parseInt(id) },
       data: {
@@ -382,6 +428,22 @@ router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    // First verify ownership
+    const existingLog = await prisma.workoutLog.findFirst({
+      where: {
+        id: parseInt(id),
+        userId: req.userId
+      }
+    });
+
+    if (!existingLog) {
+      return res.status(404).json({
+        error: true,
+        message: 'Workout log not found',
+        statusCode: 404
+      });
+    }
+
     await prisma.workoutLog.delete({
       where: { id: parseInt(id) }
     });
@@ -403,6 +465,24 @@ router.put('/sets/:setId', async (req, res, next) => {
   try {
     const { setId } = req.params;
     const { repsCompleted, weightKg, notes } = req.body;
+
+    // First verify ownership through workoutLog
+    const existingSet = await prisma.exerciseLog.findFirst({
+      where: {
+        id: parseInt(setId),
+        workoutLog: {
+          userId: req.userId
+        }
+      }
+    });
+
+    if (!existingSet) {
+      return res.status(404).json({
+        error: true,
+        message: 'Exercise log not found',
+        statusCode: 404
+      });
+    }
 
     const updateData = {};
     if (repsCompleted !== undefined) updateData.repsCompleted = parseInt(repsCompleted);
@@ -434,6 +514,24 @@ router.put('/sets/:setId', async (req, res, next) => {
 router.delete('/sets/:setId', async (req, res, next) => {
   try {
     const { setId } = req.params;
+
+    // First verify ownership through workoutLog
+    const existingSet = await prisma.exerciseLog.findFirst({
+      where: {
+        id: parseInt(setId),
+        workoutLog: {
+          userId: req.userId
+        }
+      }
+    });
+
+    if (!existingSet) {
+      return res.status(404).json({
+        error: true,
+        message: 'Exercise log not found',
+        statusCode: 404
+      });
+    }
 
     await prisma.exerciseLog.delete({
       where: { id: parseInt(setId) }

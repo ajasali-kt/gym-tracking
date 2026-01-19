@@ -5,11 +5,15 @@ const prisma = require('../prismaClient');
 /**
  * GET /api/plans/active
  * Get the currently active workout plan with all days and exercises
+ * Filtered by authenticated user
  */
 router.get('/active', async (req, res, next) => {
   try {
     const activePlan = await prisma.workoutPlan.findFirst({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        userId: req.userId
+      },
       include: {
         workoutDays: {
           include: {
@@ -47,13 +51,17 @@ router.get('/active', async (req, res, next) => {
 /**
  * GET /api/plans/:id
  * Get specific workout plan with all details
+ * Filtered by authenticated user
  */
 router.get('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
 
-    const plan = await prisma.workoutPlan.findUnique({
-      where: { id: parseInt(id) },
+    const plan = await prisma.workoutPlan.findFirst({
+      where: {
+        id: parseInt(id),
+        userId: req.userId
+      },
       include: {
         workoutDays: {
           include: {
@@ -91,10 +99,14 @@ router.get('/:id', async (req, res, next) => {
 /**
  * GET /api/plans
  * Get all workout plans (summary)
+ * Filtered by authenticated user
  */
 router.get('/', async (req, res, next) => {
   try {
     const plans = await prisma.workoutPlan.findMany({
+      where: {
+        userId: req.userId
+      },
       include: {
         _count: {
           select: { workoutDays: true }
@@ -127,17 +139,21 @@ router.post('/', async (req, res, next) => {
       });
     }
 
-    // Use transaction to ensure only one active plan
+    // Use transaction to ensure only one active plan per user
     const plan = await prisma.$transaction(async (tx) => {
-      // Deactivate all existing plans
+      // Deactivate all existing plans for this user
       await tx.workoutPlan.updateMany({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          userId: req.userId
+        },
         data: { isActive: false }
       });
 
       // Create new plan as active
       return await tx.workoutPlan.create({
         data: {
+          userId: req.userId,
           name,
           startDate: new Date(startDate),
           endDate: endDate ? new Date(endDate) : null,
@@ -158,16 +174,31 @@ router.post('/', async (req, res, next) => {
 
 /**
  * PUT /api/plans/:id/activate
- * Set a plan as active (deactivates others)
+ * Set a plan as active (deactivates others for this user)
  */
 router.put('/:id/activate', async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const plan = await prisma.$transaction(async (tx) => {
-      // Deactivate all plans
+      // Verify ownership first
+      const existingPlan = await tx.workoutPlan.findFirst({
+        where: {
+          id: parseInt(id),
+          userId: req.userId
+        }
+      });
+
+      if (!existingPlan) {
+        throw new Error('Workout plan not found or access denied');
+      }
+
+      // Deactivate all plans for this user
       await tx.workoutPlan.updateMany({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          userId: req.userId
+        },
         data: { isActive: false }
       });
 
@@ -187,10 +218,27 @@ router.put('/:id/activate', async (req, res, next) => {
 /**
  * DELETE /api/plans/:id
  * Delete workout plan (cascades to days and exercises)
+ * User can only delete their own plans
  */
 router.delete('/:id', async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    // Verify ownership before deleting
+    const plan = await prisma.workoutPlan.findFirst({
+      where: {
+        id: parseInt(id),
+        userId: req.userId
+      }
+    });
+
+    if (!plan) {
+      return res.status(404).json({
+        error: true,
+        message: 'Workout plan not found or access denied',
+        statusCode: 404
+      });
+    }
 
     await prisma.workoutPlan.delete({
       where: { id: parseInt(id) }
@@ -209,11 +257,28 @@ router.delete('/:id', async (req, res, next) => {
  * POST /api/plans/:id/days
  * Add a new day to a workout plan
  * dayName is automatically determined from dayNumber if not provided
+ * User can only add days to their own plans
  */
 router.post('/:id/days', async (req, res, next) => {
   try {
     const { id } = req.params;
     const { dayNumber, dayName, muscleGroupId } = req.body;
+
+    // Verify plan ownership first
+    const plan = await prisma.workoutPlan.findFirst({
+      where: {
+        id: parseInt(id),
+        userId: req.userId
+      }
+    });
+
+    if (!plan) {
+      return res.status(404).json({
+        error: true,
+        message: 'Workout plan not found or access denied',
+        statusCode: 404
+      });
+    }
 
     // Validation
     if (!dayNumber) {
@@ -257,13 +322,19 @@ router.post('/:id/days', async (req, res, next) => {
 /**
  * GET /api/plans/days/:dayId
  * Get specific workout day with exercises
+ * Verify ownership through plan
  */
 router.get('/days/:dayId', async (req, res, next) => {
   try {
     const { dayId } = req.params;
 
-    const workoutDay = await prisma.workoutDay.findUnique({
-      where: { id: parseInt(dayId) },
+    const workoutDay = await prisma.workoutDay.findFirst({
+      where: {
+        id: parseInt(dayId),
+        plan: {
+          userId: req.userId
+        }
+      },
       include: {
         muscleGroup: true,
         workoutDayExercises: {
@@ -283,7 +354,7 @@ router.get('/days/:dayId', async (req, res, next) => {
     if (!workoutDay) {
       return res.status(404).json({
         error: true,
-        message: 'Workout day not found',
+        message: 'Workout day not found or access denied',
         statusCode: 404
       });
     }
@@ -297,11 +368,30 @@ router.get('/days/:dayId', async (req, res, next) => {
 /**
  * POST /api/plans/days/:dayId/exercises
  * Add exercise to a workout day
+ * Verify ownership through plan
  */
 router.post('/days/:dayId/exercises', async (req, res, next) => {
   try {
     const { dayId } = req.params;
     const { exerciseId, sets, reps, restSeconds, orderIndex } = req.body;
+
+    // Verify day ownership through plan
+    const workoutDay = await prisma.workoutDay.findFirst({
+      where: {
+        id: parseInt(dayId),
+        plan: {
+          userId: req.userId
+        }
+      }
+    });
+
+    if (!workoutDay) {
+      return res.status(404).json({
+        error: true,
+        message: 'Workout day not found or access denied',
+        statusCode: 404
+      });
+    }
 
     // Validation
     if (!exerciseId || !sets || !reps || restSeconds === undefined || orderIndex === undefined) {
@@ -339,10 +429,29 @@ router.post('/days/:dayId/exercises', async (req, res, next) => {
 /**
  * DELETE /api/plans/days/:dayId/exercises/:exerciseId
  * Remove exercise from a workout day
+ * Verify ownership through plan
  */
 router.delete('/days/:dayId/exercises/:exerciseId', async (req, res, next) => {
   try {
     const { dayId, exerciseId } = req.params;
+
+    // Verify day ownership through plan
+    const workoutDay = await prisma.workoutDay.findFirst({
+      where: {
+        id: parseInt(dayId),
+        plan: {
+          userId: req.userId
+        }
+      }
+    });
+
+    if (!workoutDay) {
+      return res.status(404).json({
+        error: true,
+        message: 'Workout day not found or access denied',
+        statusCode: 404
+      });
+    }
 
     await prisma.workoutDayExercise.deleteMany({
       where: {
@@ -363,10 +472,29 @@ router.delete('/days/:dayId/exercises/:exerciseId', async (req, res, next) => {
 /**
  * DELETE /api/plans/days/:dayId
  * Delete a workout day
+ * Verify ownership through plan
  */
 router.delete('/days/:dayId', async (req, res, next) => {
   try {
     const { dayId } = req.params;
+
+    // Verify day ownership through plan
+    const workoutDay = await prisma.workoutDay.findFirst({
+      where: {
+        id: parseInt(dayId),
+        plan: {
+          userId: req.userId
+        }
+      }
+    });
+
+    if (!workoutDay) {
+      return res.status(404).json({
+        error: true,
+        message: 'Workout day not found or access denied',
+        statusCode: 404
+      });
+    }
 
     await prisma.workoutDay.delete({
       where: { id: parseInt(dayId) }
@@ -434,15 +562,19 @@ router.post('/import', async (req, res, next) => {
 
     // Use transaction to create plan with all days and exercises
     const plan = await prisma.$transaction(async (tx) => {
-      // Deactivate all existing plans
+      // Deactivate all existing plans for this user
       await tx.workoutPlan.updateMany({
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          userId: req.userId
+        },
         data: { isActive: false }
       });
 
       // Create new plan as active
       const newPlan = await tx.workoutPlan.create({
         data: {
+          userId: req.userId,
           name,
           startDate: startDate ? new Date(startDate) : new Date(),
           endDate: endDate ? new Date(endDate) : null,

@@ -15,8 +15,13 @@ router.get('/:dayId', async (req, res, next) => {
   try {
     const { dayId } = req.params;
 
-    const workoutDay = await prisma.workoutDay.findUnique({
-      where: { id: parseInt(dayId) },
+    const workoutDay = await prisma.workoutDay.findFirst({
+      where: {
+        id: parseInt(dayId),
+        plan: {
+          userId: req.userId
+        }
+      },
       include: {
         muscleGroup: true,
         workoutDayExercises: {
@@ -65,6 +70,24 @@ router.post('/:dayId/exercises', async (req, res, next) => {
       });
     }
 
+    // Verify workout day ownership through plan
+    const workoutDay = await prisma.workoutDay.findFirst({
+      where: {
+        id: parseInt(dayId),
+        plan: {
+          userId: req.userId
+        }
+      }
+    });
+
+    if (!workoutDay) {
+      return res.status(404).json({
+        error: true,
+        message: 'Workout day not found',
+        statusCode: 404
+      });
+    }
+
     const workoutDayExercise = await prisma.workoutDayExercise.create({
       data: {
         workoutDayId: parseInt(dayId),
@@ -96,6 +119,24 @@ router.post('/:dayId/exercises', async (req, res, next) => {
 router.delete('/:dayId', async (req, res, next) => {
   try {
     const { dayId } = req.params;
+
+    // Verify ownership through plan before deleting
+    const workoutDay = await prisma.workoutDay.findFirst({
+      where: {
+        id: parseInt(dayId),
+        plan: {
+          userId: req.userId
+        }
+      }
+    });
+
+    if (!workoutDay) {
+      return res.status(404).json({
+        error: true,
+        message: 'Workout day not found',
+        statusCode: 404
+      });
+    }
 
     await prisma.workoutDay.delete({
       where: { id: parseInt(dayId) }

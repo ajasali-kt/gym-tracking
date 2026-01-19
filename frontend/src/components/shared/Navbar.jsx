@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * Navbar Component
- * Main navigation menu for the application
+ * Main navigation menu for the application with user authentication
  */
 function Navbar() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const navLinks = [
     { path: '/', label: 'Dashboard', icon: '📊' },
@@ -24,6 +28,11 @@ function Navbar() {
     setIsMobileMenuOpen(false);
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   return (
     <nav className="bg-white shadow-md">
       <div className="container mx-auto px-4 max-w-7xl">
@@ -35,7 +44,7 @@ function Navbar() {
           </Link>
 
           {/* Desktop Navigation Links */}
-          <div className="hidden md:flex space-x-1">
+          <div className="hidden md:flex items-center space-x-1">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
@@ -53,6 +62,33 @@ function Navbar() {
                 {link.label}
               </Link>
             ))}
+
+            {/* User Menu - Desktop */}
+            <div className="relative ml-3">
+              <button
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                aria-label="User menu"
+              >
+                <span className="text-sm font-medium">{user?.username}</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown Menu */}
+              {isUserMenuOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-10 border border-gray-200">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    <span className="mr-2">🚪</span>
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -92,6 +128,23 @@ function Navbar() {
                 {link.label}
               </Link>
             ))}
+
+            {/* User Info & Logout - Mobile */}
+            <div className="border-t border-gray-200 mt-2 pt-2">
+              <div className="px-4 py-2 text-sm text-gray-600">
+                Logged in as <span className="font-medium text-gray-900">{user?.username}</span>
+              </div>
+              <button
+                onClick={() => {
+                  handleLinkClick();
+                  handleLogout();
+                }}
+                className="w-full text-left px-4 py-3 rounded-lg font-medium text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+              >
+                <span className="mr-2">🚪</span>
+                Logout
+              </button>
+            </div>
           </div>
         )}
       </div>
