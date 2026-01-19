@@ -306,17 +306,42 @@ where: {
 
 ---
 
-## 📊 Phase 4: Data Migration (PENDING)
+## 📊 Phase 4: Data Migration (MANUAL)
 
-### 4.1 Migration Script ⏳
-**Status**: Pending
-**File**: `backend/scripts/assignUserId.js`
+### 4.1 Database Cleanup ✅
+**Status**: Completed
+**Action Taken**: Removed test user and cleaned database
 
-**Purpose**: Assign existing data to first user before making `userId` required
+**What Was Done**:
+- ✅ Removed test user "testuser" (ID: 1)
+- ✅ Database is now clean and ready for real users
+- ✅ No data migration needed - starting fresh
+
+**Script Used**: `backend/scripts/cleanupTestUser.js`
 
 ### 4.2 Make userId Required ⏳
-**Status**: Pending
-**Changes**: Remove `?` from `userId` fields in schema, run migration
+**Status**: Ready to run (database is clean, no blocking data)
+**Action Required**: Update schema and run migration
+
+**Steps to Complete**:
+1. Update `backend/prisma/schema.prisma`:
+   - Line 78: Change `userId Int?` to `userId Int` in `WorkoutPlan` model
+   - Line 90: Change `user User?` to `user User` in `WorkoutPlan` model
+   - Line 150: Change `userId Int?` to `userId Int` in `WorkoutLog` model
+   - Line 159: Change `user User?` to `user User` in `WorkoutLog` model
+
+2. Run migration:
+   ```bash
+   cd backend
+   npx prisma migrate dev --name make_user_id_required
+   ```
+
+3. Verify migration:
+   ```bash
+   npx prisma studio
+   ```
+
+**Note**: Since the database is clean with no existing data, this migration should run without issues.
 
 ---
 
@@ -410,13 +435,13 @@ await tx.workoutPlan.updateMany({
 - [ ] Active plan is per-user
 - [ ] Create/Update/Delete operations respect ownership
 
-### Frontend Tests (Not Started)
-- [ ] Login redirects to dashboard on success
-- [ ] Protected routes redirect to login when unauthenticated
-- [ ] Tokens stored in localStorage
-- [ ] Logout clears tokens and redirects to login
+### Frontend Tests
+- [x] Login redirects to dashboard on success ✅
+- [x] Protected routes redirect to login when unauthenticated ✅
+- [x] Tokens stored in localStorage ✅
+- [x] Logout clears tokens and redirects to login
 - [ ] Token refresh works on 401
-- [ ] User info displayed in navbar
+- [x] User info displayed in navbar ✅
 
 ---
 
@@ -430,19 +455,20 @@ await tx.workoutPlan.updateMany({
 5. ✅ ~~Update dayExercises.js~~ - COMPLETED
 
 ### Current Priority
-6. **Test frontend authentication flow** - Verify authentication works end-to-end
-   - Test user registration
-   - Test user login
-   - Test protected routes redirect to login
-   - Test logout clears session
-   - Test token refresh on 401
-   - Verify user can only see their own data
+6. ✅ ~~Test frontend authentication flow~~ - COMPLETED
+   - ✅ Test user registration
+   - ✅ Test user login
+   - ✅ Test protected routes redirect to login
+   - ✅ Test logout clears session
+   - ⏳ Test token refresh on 401 (will test after 7 days)
+   - ⏳ Verify user can only see their own data (pending Phase 4)
 
-### Next Steps
-7. **Data migration** - Assign existing data to users (Phase 4)
-   - Create migration script to assign existing data to first user
-   - Make userId required in schema
-   - Run migration
+### Next Steps (Manual)
+7. **Phase 4: Data Migration** - User will manually handle this
+   - **Step 1**: Manually assign existing workout plans and logs to a user using SQL
+   - **Step 2**: Update `prisma/schema.prisma` to make `userId` required (remove `?`)
+   - **Step 3**: Run `npx prisma migrate dev --name make_user_id_required`
+   - **Step 4**: Verify migration with `npx prisma studio`
 
 8. **Final testing** - Complete end-to-end testing with multiple users
    - Register 2+ users

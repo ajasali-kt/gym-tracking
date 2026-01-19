@@ -9,7 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
@@ -19,6 +19,11 @@ function Navbar() {
     { path: '/plans', label: 'Plans', icon: '📅' },
     { path: '/progress', label: 'Progress', icon: '📈' },
   ];
+
+  // Add admin link if user is admin
+  if (isAdmin) {
+    navLinks.push({ path: '/settings/system', label: 'Admin', icon: '⚙️' });
+  }
 
   const isActive = (path) => {
     return location.pathname === path;

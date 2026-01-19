@@ -64,6 +64,7 @@ router.post('/register', [
       select: {
         id: true,
         username: true,
+        userType: true,
         createdAt: true
       }
     });
@@ -142,6 +143,7 @@ router.post('/login', [
       user: {
         id: user.id,
         username: user.username,
+        userType: user.userType,
         createdAt: user.createdAt
       },
       tokens: {
@@ -234,6 +236,7 @@ router.get('/me', authenticate, async (req, res, next) => {
       select: {
         id: true,
         username: true,
+        userType: true,
         createdAt: true
       }
     });

@@ -39,6 +39,7 @@ const authenticate = async (req, res, next) => {
       select: {
         id: true,
         username: true,
+        userType: true,
         createdAt: true
       }
     });
@@ -67,6 +68,42 @@ const authenticate = async (req, res, next) => {
   }
 };
 
+/**
+ * Admin authorization middleware
+ * Checks if authenticated user is an admin (userType === 1)
+ * Must be used after authenticate middleware
+ */
+const isAdmin = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        error: true,
+        message: 'Authentication required',
+        statusCode: 401
+      });
+    }
+
+    if (req.user.userType !== 1) {
+      return res.status(403).json({
+        error: true,
+        message: 'Admin access required',
+        statusCode: 403
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Authorization error:', error);
+
+    return res.status(403).json({
+      error: true,
+      message: 'Authorization failed',
+      statusCode: 403
+    });
+  }
+};
+
 module.exports = {
-  authenticate
+  authenticate,
+  isAdmin
 };

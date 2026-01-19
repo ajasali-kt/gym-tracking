@@ -6,6 +6,7 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 // Auth components
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
+import AdminRoute from './components/Auth/AdminRoute';
 
 // Page imports - these will be created in Phase 5
 import Dashboard from './components/Dashboard/Dashboard';
@@ -15,6 +16,7 @@ import WorkoutPlanDetail from './components/WorkoutPlan/WorkoutPlanDetail';
 import WorkoutLogger from './components/Logging/WorkoutLogger';
 import ManualWorkoutLog from './components/Logging/ManualWorkoutLog';
 import Progress from './components/Progress/Progress';
+import Admin from './components/Admin/Admin';
 
 /**
  * Main Application Component
@@ -53,6 +55,13 @@ function App() {
 
                     {/* Progress Tracking */}
                     <Route path="/progress" element={<Progress />} />
+
+                    {/* Admin Panel - Hidden route (Admin only) */}
+                    <Route path="/settings/system" element={
+                      <AdminRoute>
+                        <Admin />
+                      </AdminRoute>
+                    } />
 
                     {/* Catch all - redirect to dashboard */}
                     <Route path="*" element={<Navigate to="/" replace />} />

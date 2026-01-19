@@ -140,6 +140,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     refreshAccessToken,
     isAuthenticated: !!user,
+    isAdmin: user?.userType === 1,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
