@@ -26,6 +26,7 @@ model User {
   // Relations
   workoutPlans WorkoutPlan[]
   workoutLogs  WorkoutLog[]
+  workoutShares WorkoutShare[]
 
   @@index([username])
   @@map("users")
@@ -188,4 +189,30 @@ model ExerciseLog {
   @@index([workoutLogId])
   @@index([exerciseId])
   @@map("exercise_logs")
+}
+
+// ============================================
+// Model 9: Workout Shares
+// ============================================
+// Shareable links for workout history (date range)
+model WorkoutShare {
+  id        Int       @id @default(autoincrement())
+  token     String    @unique @default(uuid()) @db.Uuid
+  userId    Int       @map("user_id")
+  fromDate  DateTime  @map("from_date") @db.Date
+  toDate    DateTime  @map("to_date") @db.Date
+  expiresAt DateTime? @map("expires_at")
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([isActive])
+  @@index([expiresAt])
+  @@index([createdAt])
+  @@map("workout_shares")
 }

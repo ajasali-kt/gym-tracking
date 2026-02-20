@@ -317,146 +317,148 @@ function ManualWorkoutLog() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-            {isEditMode ? 'Edit Manual Workout' : 'Manual Workout Log'}
-          </h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">
-            {isEditMode ? 'Modify exercises and sets' : 'Log a workout without a predefined plan'}
-          </p>
-        </div>
-        <div className="flex gap-2">
-          {isEditMode && (
+    <>
+      <div className="space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
+              {isEditMode ? 'Edit Manual Workout' : 'Manual Workout Log'}
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              {isEditMode ? 'Modify exercises and sets' : 'Log a workout without a predefined plan'}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            {isEditMode && (
+              <button
+                onClick={handleDeleteWorkout}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm sm:text-base"
+              >
+                Delete
+              </button>
+            )}
             <button
-              onClick={handleDeleteWorkout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm sm:text-base"
+              onClick={() => navigate('/progress')}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm sm:text-base w-full sm:w-auto"
             >
-              Delete
+              Cancel
             </button>
-          )}
-          <button
-            onClick={() => navigate('/progress')}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm sm:text-base w-full sm:w-auto"
-          >
-            Cancel
-          </button>
+          </div>
         </div>
-      </div>
 
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800 font-medium">{error}</p>
-        </div>
-      )}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <p className="text-red-800 font-medium">{error}</p>
+          </div>
+        )}
 
-      {/* Workout Details */}
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
-        <h2 className="text-lg sm:text-xl font-bold text-gray-800">Workout Details</h2>
+        {/* Workout Details */}
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
+          <h2 className="text-lg sm:text-xl font-bold text-gray-800">Workout Details</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Workout Name *
-            </label>
-            <input
-              type="text"
-              value={workoutName}
-              onChange={(e) => setWorkoutName(e.target.value)}
-              placeholder="e.g., Chest & Triceps, Full Body"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Workout Name *
+              </label>
+              <input
+                type="text"
+                value={workoutName}
+                onChange={(e) => setWorkoutName(e.target.value)}
+                placeholder="e.g., Chest & Triceps, Full Body"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Workout Date *
+              </label>
+              <input
+                type="date"
+                value={workoutDate}
+                onChange={(e) => setWorkoutDate(e.target.value)}
+                max={format(new Date(), 'yyyy-MM-dd')}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Workout Date *
+              Notes (Optional)
             </label>
-            <input
-              type="date"
-              value={workoutDate}
-              onChange={(e) => setWorkoutDate(e.target.value)}
-              max={format(new Date(), 'yyyy-MM-dd')}
+            <textarea
+              value={workoutNotes}
+              onChange={(e) => setWorkoutNotes(e.target.value)}
+              placeholder="How did the workout feel? Any observations?"
+              rows="2"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
+            ></textarea>
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Notes (Optional)
-          </label>
-          <textarea
-            value={workoutNotes}
-            onChange={(e) => setWorkoutNotes(e.target.value)}
-            placeholder="How did the workout feel? Any observations?"
-            rows="2"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          ></textarea>
-        </div>
-      </div>
-
-      {/* Selected Exercises */}
-      <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4">
-          <h2 className="text-lg sm:text-xl font-bold text-gray-800">
-            Exercises ({selectedExercises.length})
-          </h2>
-          <button
-            onClick={() => setShowExercisePicker(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm sm:text-base w-full sm:w-auto"
-          >
-            + Add Exercise
-          </button>
-        </div>
-
-        {selectedExercises.length === 0 ? (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <p className="text-gray-600 mb-4">No exercises added yet</p>
+        {/* Selected Exercises */}
+        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-800">
+              Exercises ({selectedExercises.length})
+            </h2>
             <button
               onClick={() => setShowExercisePicker(true)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm sm:text-base w-full sm:w-auto"
             >
-              Add Your First Exercise
+              + Add Exercise
             </button>
           </div>
-        ) : (
-          <div className="space-y-6">
-            {selectedExercises.map((exercise, exIndex) => (
-              <ExerciseLogSection
-                key={exercise.id}
-                exercise={exercise}
-                exerciseIndex={exIndex}
-                sets={exerciseLogs[exercise.id] || []}
-                onUpdateSet={(setIndex, field, value) =>
-                  handleUpdateSet(exercise.id, setIndex, field, value)
-                }
-                onAddSet={() => handleAddSet(exercise.id)}
-                onRemoveSet={(setIndex) => handleRemoveSet(exercise.id, setIndex)}
-                onRemoveExercise={() => handleRemoveExercise(exercise.id)}
-              />
-            ))}
+
+          {selectedExercises.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <p className="text-gray-600 mb-4">No exercises added yet</p>
+              <button
+                onClick={() => setShowExercisePicker(true)}
+                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              >
+                Add Your First Exercise
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {selectedExercises.map((exercise, exIndex) => (
+                <ExerciseLogSection
+                  key={exercise.id}
+                  exercise={exercise}
+                  exerciseIndex={exIndex}
+                  sets={exerciseLogs[exercise.id] || []}
+                  onUpdateSet={(setIndex, field, value) =>
+                    handleUpdateSet(exercise.id, setIndex, field, value)
+                  }
+                  onAddSet={() => handleAddSet(exercise.id)}
+                  onRemoveSet={(setIndex) => handleRemoveSet(exercise.id, setIndex)}
+                  onRemoveExercise={() => handleRemoveExercise(exercise.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Save Button */}
+        {selectedExercises.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <button
+              onClick={handleSaveWorkout}
+              disabled={saving}
+              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
+            >
+              {saving
+                ? (isEditMode ? 'Saving Changes...' : 'Saving Workout...')
+                : (isEditMode ? 'Save Changes' : 'Save Workout')
+              }
+            </button>
           </div>
         )}
       </div>
-
-      {/* Save Button */}
-      {selectedExercises.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
-          <button
-            onClick={handleSaveWorkout}
-            disabled={saving}
-            className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
-          >
-            {saving
-              ? (isEditMode ? 'Saving Changes...' : 'Saving Workout...')
-              : (isEditMode ? 'Save Changes' : 'Save Workout')
-            }
-          </button>
-        </div>
-      )}
 
       {/* Exercise Picker Modal */}
       {showExercisePicker && (
@@ -466,7 +468,7 @@ function ManualWorkoutLog() {
           onClose={() => setShowExercisePicker(false)}
         />
       )}
-    </div>
+    </>
   );
 }
 

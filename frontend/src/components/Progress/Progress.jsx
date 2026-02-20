@@ -4,6 +4,7 @@ import { format, parseISO } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import progressService from '../../services/progressService';
 import exerciseService from '../../services/exerciseService';
+import History from '../History/History';
 
 /**
  * Progress Component
@@ -18,6 +19,9 @@ function Progress() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [dateRange, setDateRange] = useState(30); // Last 30 days
+
+  // Share Progress Modal state
+  const [showShareModal, setShowShareModal] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -90,91 +94,155 @@ function Progress() {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Progress Tracking</h1>
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Link
-            to="/log-manual"
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm sm:text-base text-center"
-          >
-            + Log Manual Workout
-          </Link>
-          <select
-            value={dateRange}
-            onChange={(e) => setDateRange(parseInt(e.target.value))}
-            className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
-          >
-            <option value={7}>Last 7 days</option>
-            <option value={30}>Last 30 days</option>
-            <option value={90}>Last 90 days</option>
-            <option value={365}>Last year</option>
-          </select>
-        </div>
-      </div>
-
-      {/* View Tabs */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="border-b border-gray-200">
-          <div className="flex">
-            <button
-              onClick={() => setView('history')}
-              className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 font-medium transition text-sm sm:text-base ${
-                view === 'history'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+    <>
+      <div className="space-y-4 sm:space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Progress Tracking</h1>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Link
+              to="/log-manual"
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm sm:text-base text-center"
             >
-              <span className="hidden sm:inline">Workout History</span>
-              <span className="sm:hidden">History</span>
-            </button>
+              + Log Manual Workout
+            </Link>
             <button
-              onClick={() => setView('exercise')}
-              className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 font-medium transition text-sm sm:text-base ${
-                view === 'exercise'
-                  ? 'text-blue-600 border-b-2 border-blue-600'
-                  : 'text-gray-600 hover:text-gray-800'
-              }`}
+              onClick={() => setShowShareModal(true)}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-sm sm:text-base text-center"
             >
-              <span className="hidden sm:inline">Exercise Progress</span>
-              <span className="sm:hidden">Progress</span>
+              📜 Share Progress
             </button>
+            <select
+              value={dateRange}
+              onChange={(e) => setDateRange(parseInt(e.target.value))}
+              className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+            >
+              <option value={7}>Last 7 days</option>
+              <option value={30}>Last 30 days</option>
+              <option value={90}>Last 90 days</option>
+              <option value={365}>Last year</option>
+            </select>
           </div>
         </div>
 
-        <div className="p-4 sm:p-6">
-          {view === 'history' ? (
-            <WorkoutHistoryView workouts={workoutHistory} />
-          ) : (
-            <ExerciseProgressView
-              exercises={exercises}
-              selectedExercise={selectedExercise}
-              onSelectExercise={setSelectedExercise}
-              progressData={exerciseProgress}
-            />
-          )}
+        {/* View Tabs */}
+        <div className="bg-white rounded-lg shadow">
+          <div className="border-b border-gray-200">
+            <div className="flex">
+              <button
+                onClick={() => setView('history')}
+                className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 font-medium transition text-sm sm:text-base ${
+                  view === 'history'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <span className="hidden sm:inline">Workout History</span>
+                <span className="sm:hidden">History</span>
+              </button>
+              <button
+                onClick={() => setView('exercise')}
+                className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 font-medium transition text-sm sm:text-base ${
+                  view === 'exercise'
+                    ? 'text-blue-600 border-b-2 border-blue-600'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                <span className="hidden sm:inline">Exercise Progress</span>
+                <span className="sm:hidden">Progress</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="p-4 sm:p-6">
+            {view === 'history' ? (
+              <WorkoutHistoryView workouts={workoutHistory} />
+            ) : (
+              <ExerciseProgressView
+                exercises={exercises}
+                selectedExercise={selectedExercise}
+                onSelectExercise={setSelectedExercise}
+                progressData={exerciseProgress}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Summary Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-sm font-medium text-gray-600">Total Workouts</h3>
+            <p className="text-3xl font-bold text-gray-800 mt-2">{workoutHistory.length}</p>
+            <p className="text-sm text-gray-500 mt-1">In last {dateRange} days</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-sm font-medium text-gray-600">Exercises Tracked</h3>
+            <p className="text-3xl font-bold text-gray-800 mt-2">{exercises.length}</p>
+            <p className="text-sm text-gray-500 mt-1">In library</p>
+          </div>
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-sm font-medium text-gray-600">Consistency</h3>
+            <p className="text-3xl font-bold text-gray-800 mt-2">
+              {dateRange > 0 ? Math.round((workoutHistory.length / dateRange) * 7) : 0}x/week
+            </p>
+            <p className="text-sm text-gray-500 mt-1">Average frequency</p>
+          </div>
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600">Total Workouts</h3>
-          <p className="text-3xl font-bold text-gray-800 mt-2">{workoutHistory.length}</p>
-          <p className="text-sm text-gray-500 mt-1">In last {dateRange} days</p>
+      {/* Share Progress Modal */}
+      {showShareModal && (
+        <ShareProgressModal onClose={() => setShowShareModal(false)} />
+      )}
+    </>
+  );
+}
+
+/**
+ * Share Progress Modal Component
+ * Modal wrapper for the History component following app modal pattern
+ */
+function ShareProgressModal({ onClose }) {
+  return (
+    <div
+      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-4 sm:px-6 py-3 sm:py-4 text-white flex justify-between items-start rounded-t-lg flex-shrink-0">
+          <div>
+            <h2 className="text-xl sm:text-2xl font-bold">Workout History</h2>
+            <p className="text-purple-100 mt-1 text-sm hidden sm:block">
+              View and share your workout history for any date range
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white hover:text-gray-200 transition p-1"
+          >
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600">Exercises Tracked</h3>
-          <p className="text-3xl font-bold text-gray-800 mt-2">{exercises.length}</p>
-          <p className="text-sm text-gray-500 mt-1">In library</p>
+
+        {/* Content - Scrollable */}
+        <div className="overflow-y-auto flex-1 p-4 sm:p-6">
+          <History />
         </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600">Consistency</h3>
-          <p className="text-3xl font-bold text-gray-800 mt-2">
-            {dateRange > 0 ? Math.round((workoutHistory.length / dateRange) * 7) : 0}x/week
-          </p>
-          <p className="text-sm text-gray-500 mt-1">Average frequency</p>
+
+        {/* Footer */}
+        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm sm:text-base"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -383,9 +451,12 @@ function ExerciseProgressView({ exercises, selectedExercise, onSelectExercise, p
     );
   }
 
+  // Use workout completion date when available (supports backdated/manual logs)
+  const getLogDate = (log) => log?.workoutLog?.completedDate || log.createdAt;
+
   // Prepare chart data
   const chartData = progressData.map(log => ({
-    date: format(parseISO(log.createdAt), 'MMM d'),
+    date: format(parseISO(getLogDate(log)), 'MMM d'),
     weight: parseFloat(log.weightKg),
     reps: log.repsCompleted,
     volume: parseFloat(log.weightKg) * log.repsCompleted
@@ -502,7 +573,7 @@ function ExerciseProgressView({ exercises, selectedExercise, onSelectExercise, p
                   {progressData.slice(0, 10).map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-gray-800">
-                        {format(parseISO(log.createdAt), 'MMM d, yyyy')}
+                        {format(parseISO(getLogDate(log)), 'MMM d, yyyy')}
                       </td>
                       <td className="px-4 py-3 text-gray-800">{log.setNumber}</td>
                       <td className="px-4 py-3 text-gray-800">{log.repsCompleted}</td>

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import apiClient from '../../services/api';
+import SharesManagement from './SharesManagement';
 
 function Admin() {
+  const [activeTab, setActiveTab] = useState('data');
   const [muscleGroupsJson, setMuscleGroupsJson] = useState('');
   const [exercisesJson, setExercisesJson] = useState('');
   const [muscleGroupsResult, setMuscleGroupsResult] = useState(null);
@@ -154,7 +156,7 @@ function Admin() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h1>
-          <p className="text-gray-600 mb-4">Import muscle groups and exercises from JSON</p>
+          <p className="text-gray-600 mb-4">Manage database and share links</p>
 
           {/* Info Banner */}
           <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
@@ -172,10 +174,44 @@ function Admin() {
             </div>
           </div>
 
-          {/* Database Stats */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Database Statistics</h2>
+          {/* Tabs */}
+          <div className="border-b border-gray-200 mb-6">
+            <nav className="-mb-px flex space-x-8">
+              <button
+                onClick={() => setActiveTab('data')}
+                className={`${
+                  activeTab === 'data'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              >
+                Data Management
+              </button>
+              <button
+                onClick={() => setActiveTab('shares')}
+                className={`${
+                  activeTab === 'shares'
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+              >
+                Share Links
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* Tab Content */}
+        {activeTab === 'shares' ? (
+          <SharesManagement />
+        ) : (
+          <>
+            {/* Data Management Tab Content */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              {/* Database Stats */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Database Statistics</h2>
               <button
                 onClick={fetchStats}
                 disabled={loading}
@@ -213,109 +249,111 @@ function Admin() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Import Muscle Groups */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Import Muscle Groups</h2>
-            <button
-              onClick={loadSampleMuscleGroups}
-              className="text-blue-600 hover:text-blue-800 text-sm underline"
-            >
-              Load Sample JSON
-            </button>
-          </div>
-
-          <p className="text-sm text-gray-600 mb-4">
-            Paste JSON with format: {`{ "muscleGroups": [{ "name": "Chest", "description": "..." }] }`}
-          </p>
-
-          <textarea
-            value={muscleGroupsJson}
-            onChange={(e) => setMuscleGroupsJson(e.target.value)}
-            placeholder='{"muscleGroups": [{"name": "Chest", "description": "Pectoral muscles"}]}'
-            className="w-full h-48 p-3 border border-gray-300 rounded-md font-mono text-sm mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
-
-          <button
-            onClick={importMuscleGroups}
-            disabled={loading || !muscleGroupsJson}
-            className="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:bg-gray-400 transition-colors font-semibold"
-          >
-            {loading ? 'Importing...' : 'Import Muscle Groups'}
-          </button>
-
-          {muscleGroupsResult && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-md">
-              <h3 className="font-semibold mb-2 text-gray-900">Result:</h3>
-              <pre className="text-sm overflow-x-auto text-gray-700">
-                {JSON.stringify(muscleGroupsResult, null, 2)}
-              </pre>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Import Exercises */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">Import Exercises</h2>
-            <button
-              onClick={loadSampleExercises}
-              className="text-blue-600 hover:text-blue-800 text-sm underline"
-            >
-              Load Sample JSON
-            </button>
-          </div>
+            {/* Import Muscle Groups */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Import Muscle Groups</h2>
+                <button
+                  onClick={loadSampleMuscleGroups}
+                  className="text-blue-600 hover:text-blue-800 text-sm underline"
+                >
+                  Load Sample JSON
+                </button>
+              </div>
 
-          <p className="text-sm text-gray-600 mb-4">
-            Paste JSON with format: {`{ "exercises": [{ "name": "Bench Press", "muscleGroupName": "Chest", ... }] }`}
-          </p>
+              <p className="text-sm text-gray-600 mb-4">
+                Paste JSON with format: {`{ "muscleGroups": [{ "name": "Chest", "description": "..." }] }`}
+              </p>
 
-          <p className="text-xs text-yellow-700 mb-4 bg-yellow-50 p-2 rounded">
-            <strong>Note:</strong> Import muscle groups first! Exercises reference muscle groups by name.
-          </p>
+              <textarea
+                value={muscleGroupsJson}
+                onChange={(e) => setMuscleGroupsJson(e.target.value)}
+                placeholder='{"muscleGroups": [{"name": "Chest", "description": "Pectoral muscles"}]}'
+                className="w-full h-48 p-3 border border-gray-300 rounded-md font-mono text-sm mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
 
-          <textarea
-            value={exercisesJson}
-            onChange={(e) => setExercisesJson(e.target.value)}
-            placeholder='{"exercises": [{"name": "Bench Press", "muscleGroupName": "Chest", "description": "...", "steps": [...]}]}'
-            className="w-full h-64 p-3 border border-gray-300 rounded-md font-mono text-sm mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          />
+              <button
+                onClick={importMuscleGroups}
+                disabled={loading || !muscleGroupsJson}
+                className="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:bg-gray-400 transition-colors font-semibold"
+              >
+                {loading ? 'Importing...' : 'Import Muscle Groups'}
+              </button>
 
-          <button
-            onClick={importExercises}
-            disabled={loading || !exercisesJson}
-            className="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:bg-gray-400 transition-colors font-semibold"
-          >
-            {loading ? 'Importing...' : 'Import Exercises'}
-          </button>
-
-          {exercisesResult && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-md">
-              <h3 className="font-semibold mb-2 text-gray-900">Result:</h3>
-              <pre className="text-sm overflow-x-auto text-gray-700">
-                {JSON.stringify(exercisesResult, null, 2)}
-              </pre>
+              {muscleGroupsResult && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                  <h3 className="font-semibold mb-2 text-gray-900">Result:</h3>
+                  <pre className="text-sm overflow-x-auto text-gray-700">
+                    {JSON.stringify(muscleGroupsResult, null, 2)}
+                  </pre>
+                </div>
+              )}
             </div>
-          )}
-        </div>
 
-        {/* Danger Zone */}
-        <div className="bg-white rounded-lg shadow-md p-6 border-2 border-red-200">
-          <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            This action will delete all data from the database. This cannot be undone!
-          </p>
-          <button
-            onClick={clearAllData}
-            disabled={loading}
-            className="bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 disabled:bg-gray-400 transition-colors font-semibold"
-          >
-            {loading ? 'Clearing...' : 'Clear All Data'}
-          </button>
-        </div>
+            {/* Import Exercises */}
+            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">Import Exercises</h2>
+                <button
+                  onClick={loadSampleExercises}
+                  className="text-blue-600 hover:text-blue-800 text-sm underline"
+                >
+                  Load Sample JSON
+                </button>
+              </div>
+
+              <p className="text-sm text-gray-600 mb-4">
+                Paste JSON with format: {`{ "exercises": [{ "name": "Bench Press", "muscleGroupName": "Chest", ... }] }`}
+              </p>
+
+              <p className="text-xs text-yellow-700 mb-4 bg-yellow-50 p-2 rounded">
+                <strong>Note:</strong> Import muscle groups first! Exercises reference muscle groups by name.
+              </p>
+
+              <textarea
+                value={exercisesJson}
+                onChange={(e) => setExercisesJson(e.target.value)}
+                placeholder='{"exercises": [{"name": "Bench Press", "muscleGroupName": "Chest", "description": "...", "steps": [...]}]}'
+                className="w-full h-64 p-3 border border-gray-300 rounded-md font-mono text-sm mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+
+              <button
+                onClick={importExercises}
+                disabled={loading || !exercisesJson}
+                className="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:bg-gray-400 transition-colors font-semibold"
+              >
+                {loading ? 'Importing...' : 'Import Exercises'}
+              </button>
+
+              {exercisesResult && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-md">
+                  <h3 className="font-semibold mb-2 text-gray-900">Result:</h3>
+                  <pre className="text-sm overflow-x-auto text-gray-700">
+                    {JSON.stringify(exercisesResult, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            {/* Danger Zone */}
+            <div className="bg-white rounded-lg shadow-md p-6 border-2 border-red-200">
+              <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
+              <p className="text-sm text-gray-600 mb-4">
+                This action will delete all data from the database. This cannot be undone!
+              </p>
+              <button
+                onClick={clearAllData}
+                disabled={loading}
+                className="bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 disabled:bg-gray-400 transition-colors font-semibold"
+              >
+                {loading ? 'Clearing...' : 'Clear All Data'}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

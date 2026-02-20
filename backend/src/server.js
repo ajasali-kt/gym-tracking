@@ -17,6 +17,8 @@ const dashboardRoutes = require('./routes/dashboard');
 const loggingRoutes = require('./routes/logging');
 const progressRoutes = require('./routes/progress');
 const adminRoutes = require('./routes/admin');
+const historyRoutes = require('./routes/history');
+const shareRoutes = require('./routes/share');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -61,6 +63,10 @@ app.use('/api/day-exercises', authenticate, dayExercisesRoutes);
 app.use('/api/dashboard', authenticate, dashboardRoutes);
 app.use('/api/logs', authenticate, loggingRoutes);
 app.use('/api/progress', authenticate, progressRoutes);
+app.use('/api/history', authenticate, historyRoutes);
+
+// API Routes - Share (public and protected)
+app.use('/api/share', shareRoutes);
 
 // API Routes - Admin (keep unprotected for now)
 app.use('/api/admin', adminRoutes);
