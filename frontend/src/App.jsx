@@ -17,6 +17,7 @@ import WorkoutLogger from './components/Logging/WorkoutLogger';
 import ManualWorkoutLog from './components/Logging/ManualWorkoutLog';
 import Progress from './components/Progress/Progress';
 import Admin from './components/Admin/Admin';
+import ShareView from './components/Share/ShareView';
 
 /**
  * Main Application Component
@@ -30,6 +31,9 @@ function App() {
           {/* Public Routes - Auth */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+
+          {/* Public Routes - Share (no auth required) */}
+          <Route path="/share/:token" element={<ShareView />} />
 
           {/* Protected Routes - Wrapped in Layout */}
           <Route

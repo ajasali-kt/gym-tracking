@@ -122,7 +122,10 @@ router.get('/exercise/:id', async (req, res, next) => {
         }
       },
       take: limit ? parseInt(limit) : 50,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { workoutLog: { completedDate: 'desc' } },
+        { createdAt: 'desc' }
+      ],
       include: {
         workoutLog: {
           select: {

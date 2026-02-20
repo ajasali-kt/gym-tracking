@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -12,6 +12,8 @@ function Navbar() {
   const { user, logout, isAdmin } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
+  const userMenuCloseTimerRef = useRef(null);
 
   const navLinks = [
     { path: '/', label: 'Dashboard', icon: '📊' },
@@ -35,8 +37,46 @@ function Navbar() {
 
   const handleLogout = async () => {
     await logout();
+    setIsUserMenuOpen(false);
     navigate('/login');
   };
+
+  const cancelUserMenuClose = () => {
+    if (userMenuCloseTimerRef.current) {
+      clearTimeout(userMenuCloseTimerRef.current);
+      userMenuCloseTimerRef.current = null;
+    }
+  };
+
+  const scheduleUserMenuClose = () => {
+    cancelUserMenuClose();
+    userMenuCloseTimerRef.current = setTimeout(() => {
+      setIsUserMenuOpen(false);
+    }, 150);
+  };
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!userMenuRef.current?.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape') {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('keydown', handleEscape);
+      cancelUserMenuClose();
+    };
+  }, []);
 
   return (
     <nav className="bg-white shadow-md">
@@ -69,11 +109,17 @@ function Navbar() {
             ))}
 
             {/* User Menu - Desktop */}
-            <div className="relative ml-3">
+            <div ref={userMenuRef} className="relative ml-3">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                className="flex items-center space-x-2 px-3 py-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                onMouseEnter={cancelUserMenuClose}
+                onMouseLeave={scheduleUserMenuClose}
+                className={`
+                  flex items-center space-x-2 px-3 lg:px-4 py-2 rounded-lg font-medium transition-colors duration-200
+                  ${isUserMenuOpen ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}
+                `}
                 aria-label="User menu"
+                aria-expanded={isUserMenuOpen}
               >
                 <span className="text-sm font-medium">{user?.username}</span>
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,10 +129,14 @@ function Navbar() {
 
               {/* Dropdown Menu */}
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-10 border border-gray-200">
+                <div
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-10 border border-gray-200"
+                  onMouseEnter={cancelUserMenuClose}
+                  onMouseLeave={scheduleUserMenuClose}
+                >
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="w-full text-left px-4 py-2 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
                   >
                     <span className="mr-2">🚪</span>
                     Logout
