@@ -88,7 +88,7 @@ const SharesManagement = () => {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="card p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label htmlFor="statusFilter" className="block text-sm font-medium text-gray-700 mb-2">
@@ -123,7 +123,7 @@ const SharesManagement = () => {
           <div className="flex items-end">
             <button
               onClick={handleApplyFilters}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-medium"
+              className="w-full px-4 py-2 btn-primary font-medium"
             >
               Apply Filters
             </button>
@@ -140,16 +140,16 @@ const SharesManagement = () => {
 
       {/* Shares Table */}
       {loading ? (
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+        <div className="card p-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading shares...</p>
         </div>
       ) : shares.length === 0 ? (
-        <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+        <div className="card p-8 text-center">
           <p className="text-gray-500">No shares found</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
@@ -266,3 +266,4 @@ const SharesManagement = () => {
 };
 
 export default SharesManagement;
+

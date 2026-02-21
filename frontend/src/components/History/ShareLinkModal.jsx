@@ -1,8 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
+import useAccessibleModal from '../../hooks/useAccessibleModal';
 
 const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) => {
   const [expiresIn, setExpiresIn] = useState(30);
   const [copied, setCopied] = useState(false);
+  const modalRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
 
   const handleCopyLink = () => {
     if (shareData?.shareUrl) {
@@ -18,19 +22,29 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="share-link-title"
+        tabIndex={-1}
+        className="card max-w-md w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="px-6 py-4 bg-green-600 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">
+            <h3 id="share-link-title" className="text-lg font-semibold">
               {shareData
                 ? (shareData.renewed ? 'Share Link Renewed' : (shareData.reused ? 'Existing Share Link' : 'Share Link Generated'))
                 : 'Generate Share Link'}
             </h3>
             <button
+              ref={closeBtnRef}
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600"
+              aria-label="Close share link dialog"
             >
               <svg className="w-6 h-6 text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -53,10 +67,11 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
 
               {/* Expiration Selector */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="share-link-expiry" className="block text-sm font-medium text-gray-700 mb-2">
                   Link Expiration
                 </label>
                 <select
+                  id="share-link-expiry"
                   value={expiresIn}
                   onChange={(e) => setExpiresIn(Number(e.target.value))}
                   className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -96,11 +111,12 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
 
               {/* Share Link */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="share-link-url" className="block text-sm font-medium text-gray-700 mb-2">
                   Share URL
                 </label>
                 <div className="flex space-x-2">
                   <input
+                    id="share-link-url"
                     type="text"
                     value={shareData.shareUrl}
                     readOnly
@@ -157,7 +173,7 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
         <div className="px-6 py-4 border-t border-gray-200 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm sm:text-base"
+            className="px-4 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 text-sm sm:text-base"
           >
             Close
           </button>
@@ -168,3 +184,4 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
 };
 
 export default ShareLinkModal;
+

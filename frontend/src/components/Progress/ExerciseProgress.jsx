@@ -50,7 +50,7 @@ function ExerciseProgress() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-gray-800">Exercise Progress</h1>
-        <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="card p-8 text-center">
           <div className="animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
@@ -68,7 +68,7 @@ function ExerciseProgress() {
           <p className="text-red-800 font-medium">Error: {error}</p>
           <button
             onClick={fetchExercises}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="mt-4 px-4 py-2 btn-danger"
           >
             Try Again
           </button>
@@ -88,7 +88,7 @@ function ExerciseProgress() {
           </p>
           <Link
             to="/plans"
-            className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-block px-6 py-2 btn-primary"
           >
             Create Workout Plan
           </Link>
@@ -109,7 +109,7 @@ function ExerciseProgress() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Exercise List */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="card overflow-hidden">
             <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
               <h2 className="text-lg font-bold text-white">Select Exercise</h2>
             </div>
@@ -145,7 +145,7 @@ function ExerciseProgress() {
           )}
 
           {loadingDetails && (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
+            <div className="card p-8 text-center">
               <div className="animate-pulse">
                 <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
                 <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
@@ -156,7 +156,7 @@ function ExerciseProgress() {
           {exerciseData && !loadingDetails && (
             <div className="space-y-6">
               {/* Exercise Info */}
-              <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="card overflow-hidden">
                 <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4">
                   <h2 className="text-2xl font-bold text-white">{exerciseData.exercise.name}</h2>
                   <p className="text-green-100 mt-1">{exerciseData.exercise.muscleGroup?.name || 'General'}</p>
@@ -168,7 +168,7 @@ function ExerciseProgress() {
 
               {/* Statistics */}
               {exerciseData.statistics && (
-                <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="card p-6">
                   <h3 className="text-lg font-bold text-gray-800 mb-4">Statistics</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="bg-blue-50 rounded-lg p-4 text-center">
@@ -193,7 +193,7 @@ function ExerciseProgress() {
 
               {/* Recent Logs */}
               {exerciseData.logs && exerciseData.logs.length > 0 && (
-                <div className="bg-white rounded-lg shadow-md p-6">
+                <div className="card p-6">
                   <h3 className="text-lg font-bold text-gray-800 mb-4">Recent Activity</h3>
                   <div className="space-y-3">
                     {exerciseData.logs.slice(0, 10).map((log) => (
@@ -232,7 +232,7 @@ function ExerciseProgress() {
                   <p className="text-gray-600">No activity logged for this exercise yet.</p>
                   <Link
                     to="/dashboard"
-                    className="inline-block mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                    className="inline-block mt-4 px-6 py-2 btn-primary"
                   >
                     Start Tracking
                   </Link>
@@ -247,3 +247,4 @@ function ExerciseProgress() {
 }
 
 export default ExerciseProgress;
+

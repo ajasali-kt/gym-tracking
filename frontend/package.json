@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
+    "lint:eslint": "eslint src --ext js,jsx --report-unused-disable-directives",
+    "lint:styles": "node tools/check-design-primitives.mjs",
+    "lint": "npm run lint:eslint && npm run lint:styles",
+    "codemod:styles": "node tools/codemods/replace-style-primitives.mjs"
   },
   "dependencies": {
     "react": "^18.2.0",

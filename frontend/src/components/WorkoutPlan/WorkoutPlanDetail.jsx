@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import workoutService from '../../services/workoutService';
 import exerciseService from '../../services/exerciseService';
+import useAccessibleModal from '../../hooks/useAccessibleModal';
 
 /**
  * Workout Plan Detail Component
@@ -54,7 +55,7 @@ function WorkoutPlanDetail() {
       <>
         <div className="space-y-6">
           <h1 className="text-3xl font-bold text-gray-800">Plan Details</h1>
-          <div className="bg-white rounded-lg shadow p-8 text-center">
+          <div className="card p-8 text-center">
             <div className="animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
               <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
@@ -74,7 +75,7 @@ function WorkoutPlanDetail() {
             <p className="text-red-800 font-medium">Error: {error}</p>
             <button
               onClick={fetchPlanDetails}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 mr-2"
+              className="mt-4 px-4 py-2 btn-danger mr-2"
             >
               Try Again
             </button>
@@ -186,13 +187,13 @@ function WorkoutPlanDetail() {
                 setSelectedDayNumber(null);
                 setShowAddDayModal(true);
               }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="px-4 py-2 btn-primary transition"
             >
               + Add Day
             </button>
             <button
               onClick={() => navigate('/plans')}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+              className="px-4 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition"
             >
               Back to Plans
             </button>
@@ -221,7 +222,7 @@ function WorkoutPlanDetail() {
                 setSelectedDayNumber(null);
                 setShowAddDayModal(true);
               }}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-6 py-2 btn-primary"
             >
               Add Your First Day
             </button>
@@ -315,7 +316,7 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
           </div>
           <button
             onClick={onAddDay}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm"
+            className="px-4 py-2 btn-primary transition text-sm"
           >
             + Add Workout
           </button>
@@ -420,7 +421,7 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
 /**
  * Add Day Modal Component
  */
-function AddDayModal({ planId, plan, planDates, numberOfDays, existingDays, initialDayNumber, onClose, onSuccess }) {
+function AddDayModal({ planId, planDates, existingDays, initialDayNumber, onClose, onSuccess }) {
   const [muscleGroups, setMuscleGroups] = useState([]);
   const [formData, setFormData] = useState({
     dayNumber: initialDayNumber || 1,
@@ -429,6 +430,9 @@ function AddDayModal({ planId, plan, planDates, numberOfDays, existingDays, init
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const modalRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
 
   useEffect(() => {
     fetchMuscleGroups();
@@ -471,12 +475,22 @@ function AddDayModal({ planId, plan, planDates, numberOfDays, existingDays, init
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-md w-full"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-day-title"
+        tabIndex={-1}
+        className="card max-w-md w-full"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Add Workout Day</h2>
-          <button onClick={onClose} className="text-white hover:text-gray-200">
+          <h2 id="add-day-title" className="text-2xl font-bold">Add Workout Day</h2>
+          <button
+            ref={closeBtnRef}
+            onClick={onClose}
+            className="text-white hover:text-gray-200"
+            aria-label="Close add workout day modal"
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -491,14 +505,15 @@ function AddDayModal({ planId, plan, planDates, numberOfDays, existingDays, init
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="add-day-number" className="block text-sm font-medium text-gray-700 mb-2">
               Select Day *
             </label>
             <select
+              id="add-day-number"
               required
               value={formData.dayNumber}
               onChange={(e) => setFormData({ ...formData, dayNumber: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="input-field"
             >
               {planDates.map((actualDate, index) => {
                 const dateStr = format(actualDate, 'EEEE, MMM d, yyyy'); // e.g., "Monday, Jan 15, 2026"
@@ -517,27 +532,29 @@ function AddDayModal({ planId, plan, planDates, numberOfDays, existingDays, init
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="add-day-name" className="block text-sm font-medium text-gray-700 mb-2">
               Day Name *
             </label>
             <input
+              id="add-day-name"
               type="text"
               required
               value={formData.dayName}
               onChange={(e) => setFormData({ ...formData, dayName: e.target.value })}
               placeholder="e.g., Chest Day, Leg Day"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="input-field"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="add-day-muscle-group" className="block text-sm font-medium text-gray-700 mb-2">
               Primary Muscle Group (Optional)
             </label>
             <select
+              id="add-day-muscle-group"
               value={formData.muscleGroupId}
               onChange={(e) => setFormData({ ...formData, muscleGroupId: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="input-field"
             >
               <option value="">None</option>
               {muscleGroups.map(group => (
@@ -550,14 +567,14 @@ function AddDayModal({ planId, plan, planDates, numberOfDays, existingDays, init
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+              className="flex-1 px-4 py-2 btn-secondary"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              className="flex-1 px-4 py-2 btn-primary disabled:opacity-50"
             >
               {loading ? 'Adding...' : 'Add Day'}
             </button>
@@ -575,6 +592,9 @@ function EditDayModal({ workoutDay, onClose, onSuccess }) {
   const [exercises, setExercises] = useState([]);
   const [assignments, setAssignments] = useState(workoutDay.workoutDayExercises || []);
   const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
+  const modalRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
 
   useEffect(() => {
     fetchExercises();
@@ -618,15 +638,25 @@ function EditDayModal({ workoutDay, onClose, onSuccess }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-day-title"
+        tabIndex={-1}
+        className="card max-w-4xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white flex justify-between items-center rounded-t-lg flex-shrink-0">
           <div>
-            <h2 className="text-2xl font-bold">Edit {workoutDay.dayName}</h2>
+            <h2 id="edit-day-title" className="text-2xl font-bold">Edit {workoutDay.dayName}</h2>
             <p className="text-blue-100 text-sm">Day {workoutDay.dayNumber}</p>
           </div>
-          <button onClick={onClose} className="text-white hover:text-gray-200">
+          <button
+            ref={closeBtnRef}
+            onClick={onClose}
+            className="text-white hover:text-gray-200"
+            aria-label="Close edit workout day modal"
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -638,7 +668,7 @@ function EditDayModal({ workoutDay, onClose, onSuccess }) {
             <h3 className="text-lg font-semibold text-gray-800">Exercises ({assignments.length})</h3>
             <button
               onClick={() => setShowAddExerciseModal(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-4 py-2 btn-primary"
             >
               + Add Exercise
             </button>
@@ -649,7 +679,7 @@ function EditDayModal({ workoutDay, onClose, onSuccess }) {
               <p className="text-gray-600 mb-4">No exercises added yet</p>
               <button
                 onClick={() => setShowAddExerciseModal(true)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-6 py-2 btn-primary"
               >
                 Add First Exercise
               </button>
@@ -690,7 +720,7 @@ function EditDayModal({ workoutDay, onClose, onSuccess }) {
                     </div>
                     <button
                       onClick={() => handleRemoveExercise(assignment.id)}
-                      className="ml-4 px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                      className="ml-4 px-3 py-1 btn-danger text-sm"
                     >
                       Remove
                     </button>
@@ -725,6 +755,9 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
   });
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const modalRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
 
   const availableExercises = exercises.filter(ex => !existingExerciseIds.includes(ex.id));
   const filteredExercises = availableExercises.filter(ex =>
@@ -749,12 +782,22 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="add-exercise-title"
+        tabIndex={-1}
+        className="card max-w-2xl w-full"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-white flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Add Exercise</h2>
-          <button onClick={onClose} className="text-white hover:text-gray-200">
+          <h2 id="add-exercise-title" className="text-2xl font-bold">Add Exercise</h2>
+          <button
+            ref={closeBtnRef}
+            onClick={onClose}
+            className="text-white hover:text-gray-200"
+            aria-label="Close add exercise modal"
+          >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -763,24 +806,26 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="search-exercise-input" className="block text-sm font-medium text-gray-700 mb-2">
               Search Exercise *
             </label>
             <input
+              id="search-exercise-input"
               type="text"
               placeholder="Search exercises..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 mb-2"
+              className="input-field mb-2"
             />
             <select
+              id="select-exercise-input"
               required
               value={formData.exerciseId}
               onChange={(e) => {
                 setFormData({ ...formData, exerciseId: e.target.value });
                 setSelectedExercise(exercises.find(ex => ex.id === parseInt(e.target.value)));
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+              className="input-field"
               size="5"
             >
               <option value="">Select an exercise...</option>
@@ -801,37 +846,40 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="add-exercise-sets" className="block text-sm font-medium text-gray-700 mb-2">
                 Sets *
               </label>
               <input
+                id="add-exercise-sets"
                 type="number"
                 required
                 min="1"
                 max="10"
                 value={formData.sets}
                 onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="input-field"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="add-exercise-reps" className="block text-sm font-medium text-gray-700 mb-2">
                 Reps *
               </label>
               <input
+                id="add-exercise-reps"
                 type="text"
                 required
                 value={formData.reps}
                 onChange={(e) => setFormData({ ...formData, reps: e.target.value })}
                 placeholder="e.g., 10 or 8-12"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="input-field"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="add-exercise-rest" className="block text-sm font-medium text-gray-700 mb-2">
                 Rest (sec) *
               </label>
               <input
+                id="add-exercise-rest"
                 type="number"
                 required
                 min="30"
@@ -839,7 +887,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
                 step="15"
                 value={formData.restSeconds}
                 onChange={(e) => setFormData({ ...formData, restSeconds: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                className="input-field"
               />
             </div>
           </div>
@@ -848,7 +896,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+              className="flex-1 px-4 py-2 btn-secondary"
             >
               Cancel
             </button>
@@ -866,3 +914,4 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
 }
 
 export default WorkoutPlanDetail;
+

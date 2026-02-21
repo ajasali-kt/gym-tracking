@@ -3,19 +3,94 @@
 @tailwind utilities;
 
 /* Global styles */
+:root {
+  --color-primary: #2563eb;
+  --color-success: #16a34a;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+
+  --gray-900: #0f172a;
+  --gray-700: #334155;
+  --gray-500: #64748b;
+  --gray-300: #cbd5e1;
+  --gray-100: #f1f5f9;
+  --white: #ffffff;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+}
+
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: Inter, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--gray-100);
+  color: var(--gray-900);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* DLS typography alignment */
+.text-3xl {
+  font-size: 1.75rem !important;
+  line-height: 1.2 !important;
+}
+
+.text-2xl {
+  font-size: 1.375rem !important;
+  line-height: 1.25 !important;
+}
+
+/* DLS touch target rule */
+button,
+a.btn-primary,
+a.btn-secondary,
+a.btn-danger,
+a[class*=' py-'],
+input,
+select {
+  min-height: 44px;
+}
+
+/* DLS card rule: flat by default */
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl {
+  box-shadow: none !important;
+}
+
+.hover\:shadow-md:hover,
+.hover\:shadow-lg:hover,
+.hover\:shadow-xl:hover {
+  box-shadow: 0 8px 18px -14px rgb(15 23 42 / 30%) !important;
+}
+
+/* Map non-DLS accent usage to primary to keep palette consistent */
+.bg-purple-50 { background-color: #eff6ff !important; }
+.bg-purple-100 { background-color: #dbeafe !important; }
+.bg-purple-600 { background-color: var(--color-primary) !important; }
+.bg-purple-700 { background-color: #1d4ed8 !important; }
+.text-purple-100 { color: #dbeafe !important; }
+.text-purple-600,
+.text-purple-700,
+.text-purple-800,
+.text-purple-900 { color: var(--color-primary) !important; }
+.border-purple-200 { border-color: #bfdbfe !important; }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
@@ -38,19 +113,19 @@ code {
 /* Utility classes */
 @layer components {
   .btn-primary {
-    @apply px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base;
+    @apply inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-medium text-sm sm:text-base;
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm sm:text-base;
+    @apply inline-flex items-center justify-center px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium text-sm sm:text-base;
   }
 
   .btn-danger {
-    @apply px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm sm:text-base;
+    @apply inline-flex items-center justify-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200 font-medium text-sm sm:text-base;
   }
 
   .card {
-    @apply bg-white rounded-lg shadow-md p-4 sm:p-6;
+    @apply bg-white rounded-lg border border-gray-300 p-4;
   }
 
   .input-field {
@@ -59,6 +134,18 @@ code {
 
   .label {
     @apply block text-xs sm:text-sm font-medium text-gray-700 mb-1;
+  }
+
+  .empty-state {
+    @apply bg-gray-50 border border-gray-300 rounded-lg p-8 text-center;
+  }
+
+  .alert-error {
+    @apply bg-red-50 border border-red-200 rounded-lg p-4 text-red-800;
+  }
+
+  .app-surface {
+    @apply bg-white border border-gray-300 rounded-lg;
   }
 }
 
