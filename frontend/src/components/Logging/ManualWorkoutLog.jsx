@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import exerciseService from '../../services/exerciseService';
 import progressService from '../../services/progressService';
+import useAccessibleModal from '../../hooks/useAccessibleModal';
 
 /**
  * Manual Workout Log Component
@@ -289,7 +290,7 @@ function ManualWorkoutLog() {
         <h1 className="text-3xl font-bold text-gray-800">
           {isEditMode ? 'Edit Manual Workout' : 'Manual Workout Log'}
         </h1>
-        <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="card p-8 text-center">
           <div className="animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
@@ -333,14 +334,14 @@ function ManualWorkoutLog() {
             {isEditMode && (
               <button
                 onClick={handleDeleteWorkout}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm sm:text-base"
+                className="px-4 py-2 btn-danger transition text-sm sm:text-base"
               >
                 Delete
               </button>
             )}
             <button
               onClick={() => navigate('/progress')}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition text-sm sm:text-base w-full sm:w-auto"
+              className="px-4 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition text-sm sm:text-base w-full sm:w-auto"
             >
               Cancel
             </button>
@@ -354,7 +355,7 @@ function ManualWorkoutLog() {
         )}
 
         {/* Workout Details */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6 space-y-4">
+        <div className="card p-4 sm:p-6 space-y-4">
           <h2 className="text-lg sm:text-xl font-bold text-gray-800">Workout Details</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -367,7 +368,7 @@ function ManualWorkoutLog() {
                 value={workoutName}
                 onChange={(e) => setWorkoutName(e.target.value)}
                 placeholder="e.g., Chest & Triceps, Full Body"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="input-field"
               />
             </div>
 
@@ -380,7 +381,7 @@ function ManualWorkoutLog() {
                 value={workoutDate}
                 onChange={(e) => setWorkoutDate(e.target.value)}
                 max={format(new Date(), 'yyyy-MM-dd')}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                className="input-field"
               />
             </div>
           </div>
@@ -394,20 +395,20 @@ function ManualWorkoutLog() {
               onChange={(e) => setWorkoutNotes(e.target.value)}
               placeholder="How did the workout feel? Any observations?"
               rows="2"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="input-field"
             ></textarea>
           </div>
         </div>
 
         {/* Selected Exercises */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="card p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0 mb-4">
             <h2 className="text-lg sm:text-xl font-bold text-gray-800">
               Exercises ({selectedExercises.length})
             </h2>
             <button
               onClick={() => setShowExercisePicker(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm sm:text-base w-full sm:w-auto"
+              className="px-4 py-2 btn-primary transition text-sm sm:text-base w-full sm:w-auto"
             >
               + Add Exercise
             </button>
@@ -418,7 +419,7 @@ function ManualWorkoutLog() {
               <p className="text-gray-600 mb-4">No exercises added yet</p>
               <button
                 onClick={() => setShowExercisePicker(true)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                className="px-6 py-2 btn-primary"
               >
                 Add Your First Exercise
               </button>
@@ -445,7 +446,7 @@ function ManualWorkoutLog() {
 
         {/* Save Button */}
         {selectedExercises.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+          <div className="card p-4 sm:p-6">
             <button
               onClick={handleSaveWorkout}
               disabled={saving}
@@ -565,7 +566,7 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
               value={set.repsCompleted}
               onChange={(e) => onUpdate(setIndex, 'repsCompleted', e.target.value)}
               placeholder="10"
-              className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              className="input-field text-sm !px-2 !py-2"
             />
           </div>
           <div>
@@ -579,7 +580,7 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
               value={set.weightKg}
               onChange={(e) => onUpdate(setIndex, 'weightKg', e.target.value)}
               placeholder="20"
-              className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+              className="input-field text-sm !px-2 !py-2"
             />
           </div>
         </div>
@@ -593,7 +594,7 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
             value={set.notes}
             onChange={(e) => onUpdate(setIndex, 'notes', e.target.value)}
             placeholder="Optional"
-            className="w-full px-2 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            className="input-field text-sm !px-2 !py-2"
           />
         </div>
       </div>
@@ -614,7 +615,7 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
             value={set.repsCompleted}
             onChange={(e) => onUpdate(setIndex, 'repsCompleted', e.target.value)}
             placeholder="10"
-            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            className="input-field w-20 text-sm"
           />
         </div>
 
@@ -629,7 +630,7 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
             value={set.weightKg}
             onChange={(e) => onUpdate(setIndex, 'weightKg', e.target.value)}
             placeholder="20"
-            className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            className="input-field w-20 text-sm"
           />
         </div>
 
@@ -642,7 +643,7 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
             value={set.notes}
             onChange={(e) => onUpdate(setIndex, 'notes', e.target.value)}
             placeholder="Optional"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm"
+            className="input-field flex-1 text-sm"
           />
         </div>
 
@@ -668,6 +669,9 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
  */
 function ExercisePickerModal({ exercises, onSelect, onClose }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const modalRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
 
   const filteredExercises = exercises.filter(ex =>
     ex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -680,12 +684,22 @@ function ExercisePickerModal({ exercises, onSelect, onClose }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] sm:max-h-[80vh] flex flex-col"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="exercise-picker-title"
+        tabIndex={-1}
+        className="card max-w-2xl w-full max-h-[90vh] sm:max-h-[80vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-3 sm:py-4 text-white flex justify-between items-center rounded-t-lg">
-          <h2 className="text-xl sm:text-2xl font-bold">Select Exercise</h2>
-          <button onClick={onClose} className="text-white hover:text-gray-200 p-1">
+          <h2 id="exercise-picker-title" className="text-xl sm:text-2xl font-bold">Select Exercise</h2>
+          <button
+            ref={closeBtnRef}
+            onClick={onClose}
+            className="text-white hover:text-gray-200 p-1"
+            aria-label="Close exercise picker"
+          >
             <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -693,12 +707,14 @@ function ExercisePickerModal({ exercises, onSelect, onClose }) {
         </div>
 
         <div className="p-4 sm:p-6 overflow-y-auto">
+          <label htmlFor="exercise-picker-search" className="sr-only">Search exercises</label>
           <input
+            id="exercise-picker-search"
             type="text"
             placeholder="Search exercises..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 mb-4 text-sm sm:text-base"
+            className="input-field mb-4 text-sm sm:text-base"
             autoFocus
           />
 
@@ -728,3 +744,5 @@ function ExercisePickerModal({ exercises, onSelect, onClose }) {
 }
 
 export default ManualWorkoutLog;
+
+

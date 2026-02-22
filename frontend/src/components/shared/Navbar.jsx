@@ -2,10 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-/**
- * Navbar Component
- * Main navigation menu for the application with user authentication
- */
 function Navbar() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -16,20 +12,14 @@ function Navbar() {
   const userMenuCloseTimerRef = useRef(null);
 
   const navLinks = [
-    { path: '/', label: 'Dashboard', icon: '📊' },
-    { path: '/exercises', label: 'Exercises', icon: '💪' },
-    { path: '/plans', label: 'Plans', icon: '📅' },
-    { path: '/progress', label: 'Progress', icon: '📈' },
+    { path: '/', label: 'Dashboard' },
+    { path: '/exercises', label: 'Exercises' },
+    { path: '/plans', label: 'Plans' },
+    { path: '/log-manual', label: 'Log' },
+    { path: '/progress', label: 'Progress' }
   ];
 
-  // Add admin link if user is admin
-  if (isAdmin) {
-    navLinks.push({ path: '/settings/system', label: 'Admin', icon: '⚙️' });
-  }
-
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
+  const isActive = (path) => location.pathname === path;
 
   const handleLinkClick = () => {
     setIsMobileMenuOpen(false);
@@ -79,43 +69,49 @@ function Navbar() {
   }, []);
 
   return (
-    <nav className="bg-white shadow-md">
-      <div className="container mx-auto px-4 max-w-7xl">
+    <nav className="bg-white border-b border-gray-200">
+      <div className="container mx-auto px-6 max-w-7xl">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
           <Link to="/" className="flex items-center space-x-2 flex-shrink-0" onClick={handleLinkClick}>
-            <span className="text-2xl">🏋️</span>
+            <span className="text-base font-semibold tracking-wide text-blue-700">GYM</span>
             <span className="text-lg sm:text-xl font-bold text-gray-800">Gym Tracker</span>
           </Link>
 
-          {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center space-x-1">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 className={`
-                  px-3 lg:px-4 py-2 rounded-lg font-medium transition-colors duration-200
-                  ${
-                    isActive(link.path)
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }
+                  px-3 lg:px-4 py-2 rounded-lg font-medium transition-colors duration-200 min-h-[44px] inline-flex items-center
+                  ${isActive(link.path) ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}
                 `}
               >
-                <span className="mr-2">{link.icon}</span>
                 {link.label}
               </Link>
             ))}
 
-            {/* User Menu - Desktop */}
+            {isAdmin && (
+              <div className="ml-2 pl-2 border-l border-gray-300">
+                <Link
+                  to="/settings/system"
+                  className={`
+                    px-3 lg:px-4 py-2 rounded-lg font-medium transition-colors duration-200 min-h-[44px] inline-flex items-center
+                    ${isActive('/settings/system') ? 'bg-gray-800 text-white' : 'text-gray-700 hover:bg-gray-100'}
+                  `}
+                >
+                  Admin
+                </Link>
+              </div>
+            )}
+
             <div ref={userMenuRef} className="relative ml-3">
               <button
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 onMouseEnter={cancelUserMenuClose}
                 onMouseLeave={scheduleUserMenuClose}
                 className={`
-                  flex items-center space-x-2 px-3 lg:px-4 py-2 rounded-lg font-medium transition-colors duration-200
+                  flex items-center space-x-2 px-3 lg:px-4 py-2 rounded-lg font-medium transition-colors duration-200 min-h-[44px]
                   ${isUserMenuOpen ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}
                 `}
                 aria-label="User menu"
@@ -127,18 +123,16 @@ function Navbar() {
                 </svg>
               </button>
 
-              {/* Dropdown Menu */}
               {isUserMenuOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-10 border border-gray-200"
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-lg border border-gray-200 py-1 z-10"
                   onMouseEnter={cancelUserMenuClose}
                   onMouseLeave={scheduleUserMenuClose}
                 >
                   <button
                     onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                    className="w-full text-left px-4 py-2 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200 min-h-[44px]"
                   >
-                    <span className="mr-2">🚪</span>
                     Logout
                   </button>
                 </div>
@@ -146,7 +140,6 @@ function Navbar() {
             </div>
           </div>
 
-          {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
@@ -162,7 +155,6 @@ function Navbar() {
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden pb-4 pt-2 space-y-1">
             {navLinks.map((link) => (
@@ -171,20 +163,28 @@ function Navbar() {
                 to={link.path}
                 onClick={handleLinkClick}
                 className={`
-                  block px-4 py-3 rounded-lg font-medium transition-colors duration-200
-                  ${
-                    isActive(link.path)
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }
+                  block px-4 py-3 rounded-lg font-medium transition-colors duration-200 min-h-[44px]
+                  ${isActive(link.path) ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}
                 `}
               >
-                <span className="mr-2">{link.icon}</span>
                 {link.label}
               </Link>
             ))}
 
-            {/* User Info & Logout - Mobile */}
+            {isAdmin && (
+              <div className="mt-2 pt-2 border-t border-gray-200">
+                <Link
+                  to="/settings/system"
+                  onClick={handleLinkClick}
+                  className={`block px-4 py-3 rounded-lg font-medium transition-colors duration-200 min-h-[44px] ${
+                    isActive('/settings/system') ? 'bg-gray-800 text-white' : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  Admin
+                </Link>
+              </div>
+            )}
+
             <div className="border-t border-gray-200 mt-2 pt-2">
               <div className="px-4 py-2 text-sm text-gray-600">
                 Logged in as <span className="font-medium text-gray-900">{user?.username}</span>
@@ -194,9 +194,8 @@ function Navbar() {
                   handleLinkClick();
                   handleLogout();
                 }}
-                className="w-full text-left px-4 py-3 rounded-lg font-medium text-gray-700 hover:bg-gray-100 transition-colors duration-200"
+                className="w-full text-left px-4 py-3 rounded-lg font-medium text-gray-700 hover:bg-gray-100 transition-colors duration-200 min-h-[44px]"
               >
-                <span className="mr-2">🚪</span>
                 Logout
               </button>
             </div>

@@ -11,6 +11,34 @@ const {
 } = require('../services/shareService');
 const { getWorkoutHistory } = require('../services/historyService');
 
+const SHARE_STATUS_FILTER = Object.freeze({
+  ACTIVE: 'true',
+  REVOKED: 'false'
+});
+
+const VALID_SHARE_STATUS_FILTERS = new Set(Object.values(SHARE_STATUS_FILTER));
+
+const buildShareFilters = ({ userId, isActive, search }) => {
+  const filters = {};
+
+  if (userId) {
+    const parsedUserId = Number.parseInt(userId, 10);
+    if (Number.isInteger(parsedUserId)) {
+      filters.userId = parsedUserId;
+    }
+  }
+
+  if (VALID_SHARE_STATUS_FILTERS.has(isActive)) {
+    filters.isActive = isActive === SHARE_STATUS_FILTER.ACTIVE;
+  }
+
+  if (typeof search === 'string' && search.trim()) {
+    filters.search = search.trim();
+  }
+
+  return filters;
+};
+
 /**
  * POST /api/share
  * Create a shareable link for workout history
@@ -190,11 +218,7 @@ const getSharedHistory = async (req, res) => {
 const listShares = async (req, res) => {
   try {
     const { userId, isActive, search } = req.query;
-
-    const filters = {};
-    if (userId) filters.userId = parseInt(userId);
-    if (isActive !== undefined) filters.isActive = isActive === 'true';
-    if (search) filters.search = search;
+    const filters = buildShareFilters({ userId, isActive, search });
 
     const shares = await getAllShares(filters);
 

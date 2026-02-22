@@ -166,13 +166,6 @@ const getAllShares = async (filters = {}) => {
     where.isActive = filters.isActive;
   }
 
-  if (filters.search) {
-    where.OR = [
-      { token: { contains: filters.search } },
-      { user: { username: { contains: filters.search, mode: 'insensitive' } } }
-    ];
-  }
-
   const shares = await prisma.workoutShare.findMany({
     where,
     include: {
@@ -187,6 +180,14 @@ const getAllShares = async (filters = {}) => {
       createdAt: 'desc'
     }
   });
+
+  if (filters.search) {
+    const searchTerm = String(filters.search).toLowerCase();
+    return shares.filter((share) => (
+      share.token.toLowerCase().includes(searchTerm) ||
+      share.user.username.toLowerCase().includes(searchTerm)
+    ));
+  }
 
   return shares;
 };

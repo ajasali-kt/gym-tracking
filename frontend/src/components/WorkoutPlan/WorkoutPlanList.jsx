@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import workoutService from '../../services/workoutService';
+import useAccessibleModal from '../../hooks/useAccessibleModal';
 
 /**
  * Workout Plan List Component
@@ -13,7 +14,6 @@ function WorkoutPlanList() {
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchPlans();
@@ -60,7 +60,7 @@ function WorkoutPlanList() {
       <>
         <div className="space-y-6">
           <h1 className="text-3xl font-bold text-gray-800">Workout Plans</h1>
-          <div className="bg-white rounded-lg shadow p-8 text-center">
+          <div className="card p-8 text-center">
             <div className="animate-pulse">
               <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
               <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
@@ -80,7 +80,7 @@ function WorkoutPlanList() {
             <p className="text-red-800 font-medium">Error: {error}</p>
             <button
               onClick={fetchPlans}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              className="mt-4 px-4 py-2 btn-danger"
             >
               Try Again
             </button>
@@ -105,7 +105,7 @@ function WorkoutPlanList() {
             </button>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-4 sm:px-6 py-2 sm:py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition text-sm sm:text-base"
+              className="px-4 sm:px-6 py-2 sm:py-3 btn-primary font-medium transition text-sm sm:text-base"
             >
               + Create New Plan
             </button>
@@ -121,7 +121,7 @@ function WorkoutPlanList() {
             </p>
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-6 py-2 btn-primary"
             >
               Create Your First Plan
             </button>
@@ -173,7 +173,7 @@ function PlanCard({ plan, onDelete, onSetActive }) {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden">
+    <div className="card hover:shadow-lg transition overflow-hidden">
       {plan.isActive && (
         <div className="bg-green-600 text-white text-center py-2 text-sm font-medium">
           Active Plan
@@ -203,7 +203,7 @@ function PlanCard({ plan, onDelete, onSetActive }) {
         <div className="flex space-x-2">
           <button
             onClick={() => navigate(`/plans/${plan.id}`)}
-            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm font-medium"
+            className="flex-1 px-4 py-2 btn-primary transition text-sm font-medium"
           >
             View Details
           </button>
@@ -218,7 +218,7 @@ function PlanCard({ plan, onDelete, onSetActive }) {
           )}
           <button
             onClick={() => onDelete(plan.id)}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm font-medium"
+            className="px-4 py-2 btn-danger transition text-sm font-medium"
             title="Delete plan"
           >
             Delete
@@ -240,6 +240,9 @@ function CreatePlanModal({ onClose, onSuccess }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const modalRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -267,15 +270,22 @@ function CreatePlanModal({ onClose, onSuccess }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-md w-full"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-plan-title"
+        tabIndex={-1}
+        className="card max-w-md w-full"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white flex justify-between items-center">
-          <h2 className="text-2xl font-bold">Create Workout Plan</h2>
+          <h2 id="create-plan-title" className="text-2xl font-bold">Create Workout Plan</h2>
           <button
+            ref={closeBtnRef}
             onClick={onClose}
             className="text-white hover:text-gray-200 transition"
+            aria-label="Close create plan modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -292,41 +302,44 @@ function CreatePlanModal({ onClose, onSuccess }) {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="plan-name" className="block text-sm font-medium text-gray-700 mb-2">
               Plan Name *
             </label>
             <input
+              id="plan-name"
               type="text"
               required
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="e.g., Strength Training Week 1"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-field"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="plan-start-date" className="block text-sm font-medium text-gray-700 mb-2">
               Start Date *
             </label>
             <input
+              id="plan-start-date"
               type="date"
               required
               value={formData.startDate}
               onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-field"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="plan-end-date" className="block text-sm font-medium text-gray-700 mb-2">
               End Date (Optional)
             </label>
             <input
+              id="plan-end-date"
               type="date"
               value={formData.endDate}
               onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="input-field"
             />
           </div>
 
@@ -334,14 +347,14 @@ function CreatePlanModal({ onClose, onSuccess }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
+              className="flex-1 px-4 py-2 btn-secondary transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+              className="flex-1 px-4 py-2 btn-primary transition disabled:opacity-50"
             >
               {loading ? 'Creating...' : 'Create Plan'}
             </button>
@@ -363,6 +376,9 @@ function ImportPlanModal({ onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [validationError, setValidationError] = useState(null);
+  const modalRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
 
   const handleJsonChange = (e) => {
     const value = e.target.value;
@@ -439,15 +455,22 @@ function ImportPlanModal({ onClose, onSuccess }) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-plan-title"
+        tabIndex={-1}
+        className="card max-w-4xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-white flex justify-between items-center rounded-t-lg flex-shrink-0">
-          <h2 className="text-2xl font-bold">Import Workout Plan from JSON</h2>
+          <h2 id="import-plan-title" className="text-2xl font-bold">Import Workout Plan from JSON</h2>
           <button
+            ref={closeBtnRef}
             onClick={onClose}
             className="text-white hover:text-gray-200 transition"
+            aria-label="Close import plan modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -470,7 +493,7 @@ function ImportPlanModal({ onClose, onSuccess }) {
               <button
                 type="button"
                 onClick={() => setJsonInput(JSON.stringify(exampleJson, null, 2))}
-                className="text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                className="text-xs px-3 py-1 btn-primary transition"
               >
                 Use Example
               </button>
@@ -481,39 +504,42 @@ function ImportPlanModal({ onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="import-plan-name" className="block text-sm font-medium text-gray-700 mb-2">
               Plan Name (Optional)
             </label>
             <input
+              id="import-plan-name"
               type="text"
               value={planName}
               onChange={(e) => setPlanName(e.target.value)}
               placeholder="Leave empty to auto-generate from JSON"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="input-field"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="import-start-date" className="block text-sm font-medium text-gray-700 mb-2">
               Start Date *
             </label>
             <input
+              id="import-start-date"
               type="date"
               required
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="input-field"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="import-plan-json" className="block text-sm font-medium text-gray-700 mb-2">
               Workout Plan JSON *
               {validationError && (
                 <span className="text-red-600 ml-2 text-xs">({validationError})</span>
               )}
             </label>
             <textarea
+              id="import-plan-json"
               required
               value={jsonInput}
               onChange={handleJsonChange}
@@ -532,7 +558,7 @@ function ImportPlanModal({ onClose, onSuccess }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
+              className="flex-1 px-4 py-2 btn-secondary transition"
             >
               Cancel
             </button>
@@ -551,3 +577,4 @@ function ImportPlanModal({ onClose, onSuccess }) {
 }
 
 export default WorkoutPlanList;
+

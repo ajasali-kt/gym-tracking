@@ -79,7 +79,7 @@ const History = () => {
   return (
     <>
       {/* Date Range Picker */}
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Quick Presets */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -123,7 +123,7 @@ const History = () => {
                 setShareData(null);
                 setError(null);
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="input-field"
             />
           </div>
           <div>
@@ -140,17 +140,17 @@ const History = () => {
                 setShareData(null);
                 setError(null);
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="input-field"
             />
           </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <button
             onClick={handleViewHistory}
             disabled={loading || !fromDate || !toDate}
-            className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed font-medium"
+            className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 btn-primary font-medium transition text-sm sm:text-base disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300"
           >
             {loading ? 'Loading...' : 'View History'}
           </button>
@@ -160,7 +160,7 @@ const History = () => {
                 setShareData(null);
                 setShowShareModal(true);
               }}
-              className="w-full sm:w-auto px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-medium"
+              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition text-sm sm:text-base"
             >
               Generate Share Link
             </button>
@@ -176,7 +176,11 @@ const History = () => {
       </div>
 
       {/* Workout Timeline */}
-      {historyData && <WorkoutTimeline data={historyData} />}
+      {historyData && (
+        <div className="mt-8">
+          <WorkoutTimeline data={historyData} />
+        </div>
+      )}
 
       {/* Share Link Modal */}
       {showShareModal && (
@@ -193,3 +197,4 @@ const History = () => {
 };
 
 export default History;
+

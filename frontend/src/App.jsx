@@ -1,7 +1,8 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import Layout from './components/shared/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
+import NotFound from './components/shared/NotFound';
 
 // Auth components
 import Login from './components/Auth/Login';
@@ -67,8 +68,8 @@ function App() {
                       </AdminRoute>
                     } />
 
-                    {/* Catch all - redirect to dashboard */}
-                    <Route path="*" element={<Navigate to="/" replace />} />
+                    {/* Catch all - 404 page */}
+                    <Route path="*" element={<NotFound />} />
                   </Routes>
                 </Layout>
               </ProtectedRoute>

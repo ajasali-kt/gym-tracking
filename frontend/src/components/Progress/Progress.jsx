@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import progressService from '../../services/progressService';
 import exerciseService from '../../services/exerciseService';
 import History from '../History/History';
+import useAccessibleModal from '../../hooks/useAccessibleModal';
 
 /**
  * Progress Component
@@ -66,7 +67,7 @@ function Progress() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-gray-800">Progress Tracking</h1>
-        <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="card p-8 text-center">
           <div className="animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
@@ -84,7 +85,7 @@ function Progress() {
           <p className="text-red-800 font-medium">Error: {error}</p>
           <button
             onClick={fetchData}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="mt-4 btn-danger"
           >
             Try Again
           </button>
@@ -99,23 +100,23 @@ function Progress() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Progress Tracking</h1>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
             <Link
               to="/log-manual"
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm sm:text-base text-center"
+              className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition text-sm sm:text-base"
             >
               + Log Manual Workout
             </Link>
             <button
               onClick={() => setShowShareModal(true)}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-medium text-sm sm:text-base text-center"
+              className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition text-sm sm:text-base"
             >
               📜 Share Progress
             </button>
             <select
               value={dateRange}
               onChange={(e) => setDateRange(parseInt(e.target.value))}
-              className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
+              className="input-field w-full sm:w-auto sm:min-w-[170px]"
             >
               <option value={7}>Last 7 days</option>
               <option value={30}>Last 30 days</option>
@@ -126,7 +127,7 @@ function Progress() {
         </div>
 
         {/* View Tabs */}
-        <div className="bg-white rounded-lg shadow">
+        <div className="card">
           <div className="border-b border-gray-200">
             <div className="flex">
               <button
@@ -170,17 +171,17 @@ function Progress() {
 
         {/* Summary Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card p-6">
             <h3 className="text-sm font-medium text-gray-600">Total Workouts</h3>
             <p className="text-3xl font-bold text-gray-800 mt-2">{workoutHistory.length}</p>
             <p className="text-sm text-gray-500 mt-1">In last {dateRange} days</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card p-6">
             <h3 className="text-sm font-medium text-gray-600">Exercises Tracked</h3>
             <p className="text-3xl font-bold text-gray-800 mt-2">{exercises.length}</p>
             <p className="text-sm text-gray-500 mt-1">In library</p>
           </div>
-          <div className="bg-white rounded-lg shadow p-6">
+          <div className="card p-6">
             <h3 className="text-sm font-medium text-gray-600">Consistency</h3>
             <p className="text-3xl font-bold text-gray-800 mt-2">
               {dateRange > 0 ? Math.round((workoutHistory.length / dateRange) * 7) : 0}x/week
@@ -203,26 +204,37 @@ function Progress() {
  * Modal wrapper for the History component following app modal pattern
  */
 function ShareProgressModal({ onClose }) {
+  const modalRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="share-progress-title"
+        tabIndex={-1}
+        className="card max-w-4xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-4 sm:px-6 py-3 sm:py-4 text-white flex justify-between items-start rounded-t-lg flex-shrink-0">
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold">Workout History</h2>
+            <h2 id="share-progress-title" className="text-xl sm:text-2xl font-bold">Workout History</h2>
             <p className="text-purple-100 mt-1 text-sm hidden sm:block">
               View and share your workout history for any date range
             </p>
           </div>
           <button
+            ref={closeBtnRef}
             onClick={onClose}
             className="text-white hover:text-gray-200 transition p-1"
+            aria-label="Close workout history dialog"
           >
             <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -268,7 +280,7 @@ function WorkoutHistoryView({ workouts }) {
         </p>
         <Link
           to="/"
-          className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="inline-block btn-primary px-6"
         >
           Go to Dashboard
         </Link>
@@ -359,7 +371,7 @@ function WorkoutHistoryCard({ workout }) {
             <div className="mb-4">
               <Link
                 to={`/edit-manual/${workout.id}`}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+                className="inline-flex items-center btn-primary transition text-sm font-medium"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -432,7 +444,7 @@ function ExerciseProgressView({ exercises, selectedExercise, onSelectExercise, p
             placeholder="Search exercises..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 mb-3"
+            className="input-field mb-3"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
             {filteredExercises.map(exercise => (
@@ -597,3 +609,5 @@ function ExerciseProgressView({ exercises, selectedExercise, onSelectExercise, p
 }
 
 export default Progress;
+
+

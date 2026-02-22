@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import exerciseService from '../../services/exerciseService';
+import useAccessibleModal from '../../hooks/useAccessibleModal';
 
 /**
  * Exercise Library Component
@@ -48,7 +49,7 @@ function ExerciseLibrary() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-gray-800">Exercise Library</h1>
-        <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="card p-8 text-center">
           <div className="animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
@@ -66,7 +67,7 @@ function ExerciseLibrary() {
           <p className="text-red-800 font-medium">Error: {error}</p>
           <button
             onClick={fetchData}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="mt-4 px-4 py-2 btn-danger"
           >
             Try Again
           </button>
@@ -87,7 +88,7 @@ function ExerciseLibrary() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-4 sm:p-4">
+        <div className="card p-4 sm:p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Search */}
             <div>
@@ -99,7 +100,7 @@ function ExerciseLibrary() {
                 placeholder="Search by name or description..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-field"
               />
             </div>
 
@@ -111,7 +112,7 @@ function ExerciseLibrary() {
               <select
                 value={selectedMuscleGroup}
                 onChange={(e) => setSelectedMuscleGroup(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="input-field"
               >
                 <option value="all">All Muscle Groups</option>
                 {muscleGroups.map(group => (
@@ -161,7 +162,7 @@ function ExerciseCard({ exercise, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-lg shadow hover:shadow-lg transition cursor-pointer overflow-hidden flex flex-col h-full"
+      className="card hover:shadow-lg transition cursor-pointer overflow-hidden flex flex-col h-full"
     >
       <div className="p-6">
         <div className="flex items-start justify-between mb-3">
@@ -198,26 +199,42 @@ function ExerciseCard({ exercise, onClick }) {
  * Shows full exercise details in a modal
  */
 function ExerciseDetailModal({ exercise, onClose }) {
+  const modalRef = useRef(null);
+  const closeBtnRef = useRef(null);
+  useAccessibleModal({
+    isOpen: !!exercise,
+    onClose,
+    modalRef,
+    initialFocusRef: closeBtnRef
+  });
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col"
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="exercise-detail-title"
+        tabIndex={-1}
+        className="card max-w-2xl w-full max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header - Fixed */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white flex justify-between items-start rounded-t-lg flex-shrink-0">
           <div>
-            <h2 className="text-2xl font-bold">{exercise.name}</h2>
+            <h2 id="exercise-detail-title" className="text-2xl font-bold">{exercise.name}</h2>
             <p className="text-blue-100 mt-1">
               {exercise.muscleGroup?.name || 'General'}
             </p>
           </div>
           <button
+            ref={closeBtnRef}
             onClick={onClose}
             className="text-white hover:text-gray-200 transition"
+            aria-label="Close exercise details"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -258,7 +275,7 @@ function ExerciseDetailModal({ exercise, onClose }) {
                 href={exercise.youtubeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                className="inline-flex items-center px-4 py-2 btn-danger transition"
               >
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -273,7 +290,7 @@ function ExerciseDetailModal({ exercise, onClose }) {
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end rounded-b-lg flex-shrink-0">
           <button
             onClick={onClose}
-            className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+            className="px-6 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition"
           >
             Close
           </button>
@@ -284,3 +301,4 @@ function ExerciseDetailModal({ exercise, onClose }) {
 }
 
 export default ExerciseLibrary;
+

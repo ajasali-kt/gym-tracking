@@ -36,7 +36,21 @@ export const getSharedHistory = async (token) => {
  * @returns {Promise<Object>} List of shares
  */
 export const getAllShares = async (filters = {}) => {
-  const response = await apiClient.get('/share/admin/shares', { params: filters });
+  const params = {};
+
+  if (filters.userId) {
+    params.userId = filters.userId;
+  }
+
+  if (filters.isActive === 'true' || filters.isActive === 'false') {
+    params.isActive = filters.isActive;
+  }
+
+  if (typeof filters.search === 'string' && filters.search.trim()) {
+    params.search = filters.search.trim();
+  }
+
+  const response = await apiClient.get('/admin/shares', { params });
   return response.data;
 };
 
@@ -46,7 +60,7 @@ export const getAllShares = async (filters = {}) => {
  * @returns {Promise<Object>} Updated share
  */
 export const revokeShare = async (token) => {
-  const response = await apiClient.put(`/share/admin/share/${token}/revoke`);
+  const response = await apiClient.put(`/admin/share/${token}/revoke`);
   return response.data;
 };
 
@@ -56,7 +70,7 @@ export const revokeShare = async (token) => {
  * @returns {Promise<Object>} Updated share
  */
 export const activateShare = async (token) => {
-  const response = await apiClient.put(`/share/admin/share/${token}/activate`);
+  const response = await apiClient.put(`/admin/share/${token}/activate`);
   return response.data;
 };
 
@@ -66,7 +80,7 @@ export const activateShare = async (token) => {
  * @returns {Promise<Object>} Deleted share
  */
 export const deleteShare = async (token) => {
-  const response = await apiClient.delete(`/share/admin/share/${token}`);
+  const response = await apiClient.delete(`/admin/share/${token}`);
   return response.data;
 };
 

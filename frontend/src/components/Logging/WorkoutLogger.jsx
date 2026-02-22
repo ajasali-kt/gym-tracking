@@ -121,7 +121,7 @@ function WorkoutLogger() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-gray-800">Log Workout</h1>
-        <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="card p-8 text-center">
           <div className="animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
@@ -156,7 +156,7 @@ function WorkoutLogger() {
           <p className="text-gray-600 mb-4">The requested workout could not be found.</p>
           <button
             onClick={() => navigate('/')}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-gray-700"
+            className="btn-primary"
           >
             Back to Dashboard
           </button>
@@ -172,7 +172,7 @@ function WorkoutLogger() {
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-gray-800">Ready to Start Workout</h1>
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="card overflow-hidden">
           <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-white">
             <h2 className="text-2xl font-bold">{workoutDay.dayName}</h2>
             <p className="text-green-100 mt-1">
@@ -225,7 +225,7 @@ function WorkoutLogger() {
             <div className="flex space-x-3">
               <button
                 onClick={handleCancelWorkout}
-                className="flex-1 px-6 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium transition"
+                className="flex-1 px-6 py-3 btn-secondary font-medium transition"
               >
                 Cancel
               </button>
@@ -262,7 +262,7 @@ function WorkoutLogger() {
           </button>
           <button
             onClick={handleCancelWorkout}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+            className="px-4 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition"
           >
             Cancel
           </button>
@@ -270,7 +270,7 @@ function WorkoutLogger() {
       </div>
 
       {/* Progress Bar */}
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="card p-4">
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium text-gray-700">
             Exercise {currentExerciseIndex + 1} of {totalExercises}
@@ -288,7 +288,7 @@ function WorkoutLogger() {
       </div>
 
       {/* Exercise Navigator */}
-      <div className="bg-white rounded-lg shadow p-4">
+      <div className="card p-4">
         <div className="flex items-center space-x-2 overflow-x-auto">
           {exercises.sort((a, b) => a.orderIndex - b.orderIndex).map((ex, index) => (
             <button
@@ -307,7 +307,7 @@ function WorkoutLogger() {
       </div>
 
       {/* Current Exercise */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -349,14 +349,14 @@ function WorkoutLogger() {
             <button
               onClick={() => setCurrentExerciseIndex(Math.max(0, currentExerciseIndex - 1))}
               disabled={currentExerciseIndex === 0}
-              className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="flex-1 px-4 py-2 btn-secondary disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Previous Exercise
             </button>
             <button
               onClick={() => setCurrentExerciseIndex(Math.min(totalExercises - 1, currentExerciseIndex + 1))}
               disabled={currentExerciseIndex === totalExercises - 1}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+              className="flex-1 px-4 py-2 btn-primary disabled:opacity-50 disabled:cursor-not-allowed transition"
             >
               Next Exercise
             </button>
@@ -365,14 +365,14 @@ function WorkoutLogger() {
       </div>
 
       {/* Workout Notes */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div className="card p-6">
         <h3 className="font-semibold text-gray-800 mb-3">Workout Notes (Optional)</h3>
         <textarea
           value={workoutNotes}
           onChange={(e) => setWorkoutNotes(e.target.value)}
           placeholder="How did the workout feel? Any observations?"
           rows="3"
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="input-field"
         ></textarea>
       </div>
     </div>
@@ -432,7 +432,7 @@ function SetLogger({ setNumber, setData, onUpdate, onLog }) {
             onChange={(e) => onUpdate('repsCompleted', e.target.value)}
             disabled={setData.logged}
             placeholder="e.g., 10"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+            className="input-field disabled:bg-gray-100"
           />
         </div>
         <div>
@@ -447,7 +447,7 @@ function SetLogger({ setNumber, setData, onUpdate, onLog }) {
             onChange={(e) => onUpdate('weightKg', e.target.value)}
             disabled={setData.logged}
             placeholder="e.g., 20"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+            className="input-field disabled:bg-gray-100"
           />
         </div>
       </div>
@@ -462,7 +462,7 @@ function SetLogger({ setNumber, setData, onUpdate, onLog }) {
           onChange={(e) => onUpdate('notes', e.target.value)}
           disabled={setData.logged}
           placeholder="e.g., Felt strong, good form"
-          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+          className="input-field disabled:bg-gray-100"
         />
       </div>
 
@@ -482,7 +482,7 @@ function SetLogger({ setNumber, setData, onUpdate, onLog }) {
           ) : (
             <button
               onClick={() => startRestTimer(90)}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition"
+              className="flex-1 px-4 py-2 btn-primary font-medium transition"
             >
               Start Rest Timer
             </button>
@@ -494,3 +494,5 @@ function SetLogger({ setNumber, setData, onUpdate, onLog }) {
 }
 
 export default WorkoutLogger;
+
+

@@ -1,7 +1,7 @@
 const WorkoutTimeline = ({ data }) => {
   if (!data || !data.workouts || data.workouts.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm p-8 text-center">
+      <div className="card p-4 sm:p-8 text-center">
         <p className="text-gray-500">No workouts found for this date range</p>
       </div>
     );
@@ -18,9 +18,9 @@ const WorkoutTimeline = ({ data }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Summary Stats */}
-      <div className="bg-white rounded-lg shadow-sm p-6">
+      <div className="card p-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-4">Summary</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-blue-50 rounded-lg p-4">
@@ -57,15 +57,15 @@ const WorkoutTimeline = ({ data }) => {
       <div className="space-y-4">
         <h2 className="text-xl font-semibold text-gray-900">Workout Timeline</h2>
         {data.workouts.map((workout, workoutIndex) => (
-          <div key={workoutIndex} className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <div key={workoutIndex} className="card overflow-hidden">
             {/* Workout Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4">
-              <div className="flex items-center justify-between">
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-4 py-4 sm:px-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm text-blue-100">{formatDate(workout.date)}</p>
-                  <h3 className="text-xl font-bold text-white">{workout.workoutName}</h3>
+                  <h3 className="text-lg font-bold text-white sm:text-xl break-words">{workout.workoutName}</h3>
                 </div>
-                <div className="bg-blue-400 bg-opacity-50 px-3 py-1 rounded-full">
+                <div className="inline-flex w-fit bg-blue-400 bg-opacity-50 px-3 py-1 rounded-full">
                   <p className="text-sm font-medium text-white">{workout.muscleGroup}</p>
                 </div>
               </div>
@@ -75,12 +75,12 @@ const WorkoutTimeline = ({ data }) => {
             </div>
 
             {/* Exercises */}
-            <div className="p-6 space-y-4">
+            <div className="p-4 space-y-4 sm:p-6">
               {workout.exercises.map((exercise, exerciseIndex) => (
                 <div key={exerciseIndex} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-lg font-semibold text-gray-900">{exercise.exerciseName}</h4>
-                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  <div className="flex flex-col gap-2 mb-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h4 className="text-base sm:text-lg font-semibold text-gray-900 break-words">{exercise.exerciseName}</h4>
+                    <span className="inline-flex w-fit text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
                       {exercise.muscleGroup}
                     </span>
                   </div>
@@ -90,21 +90,23 @@ const WorkoutTimeline = ({ data }) => {
                     {exercise.sets.map((set, setIndex) => (
                       <div
                         key={setIndex}
-                        className="flex items-center justify-between bg-gray-50 rounded px-4 py-2"
+                        className="bg-gray-50 rounded px-3 py-3 sm:px-4 sm:py-2"
                       >
-                        <span className="text-sm font-medium text-gray-700">
-                          Set {set.setNumber}
-                        </span>
-                        <div className="flex items-center space-x-4">
-                          <span className="text-sm text-gray-900">
-                            <span className="font-semibold">{set.reps}</span> reps
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <span className="text-sm font-medium text-gray-700">
+                            Set {set.setNumber}
                           </span>
-                          <span className="text-sm text-gray-900">
-                            <span className="font-semibold">{set.weight}</span> kg
-                          </span>
-                          <span className="text-sm text-gray-500">
-                            ({set.reps * set.weight} kg volume)
-                          </span>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:flex sm:items-center sm:gap-4">
+                            <span className="text-gray-900">
+                              <span className="font-semibold">{set.reps}</span> reps
+                            </span>
+                            <span className="text-gray-900">
+                              <span className="font-semibold">{set.weight}</span> kg
+                            </span>
+                            <span className="col-span-2 text-xs sm:text-sm text-gray-500">
+                              {set.reps * set.weight} kg volume
+                            </span>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -120,3 +122,4 @@ const WorkoutTimeline = ({ data }) => {
 };
 
 export default WorkoutTimeline;
+

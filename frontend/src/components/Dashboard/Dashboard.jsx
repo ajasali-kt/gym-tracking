@@ -71,7 +71,7 @@ function Dashboard() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-        <div className="bg-white rounded-lg shadow p-8 text-center">
+        <div className="card p-8 text-center">
           <div className="animate-pulse">
             <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
             <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
@@ -89,7 +89,7 @@ function Dashboard() {
           <p className="text-red-800 font-medium">Error: {error}</p>
           <button
             onClick={fetchTodayWorkout}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="mt-4 px-4 py-2 btn-danger"
           >
             Try Again
           </button>
@@ -114,7 +114,7 @@ function Dashboard() {
           </p>
           <Link
             to="/plans"
-            className="inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="inline-block px-6 py-2 btn-primary"
           >
             Create Workout Plan
           </Link>
@@ -154,7 +154,7 @@ function Dashboard() {
       </div>
 
       {/* Today's Workout Card */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 sm:px-6 py-3 sm:py-4 text-white">
           <h2 className="text-xl sm:text-2xl font-bold">{workoutDay.dayName}</h2>
           <p className="text-blue-100 mt-1 text-sm sm:text-base">
@@ -196,17 +196,17 @@ function Dashboard() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="card p-4 sm:p-6">
           <h3 className="text-xs sm:text-sm font-medium text-gray-600">Total Exercises</h3>
           <p className="text-2xl sm:text-3xl font-bold text-gray-800 mt-1 sm:mt-2">{exercises.length}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+        <div className="card p-4 sm:p-6">
           <h3 className="text-xs sm:text-sm font-medium text-gray-600">Total Sets</h3>
           <p className="text-2xl sm:text-3xl font-bold text-gray-800 mt-1 sm:mt-2">
             {exercises.reduce((sum, ex) => sum + ex.sets, 0)}
           </p>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 sm:p-6 sm:col-span-1 col-span-1">
+        <div className="card p-4 sm:p-6 sm:col-span-1 col-span-1">
           <h3 className="text-xs sm:text-sm font-medium text-gray-600">Estimated Time</h3>
           <p className="text-2xl sm:text-3xl font-bold text-gray-800 mt-1 sm:mt-2">
             {Math.round(exercises.reduce((sum, ex) => sum + (ex.sets * ex.restSeconds / 60), 0))} min
@@ -235,3 +235,5 @@ function ExerciseCard({ assignment, index, workoutLogId, workoutLogData }) {
 }
 
 export default Dashboard;
+
+
