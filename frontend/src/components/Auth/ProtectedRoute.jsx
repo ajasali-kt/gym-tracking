@@ -1,5 +1,18 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, matchPath } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import PublicNotFound from '../shared/PublicNotFound';
+
+const PROTECTED_ROUTE_PATTERNS = [
+  '/',
+  '/exercises',
+  '/plans',
+  '/plans/:id',
+  '/log/:dayId',
+  '/log-manual',
+  '/edit-manual/:workoutId',
+  '/progress',
+  '/settings/system'
+];
 
 /**
  * ProtectedRoute Component
@@ -9,6 +22,9 @@ import { useAuth } from '../../contexts/AuthContext';
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   const location = useLocation();
+  const isKnownProtectedPath = PROTECTED_ROUTE_PATTERNS.some((pathPattern) =>
+    matchPath({ path: pathPattern, end: true }, location.pathname)
+  );
 
   // Show loading state while checking authentication
   if (loading) {
@@ -24,6 +40,10 @@ function ProtectedRoute({ children }) {
 
   // If not authenticated, redirect to login with return URL
   if (!user) {
+    if (!isKnownProtectedPath) {
+      return <PublicNotFound />;
+    }
+
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
