@@ -38,25 +38,177 @@ const normalizeDate = (completedDate) => {
   return targetDate;
 };
 
-const createManualWorkoutLog = async (userId, payload) => {
-  const { completedDate, workoutName, notes } = payload;
-  if (!workoutName) {
+const syncManualWorkoutLog = async (userId, payload) => {
+  const { workoutLogId, workoutName, completedDate, notes, sets } = payload;
+
+  if (!workoutName || !workoutName.trim()) {
     throw createHttpError(400, 'Missing required field: workoutName');
   }
 
-  return prisma.workoutLog.create({
-    data: {
-      userId,
-      workoutDayId: null,
-      workoutName,
-      completedDate: normalizeDate(completedDate),
-      notes: notes || null,
-      isManual: true
-    },
-    include: {
-      exerciseLogs: workoutLogInclude.exerciseLogs
+  if (!completedDate) {
+    throw createHttpError(400, 'Missing required field: completedDate');
+  }
+
+  if (!Array.isArray(sets)) {
+    throw createHttpError(400, 'Missing required field: sets');
+  }
+
+  const parsedSets = sets.map((set, index) => {
+    const parsedExerciseId = Number.parseInt(set.exerciseId, 10);
+    const parsedSetNumber = Number.parseInt(set.setNumber, 10);
+    const parsedReps = Number.parseInt(set.repsCompleted, 10);
+    const parsedWeight = Number.parseFloat(set.weightKg);
+    const parsedId = set.id !== undefined && set.id !== null
+      ? Number.parseInt(set.id, 10)
+      : null;
+
+    if (!parsedExerciseId || !parsedSetNumber || !parsedReps || Number.isNaN(parsedWeight) || parsedWeight <= 0) {
+      throw createHttpError(
+        400,
+        `Invalid set at index ${index}: exerciseId, setNumber, repsCompleted, and weightKg > 0 are required`
+      );
     }
+
+    if (parsedId !== null && Number.isNaN(parsedId)) {
+      throw createHttpError(400, `Invalid set id at index ${index}`);
+    }
+
+    return {
+      id: parsedId,
+      exerciseId: parsedExerciseId,
+      setNumber: parsedSetNumber,
+      repsCompleted: parsedReps,
+      weightKg: parsedWeight,
+      notes: set.notes || null
+    };
   });
+
+  const normalizedDate = normalizeDate(completedDate);
+  const trimmedWorkoutName = workoutName.trim();
+
+  const result = await prisma.$transaction(async (tx) => {
+    let targetWorkoutLogId = null;
+
+    if (workoutLogId !== undefined && workoutLogId !== null) {
+      const parsedWorkoutLogId = Number.parseInt(workoutLogId, 10);
+      if (Number.isNaN(parsedWorkoutLogId)) {
+        throw createHttpError(400, 'Invalid workoutLogId');
+      }
+
+      const existingLog = await tx.workoutLog.findFirst({
+        where: {
+          id: parsedWorkoutLogId,
+          userId
+        }
+      });
+
+      if (!existingLog) {
+        throw createHttpError(404, 'Workout log not found');
+      }
+
+      targetWorkoutLogId = parsedWorkoutLogId;
+    } else {
+      const created = await tx.workoutLog.create({
+        data: {
+          userId,
+          workoutDayId: null,
+          workoutName: trimmedWorkoutName,
+          completedDate: normalizedDate,
+          notes: notes || null,
+          isManual: true
+        }
+      });
+      targetWorkoutLogId = created.id;
+    }
+
+    await tx.workoutLog.update({
+      where: { id: targetWorkoutLogId },
+      data: {
+        workoutName: trimmedWorkoutName,
+        completedDate: normalizedDate,
+        notes: notes || null
+      }
+    });
+
+    const existingSets = await tx.exerciseLog.findMany({
+      where: { workoutLogId: targetWorkoutLogId },
+      select: { id: true }
+    });
+    const existingSetIdSet = new Set(existingSets.map((set) => set.id));
+
+    const incomingSetIds = [];
+    for (const set of parsedSets) {
+      if (set.id !== null) {
+        if (!existingSetIdSet.has(set.id)) {
+          throw createHttpError(400, `Exercise set ${set.id} does not belong to this workout`);
+        }
+
+        await tx.exerciseLog.update({
+          where: { id: set.id },
+          data: {
+            exerciseId: set.exerciseId,
+            setNumber: set.setNumber,
+            repsCompleted: set.repsCompleted,
+            weightKg: set.weightKg,
+            notes: set.notes
+          }
+        });
+        incomingSetIds.push(set.id);
+      } else {
+        const createdSet = await tx.exerciseLog.create({
+          data: {
+            workoutLogId: targetWorkoutLogId,
+            exerciseId: set.exerciseId,
+            setNumber: set.setNumber,
+            repsCompleted: set.repsCompleted,
+            weightKg: set.weightKg,
+            notes: set.notes
+          }
+        });
+        incomingSetIds.push(createdSet.id);
+      }
+    }
+
+    if (incomingSetIds.length > 0) {
+      await tx.exerciseLog.deleteMany({
+        where: {
+          workoutLogId: targetWorkoutLogId,
+          id: {
+            notIn: incomingSetIds
+          }
+        }
+      });
+    } else {
+      await tx.exerciseLog.deleteMany({
+        where: {
+          workoutLogId: targetWorkoutLogId
+        }
+      });
+    }
+
+    const canonicalSets = await tx.exerciseLog.findMany({
+      where: { workoutLogId: targetWorkoutLogId },
+      include: {
+        exercise: {
+          include: {
+            muscleGroup: true
+          }
+        }
+      },
+      orderBy: [
+        { exerciseId: 'asc' },
+        { setNumber: 'asc' }
+      ]
+    });
+
+    return {
+      workoutLogId: targetWorkoutLogId,
+      savedAt: new Date(),
+      exerciseLogs: canonicalSets
+    };
+  });
+
+  return result;
 };
 
 const startWorkoutLog = async (userId, payload) => {
@@ -157,32 +309,6 @@ const addWorkoutSet = async (userId, id, payload) => {
         }
       }
     }
-  });
-};
-
-const updateWorkoutLog = async (userId, id, payload) => {
-  const { workoutName, completedDate, notes } = payload;
-  const parsedId = Number.parseInt(id, 10);
-  const existingLog = await prisma.workoutLog.findFirst({
-    where: {
-      id: parsedId,
-      userId
-    }
-  });
-
-  if (!existingLog) {
-    throw createHttpError(404, 'Workout log not found');
-  }
-
-  const updateData = {};
-  if (workoutName !== undefined) updateData.workoutName = workoutName;
-  if (notes !== undefined) updateData.notes = notes || null;
-  if (completedDate !== undefined) updateData.completedDate = normalizeDate(completedDate);
-
-  return prisma.workoutLog.update({
-    where: { id: parsedId },
-    data: updateData,
-    include: workoutLogInclude
   });
 };
 
@@ -308,11 +434,10 @@ const deleteExerciseSet = async (userId, setId) => {
 };
 
 module.exports = {
-  createManualWorkoutLog,
+  syncManualWorkoutLog,
   startWorkoutLog,
   getWorkoutLogById,
   addWorkoutSet,
-  updateWorkoutLog,
   completeWorkoutLog,
   deleteWorkoutLog,
   updateExerciseSet,

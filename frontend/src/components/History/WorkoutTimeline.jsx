@@ -96,16 +96,8 @@ const WorkoutTimeline = ({ data }) => {
                           <span className="text-sm font-medium text-gray-700">
                             Set {set.setNumber}
                           </span>
-                          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:flex sm:items-center sm:gap-4">
-                            <span className="text-gray-900">
-                              <span className="font-semibold">{set.reps}</span> reps
-                            </span>
-                            <span className="text-gray-900">
-                              <span className="font-semibold">{set.weight}</span> kg
-                            </span>
-                            <span className="col-span-2 text-xs sm:text-sm text-gray-500">
-                              {set.reps * set.weight} kg volume
-                            </span>
+                          <div className="text-sm text-gray-900">
+                            <span className="font-semibold">{set.reps}</span> reps × <span className="font-semibold">{set.weight}</span> kg
                           </div>
                         </div>
                       </div>

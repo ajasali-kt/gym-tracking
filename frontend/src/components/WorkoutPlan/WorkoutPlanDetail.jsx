@@ -157,7 +157,7 @@ function WorkoutPlanDetail() {
     <>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex justify-between items-start">
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
           <div>
             <div className="flex items-center space-x-4 mb-2">
               <h1 className="text-3xl font-bold text-gray-800">{plan.name}</h1>
@@ -181,19 +181,19 @@ function WorkoutPlanDetail() {
               )}
             </div>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             <button
               onClick={() => {
                 setSelectedDayNumber(null);
                 setShowAddDayModal(true);
               }}
-              className="px-4 py-2 btn-primary transition"
+              className="w-full sm:w-auto px-4 py-2 btn-primary transition"
             >
               + Add Day
             </button>
             <button
               onClick={() => navigate('/plans')}
-              className="px-4 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition"
+              className="w-full sm:w-auto px-4 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition"
             >
               Back to Plans
             </button>
@@ -347,16 +347,16 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
               {workoutDay.muscleGroup?.name || 'General Workout'}
             </p>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={onEdit}
-              className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded transition text-sm"
+              className="w-full sm:w-auto px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded transition text-sm"
             >
               Edit
             </button>
             <button
               onClick={onDelete}
-              className="px-3 py-1 bg-red-600 hover:bg-red-700 rounded transition text-sm"
+              className="w-full sm:w-auto px-3 py-1 bg-red-600 hover:bg-red-700 rounded transition text-sm"
             >
               Delete
             </button>

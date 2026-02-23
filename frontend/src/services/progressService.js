@@ -23,16 +23,12 @@ const progressService = {
   },
 
   /**
-   * Create a manual workout log (not tied to a workout plan)
-   * @param {Object} logData - Manual workout log data
-   * @param {string} logData.completedDate - Completion date (YYYY-MM-DD)
-   * @param {string} logData.workoutName - Name of the workout
-   * @param {string} [logData.notes] - Optional notes
-   * @param {boolean} logData.isManual - Flag indicating manual entry
-   * @returns {Promise<Object>} Created workout log
+   * Sync manual workout header and sets in one request
+   * @param {Object} payload - Full manual workout payload
+   * @returns {Promise<Object>} Sync result with canonical exercise logs
    */
-  createManualWorkoutLog: async (logData) => {
-    const response = await apiClient.post('/logs/manual', logData);
+  syncManualWorkout: async (payload) => {
+    const response = await apiClient.put('/logs/manual/sync', payload);
     return response.data;
   },
 
@@ -92,20 +88,6 @@ const progressService = {
    */
   getWorkoutLog: async (workoutLogId) => {
     const response = await apiClient.get(`/logs/${workoutLogId}`);
-    return response.data;
-  },
-
-  /**
-   * Update workout log (for manual workouts)
-   * @param {number} workoutLogId - Workout log ID
-   * @param {Object} updateData - Update data
-   * @param {string} [updateData.workoutName] - Updated workout name
-   * @param {string} [updateData.completedDate] - Updated completion date
-   * @param {string} [updateData.notes] - Updated notes
-   * @returns {Promise<Object>} Updated workout log
-   */
-  updateWorkoutLog: async (workoutLogId, updateData) => {
-    const response = await apiClient.put(`/logs/${workoutLogId}`, updateData);
     return response.data;
   },
 
@@ -194,15 +176,6 @@ const progressService = {
     return response.data;
   },
 
-  /**
-   * Get all exercise logs for a specific workout
-   * @param {number} workoutLogId - Workout log ID
-   * @returns {Promise<Array>} Array of exercise logs
-   */
-  getWorkoutExerciseLogs: async (workoutLogId) => {
-    const response = await apiClient.get(`/logs/${workoutLogId}/exercises`);
-    return response.data;
-  },
 };
 
 export default progressService;
