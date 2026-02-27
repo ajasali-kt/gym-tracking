@@ -1,15 +1,33 @@
 const prisma = require('../prismaClient');
 const { createHttpError } = require('../utils/http');
 
+const INDIA_TIME_ZONE = 'Asia/Kolkata';
+const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
+
+const getDatePartsInTimeZone = (date, timeZone = INDIA_TIME_ZONE) => {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+
+  const parts = formatter.formatToParts(date);
+  const year = Number.parseInt(parts.find((part) => part.type === 'year')?.value, 10);
+  const month = Number.parseInt(parts.find((part) => part.type === 'month')?.value, 10);
+  const day = Number.parseInt(parts.find((part) => part.type === 'day')?.value, 10);
+
+  return { year, month, day };
+};
+
+const toUtcMidnightTimestamp = ({ year, month, day }) => Date.UTC(year, month - 1, day);
+
 const getCurrentDayNumber = (planStartDate) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayParts = getDatePartsInTimeZone(new Date());
+  const startParts = getDatePartsInTimeZone(new Date(planStartDate));
 
-  const startDate = new Date(planStartDate);
-  startDate.setHours(0, 0, 0, 0);
-
-  const diffTime = today.getTime() - startDate.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const diffTime = toUtcMidnightTimestamp(todayParts) - toUtcMidnightTimestamp(startParts);
+  const diffDays = Math.floor(diffTime / ONE_DAY_IN_MS);
 
   return diffDays + 1;
 };
