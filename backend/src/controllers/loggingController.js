@@ -1,5 +1,5 @@
 const {
-  syncManualWorkoutLog,
+  logWorkout,
   startWorkoutLog,
   getWorkoutLogById,
   addWorkoutSet,
@@ -9,9 +9,9 @@ const {
   deleteExerciseSet
 } = require('../services/loggingService');
 
-const syncManual = async (req, res, next) => {
+const logManualWorkout = async (req, res, next) => {
   try {
-    const result = await syncManualWorkoutLog(req.userId, req.body);
+    const result = await logWorkout(req.userId, req.body);
     res.json(result);
   } catch (error) {
     next(error);
@@ -82,7 +82,7 @@ const removeSet = async (req, res, next) => {
 };
 
 module.exports = {
-  syncManual,
+  logManualWorkout,
   start,
   getById,
   addSet,

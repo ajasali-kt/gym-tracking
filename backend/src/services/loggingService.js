@@ -33,12 +33,22 @@ const workoutLogInclude = {
 };
 
 const normalizeDate = (completedDate) => {
-  const targetDate = completedDate ? new Date(completedDate) : new Date();
+  let targetDate;
+
+  if (!completedDate) {
+    targetDate = new Date();
+  } else if (typeof completedDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(completedDate)) {
+    const [year, month, day] = completedDate.split('-').map((value) => Number.parseInt(value, 10));
+    targetDate = new Date(year, month - 1, day);
+  } else {
+    targetDate = new Date(completedDate);
+  }
+
   targetDate.setHours(0, 0, 0, 0);
   return targetDate;
 };
 
-const syncManualWorkoutLog = async (userId, payload) => {
+const logWorkout = async (userId, payload) => {
   const { workoutLogId, workoutName, completedDate, notes, sets } = payload;
 
   if (!workoutName || !workoutName.trim()) {
@@ -88,6 +98,7 @@ const syncManualWorkoutLog = async (userId, payload) => {
 
   const result = await prisma.$transaction(async (tx) => {
     let targetWorkoutLogId = null;
+    let targetWorkoutLog = null;
 
     if (workoutLogId !== undefined && workoutLogId !== null) {
       const parsedWorkoutLogId = Number.parseInt(workoutLogId, 10);
@@ -107,6 +118,7 @@ const syncManualWorkoutLog = async (userId, payload) => {
       }
 
       targetWorkoutLogId = parsedWorkoutLogId;
+      targetWorkoutLog = existingLog;
     } else {
       const created = await tx.workoutLog.create({
         data: {
@@ -119,15 +131,22 @@ const syncManualWorkoutLog = async (userId, payload) => {
         }
       });
       targetWorkoutLogId = created.id;
+      targetWorkoutLog = created;
+    }
+
+    const isEditingPlannedWorkout = targetWorkoutLog && targetWorkoutLog.workoutDayId !== null;
+    const workoutUpdateData = {
+      notes: notes || null
+    };
+
+    if (!isEditingPlannedWorkout) {
+      workoutUpdateData.workoutName = trimmedWorkoutName;
+      workoutUpdateData.completedDate = normalizedDate;
     }
 
     await tx.workoutLog.update({
       where: { id: targetWorkoutLogId },
-      data: {
-        workoutName: trimmedWorkoutName,
-        completedDate: normalizedDate,
-        notes: notes || null
-      }
+      data: workoutUpdateData
     });
 
     const existingSets = await tx.exerciseLog.findMany({
@@ -155,17 +174,40 @@ const syncManualWorkoutLog = async (userId, payload) => {
         });
         incomingSetIds.push(set.id);
       } else {
-        const createdSet = await tx.exerciseLog.create({
-          data: {
+        const matchingExistingSet = await tx.exerciseLog.findFirst({
+          where: {
             workoutLogId: targetWorkoutLogId,
             exerciseId: set.exerciseId,
-            setNumber: set.setNumber,
-            repsCompleted: set.repsCompleted,
-            weightKg: set.weightKg,
-            notes: set.notes
-          }
+            setNumber: set.setNumber
+          },
+          orderBy: { id: 'asc' },
+          select: { id: true }
         });
-        incomingSetIds.push(createdSet.id);
+
+        if (matchingExistingSet) {
+          await tx.exerciseLog.update({
+            where: { id: matchingExistingSet.id },
+            data: {
+              repsCompleted: set.repsCompleted,
+              weightKg: set.weightKg,
+              notes: set.notes
+            }
+          });
+
+          incomingSetIds.push(matchingExistingSet.id);
+        } else {
+          const createdSet = await tx.exerciseLog.create({
+            data: {
+              workoutLogId: targetWorkoutLogId,
+              exerciseId: set.exerciseId,
+              setNumber: set.setNumber,
+              repsCompleted: set.repsCompleted,
+              weightKg: set.weightKg,
+              notes: set.notes
+            }
+          });
+          incomingSetIds.push(createdSet.id);
+        }
       }
     }
 
@@ -282,6 +324,24 @@ const addWorkoutSet = async (userId, id, payload) => {
   }
 
   const parsedId = Number.parseInt(id, 10);
+  const parsedExerciseId = Number.parseInt(exerciseId, 10);
+  const parsedSetNumber = Number.parseInt(setNumber, 10);
+  const parsedRepsCompleted = Number.parseInt(repsCompleted, 10);
+  const parsedWeightKg = Number.parseFloat(weightKg);
+
+  if (!Number.isInteger(parsedExerciseId) || parsedExerciseId <= 0) {
+    throw createHttpError(400, 'Invalid exerciseId');
+  }
+  if (!Number.isInteger(parsedSetNumber) || parsedSetNumber <= 0) {
+    throw createHttpError(400, 'Invalid setNumber');
+  }
+  if (!Number.isInteger(parsedRepsCompleted) || parsedRepsCompleted <= 0) {
+    throw createHttpError(400, 'Invalid repsCompleted');
+  }
+  if (!Number.isFinite(parsedWeightKg) || parsedWeightKg <= 0) {
+    throw createHttpError(400, 'Invalid weightKg');
+  }
+
   const workoutLog = await prisma.workoutLog.findFirst({
     where: {
       id: parsedId,
@@ -293,22 +353,63 @@ const addWorkoutSet = async (userId, id, payload) => {
     throw createHttpError(404, 'Workout log not found');
   }
 
-  return prisma.exerciseLog.create({
-    data: {
-      workoutLogId: parsedId,
-      exerciseId: Number.parseInt(exerciseId, 10),
-      setNumber: Number.parseInt(setNumber, 10),
-      repsCompleted: Number.parseInt(repsCompleted, 10),
-      weightKg: Number.parseFloat(weightKg),
-      notes: notes || null
-    },
-    include: {
-      exercise: {
-        include: {
-          muscleGroup: true
+  return prisma.$transaction(async (tx) => {
+    const existingSets = await tx.exerciseLog.findMany({
+      where: {
+        workoutLogId: parsedId,
+        exerciseId: parsedExerciseId,
+        setNumber: parsedSetNumber
+      },
+      orderBy: { id: 'asc' },
+      select: { id: true }
+    });
+
+    let targetSetId;
+    if (existingSets.length > 0) {
+      targetSetId = existingSets[0].id;
+      await tx.exerciseLog.update({
+        where: { id: targetSetId },
+        data: {
+          repsCompleted: parsedRepsCompleted,
+          weightKg: parsedWeightKg,
+          notes: notes || null
+        }
+      });
+
+      if (existingSets.length > 1) {
+        await tx.exerciseLog.deleteMany({
+          where: {
+            id: {
+              in: existingSets.slice(1).map((set) => set.id)
+            }
+          }
+        });
+      }
+    } else {
+      const created = await tx.exerciseLog.create({
+        data: {
+          workoutLogId: parsedId,
+          exerciseId: parsedExerciseId,
+          setNumber: parsedSetNumber,
+          repsCompleted: parsedRepsCompleted,
+          weightKg: parsedWeightKg,
+          notes: notes || null
+        },
+        select: { id: true }
+      });
+      targetSetId = created.id;
+    }
+
+    return tx.exerciseLog.findUnique({
+      where: { id: targetSetId },
+      include: {
+        exercise: {
+          include: {
+            muscleGroup: true
+          }
         }
       }
-    }
+    });
   });
 };
 
@@ -434,7 +535,7 @@ const deleteExerciseSet = async (userId, setId) => {
 };
 
 module.exports = {
-  syncManualWorkoutLog,
+  logWorkout,
   startWorkoutLog,
   getWorkoutLogById,
   addWorkoutSet,

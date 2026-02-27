@@ -23,12 +23,12 @@ const progressService = {
   },
 
   /**
-   * Sync manual workout header and sets in one request
+   * Save manual workout header and sets in one request
    * @param {Object} payload - Full manual workout payload
-   * @returns {Promise<Object>} Sync result with canonical exercise logs
+   * @returns {Promise<Object>} Save result with canonical exercise logs
    */
-  syncManualWorkout: async (payload) => {
-    const response = await apiClient.put('/logs/manual/sync', payload);
+  logWorkout: async (payload) => {
+    const response = await apiClient.put('/logs/logworkout', payload);
     return response.data;
   },
 

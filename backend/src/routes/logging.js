@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const {
-  syncManual,
+  logManualWorkout,
   start,
   getById,
   addSet,
@@ -11,7 +11,7 @@ const {
   removeSet
 } = require('../controllers/loggingController');
 
-router.put('/manual/sync', syncManual);
+router.put('/logworkout', logManualWorkout);
 router.post('/start', start);
 router.get('/:id', getById);
 router.post('/:id/sets', addSet);

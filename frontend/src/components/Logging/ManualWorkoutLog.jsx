@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import exerciseService from '../../services/exerciseService';
 import progressService from '../../services/progressService';
 import useAccessibleModal from '../../hooks/useAccessibleModal';
@@ -34,6 +34,25 @@ function ManualWorkoutLog() {
   const isSyncInFlightRef = useRef(false);
   const hasQueuedSyncRef = useRef(false);
   const pendingChangesRef = useRef(false);
+
+  const toDateInputValue = (dateValue) => {
+    if (!dateValue) return format(new Date(), 'yyyy-MM-dd');
+
+    // Keep the calendar date stable (avoid timezone shifts from parseISO/local conversion)
+    if (typeof dateValue === 'string' && dateValue.includes('T')) {
+      return dateValue.split('T')[0];
+    }
+
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) {
+      return format(new Date(), 'yyyy-MM-dd');
+    }
+
+    const year = parsed.getUTCFullYear();
+    const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   useEffect(() => {
     fetchData();
@@ -70,7 +89,7 @@ function ManualWorkoutLog() {
 
         // Populate form with existing data
         setWorkoutName(workoutData.workoutName || workoutData.workoutDay?.dayName || '');
-        setWorkoutDate(format(parseISO(workoutData.completedDate), 'yyyy-MM-dd'));
+        setWorkoutDate(toDateInputValue(workoutData.completedDate));
         setWorkoutNotes(workoutData.notes || '');
 
         // Group exercise logs by exercise
@@ -200,12 +219,22 @@ function ManualWorkoutLog() {
       return null;
     }
 
+    let hasInvalidExistingSet = false;
     const validSets = [];
     for (const exercise of selectedExercises) {
       const sets = exerciseLogs[exercise.id] || [];
       for (const set of sets) {
         const repsCompleted = Number.parseInt(set.repsCompleted, 10);
         const weightKg = Number.parseFloat(set.weightKg);
+        const hasExistingId = set.id !== undefined && set.id !== null;
+        const repsValid = Number.isInteger(repsCompleted) && repsCompleted > 0;
+        const weightValid = Number.isFinite(weightKg) && weightKg > 0;
+
+        if (hasExistingId && (!repsValid || !weightValid)) {
+          hasInvalidExistingSet = true;
+          continue;
+        }
+
         if (Number.isInteger(repsCompleted) && repsCompleted > 0 && Number.isFinite(weightKg) && weightKg > 0) {
           validSets.push({
             id: set.id || undefined,
@@ -217,6 +246,10 @@ function ManualWorkoutLog() {
           });
         }
       }
+    }
+
+    if (hasInvalidExistingSet) {
+      return null;
     }
 
     if (validSets.length === 0 && !workoutLogId) {
@@ -249,7 +282,7 @@ function ManualWorkoutLog() {
     return updated;
   };
 
-  const syncManualWorkout = async () => {
+  const logWorkout = async () => {
     if (isSyncInFlightRef.current) {
       hasQueuedSyncRef.current = true;
       return false;
@@ -265,7 +298,7 @@ function ManualWorkoutLog() {
     setError(null);
 
     try {
-      const response = await progressService.syncManualWorkout(payload);
+      const response = await progressService.logWorkout(payload);
 
       if (response.workoutLogId && !workoutLogId) {
         setWorkoutLogId(response.workoutLogId);
@@ -285,7 +318,7 @@ function ManualWorkoutLog() {
       isSyncInFlightRef.current = false;
       if (hasQueuedSyncRef.current && pendingChangesRef.current) {
         hasQueuedSyncRef.current = false;
-        syncManualWorkout();
+        logWorkout();
       }
     }
   };
@@ -300,7 +333,7 @@ function ManualWorkoutLog() {
     }
 
     autosaveTimerRef.current = setTimeout(() => {
-      syncManualWorkout();
+      logWorkout();
     }, AUTO_SAVE_DEBOUNCE_MS);
 
     return () => {
@@ -405,7 +438,7 @@ function ManualWorkoutLog() {
             <p className="text-red-800 font-medium">{error}</p>
             {saveStatus === 'error' && (
               <button
-                onClick={syncManualWorkout}
+                onClick={logWorkout}
                 className="mt-3 px-4 py-2 btn-secondary bg-red-600 text-white hover:bg-red-700 transition text-sm"
               >
                 Retry Now
@@ -588,14 +621,18 @@ function ExerciseLogSection({
  * Input fields for a single set
  */
 function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
+  const hasData = set.repsCompleted || set.weightKg || set.notes;
+
   return (
-    <div className="p-3 bg-gray-50 rounded-lg">
+    <div
+      className={`p-3 rounded-lg border ${
+        hasData ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'
+      }`}
+    >
       {/* Mobile Layout - Stacked */}
       <div className="sm:hidden">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex-shrink-0 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
-            {set.setNumber}
-          </div>
+          <span className="font-medium text-gray-700">Set {set.setNumber}</span>
           {showRemove && (
             <button
               onClick={onRemove}
@@ -655,13 +692,11 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
 
       {/* Desktop Layout - Single Row */}
       <div className="hidden sm:flex sm:items-center sm:gap-3">
-        <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-          {set.setNumber}
-        </div>
+        <span className="font-medium text-gray-700 w-16">Set {set.setNumber}</span>
 
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-            Reps *
+            Reps:
           </label>
           <input
             type="number"
@@ -675,7 +710,7 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
 
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-            Weight (kg) *
+            Weight (kg):
           </label>
           <input
             type="number"
@@ -690,7 +725,7 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
 
         <div className="flex items-center gap-2 flex-1">
           <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-            Notes
+            Notes:
           </label>
           <input
             type="text"
