@@ -1,22 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const {
-  createManual,
+  logManualWorkout,
   start,
   getById,
   addSet,
-  update,
   complete,
   remove,
   updateSet,
   removeSet
 } = require('../controllers/loggingController');
 
-router.post('/manual', createManual);
+router.put('/logworkout', logManualWorkout);
 router.post('/start', start);
 router.get('/:id', getById);
 router.post('/:id/sets', addSet);
-router.put('/:id', update);
 router.put('/:id/complete', complete);
 router.delete('/:id', remove);
 router.put('/sets/:setId', updateSet);

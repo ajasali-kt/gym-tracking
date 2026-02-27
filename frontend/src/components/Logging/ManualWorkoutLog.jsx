@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import exerciseService from '../../services/exerciseService';
 import progressService from '../../services/progressService';
 import useAccessibleModal from '../../hooks/useAccessibleModal';
@@ -11,6 +11,7 @@ import useAccessibleModal from '../../hooks/useAccessibleModal';
  * Supports both creating new workouts and editing existing ones
  */
 function ManualWorkoutLog() {
+  const AUTO_SAVE_DEBOUNCE_MS = 800;
   const navigate = useNavigate();
   const { workoutId } = useParams(); // If present, we're in edit mode
   const isEditMode = !!workoutId;
@@ -20,21 +21,61 @@ function ManualWorkoutLog() {
   const [workoutDate, setWorkoutDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [workoutName, setWorkoutName] = useState('');
   const [workoutNotes, setWorkoutNotes] = useState('');
+  const [workoutLogId, setWorkoutLogId] = useState(workoutId ? Number.parseInt(workoutId, 10) : null);
   const [exerciseLogs, setExerciseLogs] = useState({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState('idle'); // idle | saving | saved | error
+  const [lastSavedAt, setLastSavedAt] = useState(null);
+  const [pendingChanges, setPendingChanges] = useState(false);
   const [error, setError] = useState(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [originalWorkout, setOriginalWorkout] = useState(null);
+  const autosaveTimerRef = useRef(null);
+  const isSyncInFlightRef = useRef(false);
+  const hasQueuedSyncRef = useRef(false);
+  const pendingChangesRef = useRef(false);
+
+  const toDateInputValue = (dateValue) => {
+    if (!dateValue) return format(new Date(), 'yyyy-MM-dd');
+
+    // Keep the calendar date stable (avoid timezone shifts from parseISO/local conversion)
+    if (typeof dateValue === 'string' && dateValue.includes('T')) {
+      return dateValue.split('T')[0];
+    }
+
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) {
+      return format(new Date(), 'yyyy-MM-dd');
+    }
+
+    const year = parsed.getUTCFullYear();
+    const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   useEffect(() => {
     fetchData();
   }, [workoutId]);
 
+  useEffect(() => {
+    pendingChangesRef.current = pendingChanges;
+  }, [pendingChanges]);
+
+  useEffect(() => () => {
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+  }, []);
+
   const fetchData = async () => {
     try {
       setLoading(true);
       setError(null);
+      setPendingChanges(false);
+      setSaveStatus('idle');
+      setLastSavedAt(null);
+      setWorkoutLogId(workoutId ? Number.parseInt(workoutId, 10) : null);
 
       if (isEditMode) {
         // Edit mode: fetch both exercises and existing workout data
@@ -47,8 +88,8 @@ function ManualWorkoutLog() {
         setOriginalWorkout(workoutData);
 
         // Populate form with existing data
-        setWorkoutName(workoutData.workoutName || '');
-        setWorkoutDate(format(parseISO(workoutData.completedDate), 'yyyy-MM-dd'));
+        setWorkoutName(workoutData.workoutName || workoutData.workoutDay?.dayName || '');
+        setWorkoutDate(toDateInputValue(workoutData.completedDate));
         setWorkoutNotes(workoutData.notes || '');
 
         // Group exercise logs by exercise
@@ -85,6 +126,12 @@ function ManualWorkoutLog() {
         // Create mode: just fetch exercises
         const data = await exerciseService.getAllExercises();
         setExercises(data);
+        setOriginalWorkout(null);
+        setSelectedExercises([]);
+        setExerciseLogs({});
+        setWorkoutName('');
+        setWorkoutNotes('');
+        setWorkoutDate(format(new Date(), 'yyyy-MM-dd'));
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load data');
@@ -92,6 +139,11 @@ function ManualWorkoutLog() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const markDirty = () => {
+    setPendingChanges(true);
+    setSaveStatus((previous) => (previous === 'error' ? 'error' : 'idle'));
   };
 
   const handleAddExercise = (exercise) => {
@@ -106,6 +158,7 @@ function ManualWorkoutLog() {
     setExerciseLogs({
       ...exerciseLogs,
       [exercise.id]: Array.from({ length: 3 }, (_, i) => ({
+        id: null,
         setNumber: i + 1,
         repsCompleted: '',
         weightKg: '',
@@ -114,6 +167,7 @@ function ManualWorkoutLog() {
     });
 
     setShowExercisePicker(false);
+    markDirty();
   };
 
   const handleRemoveExercise = (exerciseId) => {
@@ -121,12 +175,14 @@ function ManualWorkoutLog() {
     const newLogs = { ...exerciseLogs };
     delete newLogs[exerciseId];
     setExerciseLogs(newLogs);
+    markDirty();
   };
 
   const handleUpdateSet = (exerciseId, setIndex, field, value) => {
     const updatedLogs = { ...exerciseLogs };
     updatedLogs[exerciseId][setIndex][field] = value;
     setExerciseLogs(updatedLogs);
+    markDirty();
   };
 
   const handleAddSet = (exerciseId) => {
@@ -135,6 +191,7 @@ function ManualWorkoutLog() {
     updatedLogs[exerciseId] = [
       ...currentSets,
       {
+        id: null,
         setNumber: currentSets.length + 1,
         repsCompleted: '',
         weightKg: '',
@@ -142,6 +199,7 @@ function ManualWorkoutLog() {
       }
     ];
     setExerciseLogs(updatedLogs);
+    markDirty();
   };
 
   const handleRemoveSet = (exerciseId, setIndex) => {
@@ -153,129 +211,149 @@ function ManualWorkoutLog() {
       setNumber: i + 1
     }));
     setExerciseLogs(updatedLogs);
+    markDirty();
   };
 
-  const validateWorkout = () => {
-    if (!workoutName.trim()) {
-      alert('Please enter a workout name');
-      return false;
+  const buildSyncPayload = () => {
+    if (!workoutName.trim() || !workoutDate) {
+      return null;
     }
 
-    if (selectedExercises.length === 0) {
-      alert('Please add at least one exercise');
-      return false;
-    }
-
-    // Check if at least one set is logged for each exercise
+    let hasInvalidExistingSet = false;
+    const validSets = [];
     for (const exercise of selectedExercises) {
-      const sets = exerciseLogs[exercise.id];
-      const hasValidSet = sets.some(set =>
-        set.repsCompleted && set.weightKg
-      );
+      const sets = exerciseLogs[exercise.id] || [];
+      for (const set of sets) {
+        const repsCompleted = Number.parseInt(set.repsCompleted, 10);
+        const weightKg = Number.parseFloat(set.weightKg);
+        const hasExistingId = set.id !== undefined && set.id !== null;
+        const repsValid = Number.isInteger(repsCompleted) && repsCompleted > 0;
+        const weightValid = Number.isFinite(weightKg) && weightKg > 0;
 
-      if (!hasValidSet) {
-        alert(`Please log at least one set for ${exercise.name}`);
-        return false;
+        if (hasExistingId && (!repsValid || !weightValid)) {
+          hasInvalidExistingSet = true;
+          continue;
+        }
+
+        if (Number.isInteger(repsCompleted) && repsCompleted > 0 && Number.isFinite(weightKg) && weightKg > 0) {
+          validSets.push({
+            id: set.id || undefined,
+            exerciseId: exercise.id,
+            setNumber: set.setNumber,
+            repsCompleted,
+            weightKg,
+            notes: set.notes || null
+          });
+        }
       }
     }
 
-    return true;
-  };
-
-  const handleSaveWorkout = async () => {
-    if (!validateWorkout()) {
-      return;
+    if (hasInvalidExistingSet) {
+      return null;
     }
 
-    setSaving(true);
+    if (validSets.length === 0 && !workoutLogId) {
+      return null;
+    }
+
+    return {
+      workoutLogId: workoutLogId || undefined,
+      workoutName: workoutName.trim(),
+      completedDate: workoutDate,
+      notes: workoutNotes || null,
+      sets: validSets
+    };
+  };
+
+  const applyCanonicalSetIds = (currentLogs, canonicalSets) => {
+    const canonicalByExerciseSet = new Map();
+    canonicalSets.forEach((set) => {
+      canonicalByExerciseSet.set(`${set.exerciseId}-${set.setNumber}`, set.id);
+    });
+
+    const updated = {};
+    for (const [exerciseId, sets] of Object.entries(currentLogs)) {
+      updated[exerciseId] = sets.map((set) => ({
+        ...set,
+        id: canonicalByExerciseSet.get(`${Number.parseInt(exerciseId, 10)}-${set.setNumber}`) || null
+      }));
+    }
+
+    return updated;
+  };
+
+  const logWorkout = async () => {
+    if (isSyncInFlightRef.current) {
+      hasQueuedSyncRef.current = true;
+      return false;
+    }
+
+    const payload = buildSyncPayload();
+    if (!payload) {
+      return true;
+    }
+
+    isSyncInFlightRef.current = true;
+    setSaveStatus('saving');
     setError(null);
 
     try {
-      if (isEditMode) {
-        // Edit mode: update existing workout
-        await progressService.updateWorkoutLog(workoutId, {
-          workoutName: workoutName,
-          completedDate: workoutDate,
-          notes: workoutNotes || null
-        });
+      const response = await progressService.logWorkout(payload);
 
-        // Delete all existing exercise logs and recreate them
-        if (originalWorkout.exerciseLogs && originalWorkout.exerciseLogs.length > 0) {
-          for (const log of originalWorkout.exerciseLogs) {
-            await progressService.deleteSet(log.id);
-          }
-        }
-
-        // Create all exercise logs
-        for (const exercise of selectedExercises) {
-          const sets = exerciseLogs[exercise.id];
-
-          for (const set of sets) {
-            if (set.repsCompleted && set.weightKg) {
-              await progressService.logSet(workoutId, {
-                exerciseId: exercise.id,
-                setNumber: set.setNumber,
-                repsCompleted: parseInt(set.repsCompleted),
-                weightKg: parseFloat(set.weightKg),
-                notes: set.notes || null
-              });
-            }
-          }
-        }
-
-        alert('Workout updated successfully!');
-      } else {
-        // Create mode: create new workout
-        const workoutLogData = {
-          completedDate: workoutDate,
-          workoutName: workoutName,
-          notes: workoutNotes || null,
-          isManual: true
-        };
-
-        const workoutLog = await progressService.createManualWorkoutLog(workoutLogData);
-
-        // Log all sets for all exercises
-        for (const exercise of selectedExercises) {
-          const sets = exerciseLogs[exercise.id];
-
-          for (const set of sets) {
-            if (set.repsCompleted && set.weightKg) {
-              await progressService.logSet(workoutLog.id, {
-                exerciseId: exercise.id,
-                setNumber: set.setNumber,
-                repsCompleted: parseInt(set.repsCompleted),
-                weightKg: parseFloat(set.weightKg),
-                notes: set.notes || null
-              });
-            }
-          }
-        }
-
-        // Complete the workout
-        await progressService.completeWorkout(workoutLog.id, {
-          notes: workoutNotes || null
-        });
-
-        alert('Workout logged successfully!');
+      if (response.workoutLogId && !workoutLogId) {
+        setWorkoutLogId(response.workoutLogId);
       }
 
-      navigate('/progress');
+      setExerciseLogs((previous) => applyCanonicalSetIds(previous, response.exerciseLogs || []));
+      setPendingChanges(false);
+      setSaveStatus('saved');
+      setLastSavedAt(response.savedAt || new Date().toISOString());
+      return true;
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to save workout');
-      console.error('Error saving workout:', err);
+      const message = err.response?.data?.message || 'Autosave failed. Your changes are still on screen.';
+      setSaveStatus('error');
+      setError(message);
+      return false;
     } finally {
-      setSaving(false);
+      isSyncInFlightRef.current = false;
+      if (hasQueuedSyncRef.current && pendingChangesRef.current) {
+        hasQueuedSyncRef.current = false;
+        logWorkout();
+      }
     }
   };
 
+  useEffect(() => {
+    if (!pendingChanges) {
+      return undefined;
+    }
+
+    if (autosaveTimerRef.current) {
+      clearTimeout(autosaveTimerRef.current);
+    }
+
+    autosaveTimerRef.current = setTimeout(() => {
+      logWorkout();
+    }, AUTO_SAVE_DEBOUNCE_MS);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, [pendingChanges, workoutName, workoutDate, workoutNotes, selectedExercises, exerciseLogs, workoutLogId]);
+
   const handleDeleteWorkout = async () => {
+    if (!workoutLogId) {
+      return;
+    }
+
     if (!confirm('Are you sure you want to delete this workout? This action cannot be undone.')) {
       return;
     }
 
     try {
-      await progressService.deleteWorkoutLog(workoutId);
+      await progressService.deleteWorkoutLog(workoutLogId);
       alert('Workout deleted successfully!');
       navigate('/progress');
     } catch (err) {
@@ -288,7 +366,7 @@ function ManualWorkoutLog() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-gray-800">
-          {isEditMode ? 'Edit Manual Workout' : 'Manual Workout Log'}
+          {isEditMode ? 'Edit Workout' : 'Manual Workout Log'}
         </h1>
         <div className="card p-8 text-center">
           <div className="animate-pulse">
@@ -303,7 +381,7 @@ function ManualWorkoutLog() {
   if (error && !originalWorkout && isEditMode) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-800">Edit Manual Workout</h1>
+        <h1 className="text-3xl font-bold text-gray-800">Edit Workout</h1>
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <p className="text-red-800 font-medium">Error: {error}</p>
           <button
@@ -324,33 +402,48 @@ function ManualWorkoutLog() {
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-              {isEditMode ? 'Edit Manual Workout' : 'Manual Workout Log'}
+              {isEditMode ? 'Edit Workout' : 'Manual Workout Log'}
             </h1>
             <p className="text-sm sm:text-base text-gray-600 mt-1">
-              {isEditMode ? 'Modify exercises and sets' : 'Log a workout without a predefined plan'}
+              {isEditMode ? 'Modify workout details, exercises, and sets' : 'Log a workout without a predefined plan'}
             </p>
           </div>
-          <div className="flex gap-2">
-            {isEditMode && (
+          <div className="w-full sm:w-auto flex flex-col gap-2 sm:items-end">
+            <div className="text-xs sm:text-sm text-gray-600 sm:text-right">
+              {saveStatus === 'saving' && 'Saving...'}
+              {saveStatus === 'saved' && `All changes saved${lastSavedAt ? ` at ${format(new Date(lastSavedAt), 'p')}` : ''}`}
+              {saveStatus === 'error' && 'Save failed'}
+            </div>
+            <div className="w-full sm:w-auto flex gap-2">
+              {workoutLogId && (
+                <button
+                  onClick={handleDeleteWorkout}
+                  className="btn-danger w-full sm:w-[150px] px-4 sm:px-6 py-2 text-sm sm:text-base"
+                >
+                  Delete
+                </button>
+              )}
               <button
-                onClick={handleDeleteWorkout}
-                className="px-4 py-2 btn-danger transition text-sm sm:text-base"
+                onClick={() => navigate('/progress')}
+                className="btn-secondary bg-gray-600 text-white hover:bg-gray-700 w-full sm:w-[220px] px-5 sm:px-8 py-2 text-sm sm:text-base"
               >
-                Delete
+                Back
               </button>
-            )}
-            <button
-              onClick={() => navigate('/progress')}
-              className="px-4 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition text-sm sm:text-base w-full sm:w-auto"
-            >
-              Cancel
-            </button>
+            </div>
           </div>
         </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-800 font-medium">{error}</p>
+            {saveStatus === 'error' && (
+              <button
+                onClick={logWorkout}
+                className="mt-3 px-4 py-2 btn-secondary bg-red-600 text-white hover:bg-red-700 transition text-sm"
+              >
+                Retry Now
+              </button>
+            )}
           </div>
         )}
 
@@ -366,7 +459,10 @@ function ManualWorkoutLog() {
               <input
                 type="text"
                 value={workoutName}
-                onChange={(e) => setWorkoutName(e.target.value)}
+                onChange={(e) => {
+                  setWorkoutName(e.target.value);
+                  markDirty();
+                }}
                 placeholder="e.g., Chest & Triceps, Full Body"
                 className="input-field"
               />
@@ -379,7 +475,10 @@ function ManualWorkoutLog() {
               <input
                 type="date"
                 value={workoutDate}
-                onChange={(e) => setWorkoutDate(e.target.value)}
+                onChange={(e) => {
+                  setWorkoutDate(e.target.value);
+                  markDirty();
+                }}
                 max={format(new Date(), 'yyyy-MM-dd')}
                 className="input-field"
               />
@@ -392,7 +491,10 @@ function ManualWorkoutLog() {
             </label>
             <textarea
               value={workoutNotes}
-              onChange={(e) => setWorkoutNotes(e.target.value)}
+              onChange={(e) => {
+                setWorkoutNotes(e.target.value);
+                markDirty();
+              }}
               placeholder="How did the workout feel? Any observations?"
               rows="2"
               className="input-field"
@@ -444,21 +546,6 @@ function ManualWorkoutLog() {
           )}
         </div>
 
-        {/* Save Button */}
-        {selectedExercises.length > 0 && (
-          <div className="card p-4 sm:p-6">
-            <button
-              onClick={handleSaveWorkout}
-              disabled={saving}
-              className="w-full px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base"
-            >
-              {saving
-                ? (isEditMode ? 'Saving Changes...' : 'Saving Workout...')
-                : (isEditMode ? 'Save Changes' : 'Save Workout')
-              }
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Exercise Picker Modal */}
@@ -534,14 +621,18 @@ function ExerciseLogSection({
  * Input fields for a single set
  */
 function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
+  const hasData = set.repsCompleted || set.weightKg || set.notes;
+
   return (
-    <div className="p-3 bg-gray-50 rounded-lg">
+    <div
+      className={`p-3 rounded-lg border ${
+        hasData ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'
+      }`}
+    >
       {/* Mobile Layout - Stacked */}
       <div className="sm:hidden">
         <div className="flex items-center justify-between mb-2">
-          <div className="flex-shrink-0 w-7 h-7 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
-            {set.setNumber}
-          </div>
+          <span className="font-medium text-gray-700">Set {set.setNumber}</span>
           {showRemove && (
             <button
               onClick={onRemove}
@@ -601,13 +692,11 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
 
       {/* Desktop Layout - Single Row */}
       <div className="hidden sm:flex sm:items-center sm:gap-3">
-        <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-          {set.setNumber}
-        </div>
+        <span className="font-medium text-gray-700 w-16">Set {set.setNumber}</span>
 
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-            Reps *
+            Reps:
           </label>
           <input
             type="number"
@@ -621,7 +710,7 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
 
         <div className="flex items-center gap-2">
           <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-            Weight (kg) *
+            Weight (kg):
           </label>
           <input
             type="number"
@@ -636,7 +725,7 @@ function SetLogInput({ set, setIndex, onUpdate, onRemove, showRemove }) {
 
         <div className="flex items-center gap-2 flex-1">
           <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-            Notes
+            Notes:
           </label>
           <input
             type="text"

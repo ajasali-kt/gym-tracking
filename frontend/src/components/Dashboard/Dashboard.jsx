@@ -14,8 +14,8 @@ function Dashboard() {
   const [error, setError] = useState(null);
   const [workoutLogId, setWorkoutLogId] = useState(null);
   const [workoutLogData, setWorkoutLogData] = useState(null); // Store the full workout log data
-  const [isStartingWorkout, setIsStartingWorkout] = useState(false);
   const hasFetchedRef = useRef(false);
+  const creatingWorkoutLogPromiseRef = useRef(null);
 
   useEffect(() => {
     // Prevent double fetch in React StrictMode during development
@@ -48,23 +48,36 @@ function Dashboard() {
     }
   };
 
-  const handleStartWorkout = async () => {
-    if (!todayWorkout?.workoutDay?.id) return;
-
-    try {
-      setIsStartingWorkout(true);
-      const log = await workoutService.startWorkoutLog(todayWorkout.workoutDay.id);
-      setWorkoutLogId(log.id);
-      console.log('Workout started with log ID:', log.id);
-
-      // Initialize empty workout log data
-      setWorkoutLogData({ exerciseLogs: [] });
-    } catch (err) {
-      console.error('Error starting workout:', err);
-      setError('Failed to start workout. Please try again.');
-    } finally {
-      setIsStartingWorkout(false);
+  const ensureWorkoutLog = async () => {
+    if (workoutLogId) {
+      return workoutLogId;
     }
+
+    if (!todayWorkout?.workoutDay?.id) {
+      return null;
+    }
+
+    if (creatingWorkoutLogPromiseRef.current) {
+      return creatingWorkoutLogPromiseRef.current;
+    }
+
+    creatingWorkoutLogPromiseRef.current = workoutService
+      .startWorkoutLog(todayWorkout.workoutDay.id)
+      .then((log) => {
+        setWorkoutLogId(log.id);
+        setWorkoutLogData((previous) => previous || { id: log.id, exerciseLogs: [] });
+        return log.id;
+      })
+      .catch((err) => {
+        console.error('Error creating workout log:', err);
+        setError('Failed to autosave workout. Please try again.');
+        return null;
+      })
+      .finally(() => {
+        creatingWorkoutLogPromiseRef.current = null;
+      });
+
+    return creatingWorkoutLogPromiseRef.current;
   };
 
   if (loading) {
@@ -134,15 +147,6 @@ function Dashboard() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Dashboard</h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
         </div>
-        {workoutDay && !workoutLogId && (
-          <button
-            onClick={handleStartWorkout}
-            disabled={isStartingWorkout}
-            className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition disabled:bg-gray-400 disabled:cursor-not-allowed text-sm sm:text-base w-full sm:w-auto"
-          >
-            {isStartingWorkout ? 'Starting...' : 'Start Workout'}
-          </button>
-        )}
         {workoutLogId && (
           <div className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-green-100 text-green-800 rounded-lg border border-green-300">
             <svg className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -187,6 +191,7 @@ function Dashboard() {
                   index={index}
                   workoutLogId={workoutLogId}
                   workoutLogData={workoutLogData}
+                  ensureWorkoutLog={ensureWorkoutLog}
                 />
               ))}
             </div>
@@ -221,7 +226,7 @@ function Dashboard() {
  * Exercise Card Component
  * Wrapper for ExerciseTracker
  */
-function ExerciseCard({ assignment, index, workoutLogId, workoutLogData }) {
+function ExerciseCard({ assignment, index, workoutLogId, workoutLogData, ensureWorkoutLog }) {
   const exercise = assignment.exercise;
 
   return (
@@ -230,6 +235,7 @@ function ExerciseCard({ assignment, index, workoutLogId, workoutLogData }) {
       assignment={{ ...assignment, order: index + 1 }}
       workoutLogId={workoutLogId}
       workoutLogData={workoutLogData}
+      ensureWorkoutLog={ensureWorkoutLog}
     />
   );
 }

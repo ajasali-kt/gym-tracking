@@ -1,19 +1,18 @@
 const {
-  createManualWorkoutLog,
+  logWorkout,
   startWorkoutLog,
   getWorkoutLogById,
   addWorkoutSet,
-  updateWorkoutLog,
   completeWorkoutLog,
   deleteWorkoutLog,
   updateExerciseSet,
   deleteExerciseSet
 } = require('../services/loggingService');
 
-const createManual = async (req, res, next) => {
+const logManualWorkout = async (req, res, next) => {
   try {
-    const workoutLog = await createManualWorkoutLog(req.userId, req.body);
-    res.status(201).json(workoutLog);
+    const result = await logWorkout(req.userId, req.body);
+    res.json(result);
   } catch (error) {
     next(error);
   }
@@ -41,15 +40,6 @@ const addSet = async (req, res, next) => {
   try {
     const exerciseLog = await addWorkoutSet(req.userId, req.params.id, req.body);
     res.status(201).json(exerciseLog);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const update = async (req, res, next) => {
-  try {
-    const workoutLog = await updateWorkoutLog(req.userId, req.params.id, req.body);
-    res.json(workoutLog);
   } catch (error) {
     next(error);
   }
@@ -92,11 +82,10 @@ const removeSet = async (req, res, next) => {
 };
 
 module.exports = {
-  createManual,
+  logManualWorkout,
   start,
   getById,
   addSet,
-  update,
   complete,
   remove,
   updateSet,

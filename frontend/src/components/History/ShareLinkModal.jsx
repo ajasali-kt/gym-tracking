@@ -29,7 +29,7 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
         aria-modal="true"
         aria-labelledby="share-link-title"
         tabIndex={-1}
-        className="card max-w-md w-full"
+        className="card max-w-md w-full max-h-[90vh] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -54,7 +54,7 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
         </div>
 
         {/* Body */}
-        <div className="px-6 py-4 space-y-4">
+        <div className="px-6 py-4 space-y-4 overflow-y-auto">
           {!shareData ? (
             <>
               {/* Date Range Info */}
@@ -114,17 +114,17 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
                 <label htmlFor="share-link-url" className="block text-sm font-medium text-gray-700 mb-2">
                   Share URL
                 </label>
-                <div className="flex space-x-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input
                     id="share-link-url"
                     type="text"
                     value={shareData.shareUrl}
                     readOnly
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
+                    className="w-full sm:flex-1 sm:min-w-0 px-4 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
                   />
                   <button
                     onClick={handleCopyLink}
-                    className={`px-4 py-2 rounded-md font-medium ${
+                    className={`w-full sm:w-auto shrink-0 px-4 py-2 rounded-md font-medium ${
                       copied
                         ? 'bg-green-100 text-green-700'
                         : 'bg-blue-600 text-white hover:bg-blue-700'

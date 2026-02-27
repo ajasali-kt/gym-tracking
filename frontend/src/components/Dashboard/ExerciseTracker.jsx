@@ -1,6 +1,11 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import workoutService from '../../services/workoutService';
 
+const AUTO_SAVE_DEBOUNCE_MS = 800;
+const FALLBACK_PREFIX = 'dashboard_unsaved_set';
+const MAX_AUTO_RETRIES = 3;
+const RETRY_DELAY_MS = 1200;
+
 /**
  * ExerciseTracker Component
  * Unified component for tracking workout exercises with real-time database updates
@@ -8,7 +13,7 @@ import workoutService from '../../services/workoutService';
  *
  * @param {Object} workoutLogData - Pre-fetched workout log data from parent (prevents N+1 API calls)
  */
-function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, onExerciseComplete }) {
+function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, ensureWorkoutLog }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [sets, setSets] = useState(() => {
     const initialSets = [];
@@ -16,7 +21,6 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
       initialSets.push({
         id: null, // Will be set when saved to DB
         setNumber: i + 1,
-        completed: false,
         reps: '',
         time: '', // For time-based exercises (in minutes)
         weight: '', // Supports ranges like "10-15"
@@ -35,6 +39,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
   const saveTimerRef = useRef({});
   const saveQueueRef = useRef(new Map()); // Track pending saves per set
   const previousSetsRef = useRef([]); // Track previous sets state for comparison
+  const failedSavesRef = useRef(new Map()); // Persist failed saves for manual retry
 
   // Determine if this is a time-based exercise
   // Time-based exercises: Cardio, Running, Cycling, Plank, etc.
@@ -44,10 +49,80 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
                       exercise.name?.toLowerCase().includes('cardio') ||
                       exercise.muscleGroup?.name?.toLowerCase() === 'cardio';
 
+  const parseWeightValue = (weightInput) => {
+    if (!weightInput || !weightInput.trim()) return null;
+    const normalized = weightInput.trim();
+
+    if (normalized.includes('-')) {
+      const [minRaw, maxRaw] = normalized.split('-');
+      const min = Number.parseFloat((minRaw || '').trim());
+      const max = Number.parseFloat((maxRaw || '').trim());
+      if (!Number.isFinite(min) || !Number.isFinite(max) || min <= 0 || max <= 0) {
+        return null;
+      }
+      return (min + max) / 2;
+    }
+
+    const single = Number.parseFloat(normalized);
+    if (!Number.isFinite(single) || single <= 0) return null;
+    return single;
+  };
+
+  const parseRepsValue = (repsInput) => {
+    const parsed = Number.parseInt(repsInput, 10);
+    if (!Number.isInteger(parsed) || parsed <= 0) return null;
+    return parsed;
+  };
+
+  const isSetReadyForAutosave = (setData) => {
+    if (isTimeBased) return false;
+    return parseRepsValue(setData.reps) !== null && parseWeightValue(setData.weight) !== null;
+  };
+
+  const getFallbackStorageKey = (setData, setIndex, activeWorkoutLogId = workoutLogId) =>
+    `${FALLBACK_PREFIX}:${activeWorkoutLogId || 'pending'}:${exercise.id}:${setData?.setNumber || setIndex + 1}`;
+
+  const saveFailedSetLocally = (setIndex, setData, activeWorkoutLogId = workoutLogId) => {
+    const key = getFallbackStorageKey(setData, setIndex, activeWorkoutLogId);
+    failedSavesRef.current.set(key, { setIndex, setData });
+    try {
+      localStorage.setItem(
+        key,
+        JSON.stringify({
+          exerciseId: exercise.id,
+          setIndex,
+          setData,
+          workoutLogId: activeWorkoutLogId || null,
+          savedAt: new Date().toISOString()
+        })
+      );
+    } catch {
+      // Ignore storage issues and still keep in-memory fallback.
+    }
+  };
+
+  const clearFailedSetFallback = (setIndex, setData, activeWorkoutLogId = workoutLogId) => {
+    const key = getFallbackStorageKey(setData, setIndex, activeWorkoutLogId);
+    failedSavesRef.current.delete(key);
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      // Ignore storage cleanup issues.
+    }
+  };
+
   // Load existing workout data from pre-fetched workoutLogData (passed from parent)
   // This prevents the N+1 query problem where each ExerciseTracker fetches the same workout log
   useEffect(() => {
-    if (!workoutLogData || hasLoadedData) return;
+    // No existing log data to preload for this exercise, so allow autosave immediately.
+    if (!workoutLogData) {
+      if (!hasLoadedData) {
+        setHasLoadedData(true);
+      }
+      return;
+    }
+
+    if (hasLoadedData) return;
 
     try {
       setIsLoadingExistingData(true);
@@ -97,7 +172,6 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
             updatedSets[setIndex] = {
               id: log.id,
               setNumber: log.setNumber,
-              completed: log.repsCompleted > 0 || log.weightKg > 0, // Mark as completed if data exists
               reps: log.repsCompleted > 0 ? log.repsCompleted.toString() : '',
               time: time,
               weight: weight,
@@ -118,7 +192,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
     } finally {
       setIsLoadingExistingData(false);
     }
-  }, [workoutLogData, exercise.id]);
+  }, [workoutLogData, exercise.id, hasLoadedData]);
 
   /**
    * Auto-save effect with debouncing
@@ -132,9 +206,6 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
    * - Follows React best practices for side effects
    */
   useEffect(() => {
-    // Skip if no workout log (can't save without a workout session)
-    if (!workoutLogId) return;
-
     // Skip on initial mount or when loading existing data
     if (isLoadingExistingData || !hasLoadedData) return;
 
@@ -153,6 +224,14 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
         currentSet.notes !== previousSet.notes;
 
       if (hasChanged) {
+        if (!isSetReadyForAutosave(currentSet)) {
+          if (saveTimerRef.current[index]) {
+            clearTimeout(saveTimerRef.current[index]);
+            delete saveTimerRef.current[index];
+          }
+          return;
+        }
+
         // Clear existing timer for this specific set
         if (saveTimerRef.current[index]) {
           clearTimeout(saveTimerRef.current[index]);
@@ -163,7 +242,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
         saveTimerRef.current[index] = setTimeout(() => {
           saveSetToDatabase(index, currentSet);
           delete saveTimerRef.current[index];
-        }, 800);
+        }, AUTO_SAVE_DEBOUNCE_MS);
       }
     });
 
@@ -183,18 +262,17 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
    * Features:
    * - Debounced saves to reduce API calls
    * - Queue management to prevent concurrent saves
-   * - Better error handling with retry logic
+   * - Validates reps and weight before sending requests
+   * - Auto-retries failed saves up to 3 times before local fallback storage
    * - Visual feedback for save status
    */
-  const saveSetToDatabase = async (setIndex, setData) => {
-    if (!workoutLogId) {
-      console.log('No workout log ID - skipping database save');
+  const saveSetToDatabase = async (setIndex, setData, attempt = 1) => {
+    const activeWorkoutLogId = workoutLogId || (ensureWorkoutLog ? await ensureWorkoutLog() : null);
+    if (!activeWorkoutLogId) {
       return;
     }
 
-    // Skip if no meaningful data to save
-    const hasData = setData.reps || setData.weight || setData.time || setData.notes;
-    if (!hasData) {
+    if (!isSetReadyForAutosave(setData)) {
       return;
     }
 
@@ -211,16 +289,10 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
       setIsSaving(true);
       setSaveError(null);
 
-      // Parse weight - handle ranges like "10-15" or single values like "20"
-      let weightValue = 0;
-      if (setData.weight) {
-        // If it's a range like "10-15", take the average
-        if (setData.weight.includes('-')) {
-          const [min, max] = setData.weight.split('-').map(v => parseFloat(v.trim()));
-          weightValue = (min + max) / 2;
-        } else {
-          weightValue = parseFloat(setData.weight) || 0;
-        }
+      const repsValue = parseRepsValue(setData.reps);
+      const weightValue = parseWeightValue(setData.weight);
+      if (repsValue === null || weightValue === null) {
+        return;
       }
 
       // Build notes string only with time (for cardio) and user notes
@@ -236,7 +308,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
       const payload = {
         exerciseId: exercise.id,
         setNumber: setData.setNumber,
-        repsCompleted: parseInt(setData.reps) || 0,
+        repsCompleted: repsValue,
         weightKg: weightValue,
         notes: notesString || null
       };
@@ -248,28 +320,33 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
           weightKg: payload.weightKg,
           notes: payload.notes
         });
-        console.log(`âœ“ Set ${setData.setNumber} updated successfully`);
       } else {
-        const response = await workoutService.logSet(workoutLogId, payload);
+        const response = await workoutService.logSet(activeWorkoutLogId, payload);
         // Update the set with the database ID
-        const updatedSets = [...sets];
-        updatedSets[setIndex].id = response.id;
-        setSets(updatedSets);
-        console.log(`âœ“ Set ${setData.setNumber} saved with ID: ${response.id}`);
+        setSets((previousSets) => {
+          const updatedSets = [...previousSets];
+          if (updatedSets[setIndex]) {
+            updatedSets[setIndex] = { ...updatedSets[setIndex], id: response.id };
+          }
+          return updatedSets;
+        });
       }
 
       // Update last saved timestamp
       setLastSaved(new Date());
+      clearFailedSetFallback(setIndex, setData, activeWorkoutLogId);
 
     } catch (error) {
-      console.error(`âœ— Error saving set ${setData.setNumber}:`, error);
-      setSaveError(`Failed to save set ${setData.setNumber}. Your data is stored locally and will be saved when connection is restored.`);
-
-      // Retry logic: attempt to save again after 3 seconds
-      setTimeout(() => {
-        saveQueueRef.current.delete(pendingKey);
-        saveSetToDatabase(setIndex, setData);
-      }, 3000);
+      console.error(`Error saving set ${setData.setNumber}:`, error);
+      if (attempt < MAX_AUTO_RETRIES) {
+        setSaveError(`Save failed for set ${setData.setNumber}. Retrying (${attempt}/${MAX_AUTO_RETRIES})...`);
+        setTimeout(() => {
+          saveSetToDatabase(setIndex, setData, attempt + 1);
+        }, RETRY_DELAY_MS);
+      } else {
+        saveFailedSetLocally(setIndex, setData, activeWorkoutLogId);
+        setSaveError(`Failed to save set ${setData.setNumber} after ${MAX_AUTO_RETRIES} attempts. Changes stored locally.`);
+      }
 
     } finally {
       // Remove from queue
@@ -294,7 +371,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
    * - Easier to understand and maintain
    *
    * @param {number} setIndex - Index of the set being modified
-   * @param {string} field - Field name ('weight', 'reps', 'time', 'notes', or 'completed')
+   * @param {string} field - Field name ('weight', 'reps', 'time', or 'notes')
    * @param {string} value - New value for the field
    */
   const handleSetChange = (setIndex, field, value) => {
@@ -305,23 +382,6 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
     };
     setSets(updatedSets);
     // Note: Auto-save is handled by useEffect hook monitoring sets state
-  };
-
-  const toggleSetCompletion = async (setIndex) => {
-    const updatedSets = [...sets];
-    updatedSets[setIndex].completed = !updatedSets[setIndex].completed;
-    setSets(updatedSets);
-
-    // Save immediately when marking complete/incomplete
-    await saveSetToDatabase(setIndex, updatedSets[setIndex]);
-
-    // Check if all sets are completed
-    const allCompleted = updatedSets.every(set => set.completed);
-
-    // Notify parent component if provided
-    if (onExerciseComplete) {
-      onExerciseComplete(assignment.id, allCompleted);
-    }
   };
 
   const handleHeaderClick = (e) => {
@@ -435,7 +495,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
                   <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  Save failed (retrying...)
+                  {saveError}
                 </span>
               )}
             </div>
@@ -444,19 +504,13 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
                 <div
                   key={setIndex}
                   className={`p-3 rounded-lg border ${
-                    set.completed ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'
+                    (set.reps || set.weight || set.time || set.notes) ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'
                   }`}
                 >
                   {/* Mobile Layout - Stacked */}
                   <div className="sm:hidden">
-                    {/* Header row with checkbox and set number */}
+                    {/* Header row with set number */}
                     <div className="flex items-center gap-3 mb-2">
-                      <input
-                        type="checkbox"
-                        checked={set.completed}
-                        onChange={() => toggleSetCompletion(setIndex)}
-                        className="w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500 cursor-pointer flex-shrink-0"
-                      />
                       <span className="font-medium text-gray-700">Set {set.setNumber}</span>
                     </div>
 
@@ -524,12 +578,6 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, o
 
                   {/* Desktop Layout - Single Row */}
                   <div className="hidden sm:flex sm:items-center sm:gap-3">
-                    <input
-                      type="checkbox"
-                      checked={set.completed}
-                      onChange={() => toggleSetCompletion(setIndex)}
-                      className="w-5 h-5 text-green-600 rounded focus:ring-2 focus:ring-green-500 cursor-pointer flex-shrink-0"
-                    />
                     <span className="font-medium text-gray-700 w-16">Set {set.setNumber}</span>
 
                     {/* Time-based exercises: Show only Time field */}
