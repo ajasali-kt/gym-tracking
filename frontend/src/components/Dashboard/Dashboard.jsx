@@ -16,6 +16,7 @@ function Dashboard() {
   const [workoutLogData, setWorkoutLogData] = useState(null); // Store the full workout log data
   const hasFetchedRef = useRef(false);
   const creatingWorkoutLogPromiseRef = useRef(null);
+  const todayDate = format(new Date(), 'yyyy-MM-dd');
 
   useEffect(() => {
     // Prevent double fetch in React StrictMode during development
@@ -31,7 +32,7 @@ function Dashboard() {
       setError(null);
 
       // Use the new consolidated endpoint - single API call instead of 3!
-      const data = await workoutService.getTodayWorkoutWithLog();
+      const data = await workoutService.getTodayWorkoutWithLog(todayDate);
       setTodayWorkout(data);
 
       // If there's an existing workout log, set it up
@@ -62,7 +63,7 @@ function Dashboard() {
     }
 
     creatingWorkoutLogPromiseRef.current = workoutService
-      .startWorkoutLog(todayWorkout.workoutDay.id)
+      .startWorkoutLog(todayWorkout.workoutDay.id, todayDate)
       .then((log) => {
         setWorkoutLogId(log.id);
         setWorkoutLogData((previous) => previous || { id: log.id, exerciseLogs: [] });

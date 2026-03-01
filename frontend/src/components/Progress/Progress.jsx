@@ -314,32 +314,32 @@ function WorkoutHistoryCard({ workout }) {
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
       <div
-        className="flex items-center justify-between p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
+        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
         onClick={() => setExpanded(!expanded)}
       >
-        <div className="flex items-center space-x-4">
-          <div className={`flex-shrink-0 w-12 h-12 text-white rounded-lg flex items-center justify-center ${
+        <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
+          <div className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 text-white rounded-lg flex items-center justify-center ${
             isManualWorkout ? 'bg-purple-600' : 'bg-green-600'
           }`}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h4 className="font-semibold text-gray-800">{workoutTitle}</h4>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="font-semibold text-gray-800 break-words">{workoutTitle}</h4>
               {isManualWorkout && (
                 <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
                   Manual
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-600">
+            <p className="text-xs sm:text-sm text-gray-600 break-words">
               {format(parseISO(workout.completedDate), 'EEEE, MMMM d, yyyy')}
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
           <div className="text-center">
             <p className="text-xs text-gray-600">Exercises</p>
             <p className="font-bold text-gray-800">

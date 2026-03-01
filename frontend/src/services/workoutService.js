@@ -176,8 +176,10 @@ const workoutService = {
    * - GET /api/logs/:id
    * @returns {Promise<Object>} Today's workout with optional workout log
    */
-  getTodayWorkoutWithLog: async () => {
-    const response = await apiClient.get('/dashboard/today-with-log');
+  getTodayWorkoutWithLog: async (todayDate) => {
+    const response = await apiClient.get('/dashboard/today-with-log', {
+      params: { todayDate }
+    });
     return response.data;
   },
 
