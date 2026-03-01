@@ -1,38 +1,53 @@
 const prisma = require('../prismaClient');
 const { createHttpError } = require('../utils/http');
 
-const INDIA_TIME_ZONE = 'Asia/Kolkata';
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
-const getDatePartsInTimeZone = (date, timeZone = INDIA_TIME_ZONE) => {
-  const formatter = new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
+const toDateOnlyString = (dateValue) => {
+  if (!dateValue) return null;
 
-  const parts = formatter.formatToParts(date);
-  const year = Number.parseInt(parts.find((part) => part.type === 'year')?.value, 10);
-  const month = Number.parseInt(parts.find((part) => part.type === 'month')?.value, 10);
-  const day = Number.parseInt(parts.find((part) => part.type === 'day')?.value, 10);
+  if (typeof dateValue === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
+    return dateValue;
+  }
 
-  return { year, month, day };
+  const parsed = new Date(dateValue);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  const year = parsed.getFullYear();
+  const month = String(parsed.getMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
-const toUtcMidnightTimestamp = ({ year, month, day }) => Date.UTC(year, month - 1, day);
+const dateOnlyToUtcTimestamp = (dateString) => {
+  const [year, month, day] = dateString.split('-').map((value) => Number.parseInt(value, 10));
+  return Date.UTC(year, month - 1, day);
+};
 
-const getCurrentDayNumber = (planStartDate) => {
-  const todayParts = getDatePartsInTimeZone(new Date());
-  const startParts = getDatePartsInTimeZone(new Date(planStartDate));
+const dateOnlyStringToLocalDate = (dateString) => {
+  const [year, month, day] = dateString.split('-').map((value) => Number.parseInt(value, 10));
+  return new Date(year, month - 1, day);
+};
 
-  const diffTime = toUtcMidnightTimestamp(todayParts) - toUtcMidnightTimestamp(startParts);
+const getCurrentDayNumber = (planStartDate, todayDate) => {
+  const startDate = toDateOnlyString(planStartDate);
+  const today = toDateOnlyString(todayDate);
+
+  if (!startDate || !today) {
+    return 0;
+  }
+
+  if (startDate > today) {
+    return 0;
+  }
+
+  const diffTime = dateOnlyToUtcTimestamp(today) - dateOnlyToUtcTimestamp(startDate);
   const diffDays = Math.floor(diffTime / ONE_DAY_IN_MS);
 
   return diffDays + 1;
 };
 
-const getTodayWorkoutWithLog = async (userId) => {
+const getTodayWorkoutWithLog = async (userId, todayDate) => {
   const activePlan = await prisma.workoutPlan.findFirst({
     where: {
       isActive: true,
@@ -56,7 +71,8 @@ const getTodayWorkoutWithLog = async (userId) => {
     };
   }
 
-  const currentDayNumber = getCurrentDayNumber(activePlan.startDate);
+  const today = dateOnlyStringToLocalDate(todayDate);
+  const currentDayNumber = getCurrentDayNumber(activePlan.startDate, today);
 
   const todayWorkout = await prisma.workoutDay.findFirst({
     where: {
@@ -94,9 +110,6 @@ const getTodayWorkoutWithLog = async (userId) => {
       activePlanName: activePlan.name
     };
   }
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
 
   const workoutLog = await prisma.workoutLog.findFirst({
     where: {
@@ -202,7 +215,7 @@ const getDashboardSummary = async (userId) => {
   };
 };
 
-const getWeekSchedule = async (userId) => {
+const getWeekSchedule = async (userId, todayDate) => {
   const activePlan = await prisma.workoutPlan.findFirst({
     where: {
       isActive: true,
@@ -257,7 +270,7 @@ const getWeekSchedule = async (userId) => {
       startDate: activePlan.startDate,
       endDate: activePlan.endDate
     },
-    currentDay: getCurrentDayNumber(activePlan.startDate),
+    currentDay: getCurrentDayNumber(activePlan.startDate, todayDate),
     numberOfDays,
     schedule
   };

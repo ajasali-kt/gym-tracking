@@ -426,9 +426,22 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
               <p className="font-semibold text-gray-700">Rest</p>
               <p className="text-gray-600">{assignment.restSeconds || assignment.rest || 0}s</p>
             </div>
-            {/* Mobile compact info */}
-            <div className="sm:hidden text-right text-gray-600">
-              <span className="font-medium">{assignment.sets}Ã—{assignment.reps}</span>
+            {/* Mobile metrics */}
+            <div className="sm:hidden text-right">
+              <div className="grid grid-cols-3 gap-2 text-[11px] text-gray-600">
+                <div>
+                  <p className="font-semibold text-gray-700 leading-tight">Sets</p>
+                  <p className="leading-tight">{assignment.sets}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700 leading-tight">Reps</p>
+                  <p className="leading-tight">{assignment.reps}</p>
+                </div>
+                <div>
+                  <p className="font-semibold text-gray-700 leading-tight">Rest</p>
+                  <p className="leading-tight">{assignment.restSeconds || assignment.rest || 0}s</p>
+                </div>
+              </div>
             </div>
             <svg
               className={`w-5 h-5 sm:w-6 sm:h-6 text-gray-600 transition-transform flex-shrink-0 ${
