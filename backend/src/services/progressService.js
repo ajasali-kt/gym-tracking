@@ -1,6 +1,16 @@
 const prisma = require('../prismaClient');
 const { createHttpError } = require('../utils/http');
 
+const buildCompletedDateFilter = (query = {}) => {
+  const { startDate, endDate } = query;
+  if (!startDate && !endDate) return undefined;
+
+  const completedDate = {};
+  if (startDate) completedDate.gte = new Date(startDate);
+  if (endDate) completedDate.lte = new Date(endDate);
+  return completedDate;
+};
+
 const calculateExerciseStats = (logs) => {
   if (logs.length === 0) {
     return {
@@ -72,11 +82,8 @@ const getProgressHistory = async (userId, query) => {
   const { startDate, endDate, limit } = query;
   const whereClause = { userId };
 
-  if (startDate || endDate) {
-    whereClause.completedDate = {};
-    if (startDate) whereClause.completedDate.gte = new Date(startDate);
-    if (endDate) whereClause.completedDate.lte = new Date(endDate);
-  }
+  const completedDate = buildCompletedDateFilter(query);
+  if (completedDate) whereClause.completedDate = completedDate;
 
   return prisma.workoutLog.findMany({
     where: whereClause,
@@ -103,9 +110,12 @@ const getProgressHistory = async (userId, query) => {
 
 const getRecentProgress = async (userId, query) => {
   const { limit } = query;
+  const whereClause = { userId };
+  const completedDate = buildCompletedDateFilter(query);
+  if (completedDate) whereClause.completedDate = completedDate;
 
   return prisma.workoutLog.findMany({
-    where: { userId },
+    where: whereClause,
     take: limit ? Number.parseInt(limit, 10) : 10,
     orderBy: { completedDate: 'desc' },
     include: {
@@ -143,12 +153,14 @@ const getExerciseProgress = async (userId, exerciseId, query) => {
     throw createHttpError(404, 'Exercise not found');
   }
 
+  const workoutLogFilter = { userId };
+  const completedDate = buildCompletedDateFilter(query);
+  if (completedDate) workoutLogFilter.completedDate = completedDate;
+
   const logs = await prisma.exerciseLog.findMany({
     where: {
       exerciseId: parsedExerciseId,
-      workoutLog: {
-        userId
-      }
+      workoutLog: workoutLogFilter
     },
     take: limit ? Number.parseInt(limit, 10) : 50,
     orderBy: [

@@ -132,17 +132,21 @@ const progressService = {
    * @returns {Promise<Array>} Exercise logs with progression
    */
   getExerciseProgress: async (exerciseId, options = {}) => {
-    const response = await apiClient.get(`/progress/exercise/${exerciseId}`, { params: options });
+    const response = await apiClient.post(`/progress/exercise/${exerciseId}`, options);
     return response.data;
   },
 
   /**
    * Get recent workouts
-   * @param {number} [limit=10] - Number of recent workouts to fetch
+   * @param {number|Object} [options=10] - Limit or query options
+   * @param {number} [options.limit=10] - Number of recent workouts to fetch
+   * @param {string} [options.startDate] - Start date (YYYY-MM-DD)
+   * @param {string} [options.endDate] - End date (YYYY-MM-DD)
    * @returns {Promise<Array>} Recent workout logs
    */
-  getRecentWorkouts: async (limit = 10) => {
-    const response = await apiClient.get('/progress/recent', { params: { limit } });
+  getRecentWorkouts: async (options = 10) => {
+    const model = typeof options === 'number' ? { limit: options } : options;
+    const response = await apiClient.post('/progress/recent', model);
     return response.data;
   },
 

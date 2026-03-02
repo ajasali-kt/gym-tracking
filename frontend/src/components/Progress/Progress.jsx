@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+﻿import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
 import progressService from '../../services/progressService';
@@ -45,6 +45,17 @@ function getWorkoutVolume(workout) {
   );
 }
 
+function getDateRangeParams(days) {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(start.getDate() - days);
+
+  return {
+    startDate: format(start, 'yyyy-MM-dd'),
+    endDate: format(end, 'yyyy-MM-dd')
+  };
+}
+
 function Progress() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -54,7 +65,16 @@ function Progress() {
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [exerciseProgress, setExerciseProgress] = useState([]);
   const [metric, setMetric] = useState('weight');
+  const [selectedRange, setSelectedRange] = useState('30');
   const [deletingWorkoutId, setDeletingWorkoutId] = useState(null);
+  const [expandedWorkouts, setExpandedWorkouts] = useState({});
+  const rangeOptions = [
+    { key: '7', label: '7D', days: 7 },
+    { key: '30', label: '30D', days: 30 },
+    { key: '90', label: '90D', days: 90 },
+    { key: '365', label: '1Y', days: 365 }
+  ];
+  const selectedRangeDays = rangeOptions.find((option) => option.key === selectedRange)?.days || 30;
 
   useEffect(() => {
     fetchInitial();
@@ -64,20 +84,18 @@ function Progress() {
     if (selectedExercise) {
       fetchExerciseProgress(selectedExercise.id);
     }
-  }, [selectedExercise]);
+  }, [selectedExercise, selectedRangeDays]);
 
   const fetchInitial = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [statsData, recentData, exercisesData] = await Promise.all([
+      const [statsData, exercisesData] = await Promise.all([
         progressService.getWorkoutStats(),
-        progressService.getRecentWorkouts(20),
         exerciseService.getAllExercises()
       ]);
 
       setStats(statsData?.statistics || null);
-      setRecentWorkouts(recentData || []);
       setExercises(exercisesData || []);
 
       if (exercisesData?.length > 0) {
@@ -92,12 +110,28 @@ function Progress() {
 
   const fetchExerciseProgress = async (exerciseId) => {
     try {
-      const response = await progressService.getExerciseProgress(exerciseId, { limit: 20 });
+      const response = await progressService.getExerciseProgress(exerciseId, {
+        ...getDateRangeParams(selectedRangeDays),
+        limit: 500
+      });
       setExerciseProgress(response?.logs || []);
     } catch {
       setExerciseProgress([]);
     }
   };
+
+  useEffect(() => {
+    const fetchRecentForRange = async () => {
+      try {
+        const recentData = await progressService.getRecentWorkouts({ ...getDateRangeParams(selectedRangeDays), limit: 200 });
+        setRecentWorkouts(recentData || []);
+      } catch {
+        setRecentWorkouts([]);
+      }
+    };
+
+    fetchRecentForRange();
+  }, [selectedRangeDays]);
 
   const handleDeleteWorkout = async (workoutId) => {
     if (!confirm('Delete this workout log? This cannot be undone.')) {
@@ -113,6 +147,13 @@ function Progress() {
     } finally {
       setDeletingWorkoutId(null);
     }
+  };
+
+  const toggleWorkoutExpanded = (workoutId) => {
+    setExpandedWorkouts((prev) => ({
+      ...prev,
+      [workoutId]: !prev[workoutId]
+    }));
   };
 
   const workoutsThisMonth = useMemo(() => {
@@ -199,6 +240,18 @@ function Progress() {
           <p className="text-xs uppercase tracking-[0.16em] text-app-muted">Performance</p>
           <h1 className="text-3xl font-bold text-app-primary">Progress Tracking</h1>
         </div>
+        <div className="flex flex-wrap gap-2">
+          {rangeOptions.map((range) => (
+            <button
+              key={range.key}
+              type="button"
+              onClick={() => setSelectedRange(range.key)}
+              className={`pill-btn ${selectedRange === range.key ? 'bg-blue-600 border-blue-500 text-white' : ''}`}
+            >
+              {range.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -282,7 +335,7 @@ function Progress() {
                           <span>Set {set.setNumber}</span>
                           <span>{set.reps} reps</span>
                           <span>{set.weight} kg</span>
-                          <span>{Math.round(set.reps * set.weight)} volume</span>
+                          <span>{Math.round(set.reps * set.weight)} vol</span>
                         </div>
                         {set.notes && <p className="mt-1">{set.notes}</p>}
                       </div>
@@ -308,30 +361,81 @@ function Progress() {
             {recentWorkouts.map((workout) => {
               const volume = getWorkoutVolume(workout);
               const exerciseCount = new Set((workout.exerciseLogs || []).map((set) => set.exerciseId)).size;
+              const isExpanded = !!expandedWorkouts[workout.id];
+              const groupedExerciseLogs = (workout.exerciseLogs || []).reduce((acc, set) => {
+                const key = set.exerciseId || `unknown-${set.id}`;
+                if (!acc[key]) {
+                  acc[key] = {
+                    exerciseName: set.exercise?.name || 'Exercise',
+                    sets: []
+                  };
+                }
+                acc[key].sets.push(set);
+                return acc;
+              }, {});
 
               return (
                 <article key={workout.id} className="card p-4 transition duration-200 hover:-translate-y-0.5 hover:border-blue-500/50">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs text-app-muted">{format(parseISO(workout.completedDate), 'EEEE, MMM d')}</p>
-                      <h3 className="mt-1 text-lg font-semibold text-app-primary">{workout.workoutName || workout.workoutDay?.dayName || 'Workout'}</h3>
-                      <p className="text-sm text-app-muted">{exerciseCount} exercises</p>
+                  <button
+                    type="button"
+                    onClick={() => toggleWorkoutExpanded(workout.id)}
+                    className="w-full text-left"
+                    aria-expanded={isExpanded}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-xs text-app-muted">{format(parseISO(workout.completedDate), 'EEEE, MMM d')}</p>
+                        <h3 className="mt-1 text-lg font-semibold text-app-primary">{workout.workoutName || workout.workoutDay?.dayName || 'Workout'}</h3>
+                        <p className="text-sm text-app-muted">{exerciseCount} exercises</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right">
+                          <p className="text-xs text-app-muted">Volume</p>
+                          <p className="text-base font-semibold text-app-primary">{Math.round(volume)} kg</p>
+                        </div>
+                        <svg
+                          className={`h-5 w-5 text-app-muted transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                          aria-hidden="true"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.167l3.71-3.936a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs text-app-muted">Volume</p>
-                      <p className="text-base font-semibold text-app-primary">{Math.round(volume)} kg</p>
+                  </button>
+
+                  <div className={`overflow-hidden transition-all duration-300 ${isExpanded ? 'max-h-[1200px] pt-3' : 'max-h-0'}`}>
+                    <div className="space-y-3">
+                      {Object.values(groupedExerciseLogs).map((exerciseGroup) => (
+                        <div key={`${workout.id}-${exerciseGroup.exerciseName}`} className="space-y-2">
+                          <p className="text-sm font-semibold text-app-primary">{exerciseGroup.exerciseName}</p>
+                          <div className="mt-3 space-y-2">
+                            {exerciseGroup.sets
+                              .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
+                              .map((set) => (
+                                <div key={set.id} className="rounded-lg border border-app-subtle bg-surface px-3 py-2 text-sm text-app-primary">
+                                  <div className="grid grid-cols-4 gap-2">
+                                    <span>Set {set.setNumber || '-'}</span>
+                                    <span>{set.repsCompleted || '-'} reps</span>
+                                    <span>{set.weightKg || '-'} kg</span>
+                                    <span>{set.weightKg && set.repsCompleted ? `${set.weightKg * set.repsCompleted} vol` : '-'}</span>
+
+                                  </div>
+                                  {set.notes && <p className="mt-1 text-app-muted">{set.notes}</p>}
+                                </div>
+                              ))}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {(workout.exerciseLogs || []).slice(0, 4).map((set) => (
-                      <span key={set.id} className="rounded-lg border border-app-subtle bg-surface px-2 py-1 text-xs text-app-muted">
-                        {set.exercise?.name}: {set.repsCompleted}x{set.weightKg}
-                      </span>
-                    ))}
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-app-subtle pt-3">
+                  <div className={`mt-4 flex flex-wrap justify-end gap-2 border-t border-app-subtle pt-3 ${isExpanded ? '' : 'hidden'}`}>
                     <Link to={`/edit-manual/${workout.id}`} className="btn-outline">
                       Edit
                     </Link>

@@ -19,12 +19,14 @@ router.get('/history', getHistory);
  * Get recent workout logs
  */
 router.get('/recent', getRecent);
+router.post('/recent', getRecent);
 
 /**
  * GET /api/progress/exercise/:id
  * Get progress for a specific exercise
  */
 router.get('/exercise/:id', getExercise);
+router.post('/exercise/:id', getExercise);
 
 /**
  * GET /api/progress/exercise/:id/personal-record
