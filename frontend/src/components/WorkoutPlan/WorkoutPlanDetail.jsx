@@ -356,7 +356,7 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
             </button>
             <button
               onClick={onDelete}
-              className="w-full sm:w-auto px-3 py-1 bg-red-600 hover:bg-red-700 rounded transition text-sm"
+              className="w-full sm:w-auto rounded-lg border border-red-500/40 px-3 py-1 text-sm text-red-300 transition hover:bg-red-500/10"
             >
               Delete
             </button>
@@ -757,7 +757,8 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
   const [searchTerm, setSearchTerm] = useState('');
   const modalRef = useRef(null);
   const closeBtnRef = useRef(null);
-  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
+  const searchInputRef = useRef(null);
+  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: searchInputRef });
 
   const availableExercises = exercises.filter(ex => !existingExerciseIds.includes(ex.id));
   const filteredExercises = availableExercises.filter(ex =>
@@ -810,6 +811,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
               Search Exercise *
             </label>
             <input
+              ref={searchInputRef}
               id="search-exercise-input"
               type="text"
               placeholder="Search exercises..."

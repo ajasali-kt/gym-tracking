@@ -1,611 +1,357 @@
-﻿import { useState, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { format, parseISO } from 'date-fns';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import progressService from '../../services/progressService';
 import exerciseService from '../../services/exerciseService';
-import History from '../History/History';
-import useAccessibleModal from '../../hooks/useAccessibleModal';
+import StatCard from '../stats/StatCard';
+import ExerciseTrendChart from '../charts/ExerciseTrendChart';
 
-/**
- * Progress Component
- * View workout history and progress charts
- */
+function iconPath(name) {
+  const map = {
+    dumbbell: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 10h2m12 0h2M7 7v6m10-6v6m-7-2h4m-6 7h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2Z" />,
+    calendar: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 2v4m8-4v4M3 10h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />,
+    bolt: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="m13 2-8 11h6l-1 9 9-12h-6l0-8Z" />,
+    flame: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 2c1.2 3-1.5 4.6-1.5 7.3 0 1.8 1.3 3.2 3 3.2 2 0 3.5-1.7 3.5-4.2 2 2.1 3 4.4 3 7.2A8 8 0 1 1 6 9.9c0-2.3.8-4.4 2.4-6.3.3 1.8 1.5 3.2 3.6 3.2z" />
+  };
+
+  return (
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {map[name]}
+    </svg>
+  );
+}
+
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-5 animate-pulse">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {[...Array(4)].map((_, index) => (
+          <div key={index} className="card h-32 bg-surface" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="card h-96 xl:col-span-2 bg-surface" />
+        <div className="card h-96 bg-surface" />
+      </div>
+      <div className="card h-48 bg-surface" />
+    </div>
+  );
+}
+
+function getWorkoutVolume(workout) {
+  return (workout.exerciseLogs || []).reduce(
+    (sum, set) => sum + ((Number.parseFloat(set.weightKg) || 0) * (Number.parseInt(set.repsCompleted, 10) || 0)),
+    0
+  );
+}
+
 function Progress() {
-  const [view, setView] = useState('history'); // 'history' or 'exercise'
-  const [workoutHistory, setWorkoutHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [recentWorkouts, setRecentWorkouts] = useState([]);
   const [exercises, setExercises] = useState([]);
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [exerciseProgress, setExerciseProgress] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [dateRange, setDateRange] = useState(30); // Last 30 days
-
-  // Share Progress Modal state
-  const [showShareModal, setShowShareModal] = useState(false);
+  const [metric, setMetric] = useState('weight');
+  const [deletingWorkoutId, setDeletingWorkoutId] = useState(null);
 
   useEffect(() => {
-    fetchData();
-  }, [dateRange]);
+    fetchInitial();
+  }, []);
 
   useEffect(() => {
     if (selectedExercise) {
-      fetchExerciseProgress();
+      fetchExerciseProgress(selectedExercise.id);
     }
   }, [selectedExercise]);
 
-  const fetchData = async () => {
+  const fetchInitial = async () => {
     try {
       setLoading(true);
       setError(null);
-      const [historyData, exercisesData] = await Promise.all([
-        progressService.getRecentWorkouts(50), // Use recent workouts to get full exercise logs
+      const [statsData, recentData, exercisesData] = await Promise.all([
+        progressService.getWorkoutStats(),
+        progressService.getRecentWorkouts(20),
         exerciseService.getAllExercises()
       ]);
-      setWorkoutHistory(historyData);
-      setExercises(exercisesData);
+
+      setStats(statsData?.statistics || null);
+      setRecentWorkouts(recentData || []);
+      setExercises(exercisesData || []);
+
+      if (exercisesData?.length > 0) {
+        setSelectedExercise(exercisesData[0]);
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load progress data');
-      console.error('Error fetching progress:', err);
+      setError(err.response?.data?.message || 'Failed to load progress dashboard');
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchExerciseProgress = async () => {
+  const fetchExerciseProgress = async (exerciseId) => {
     try {
-      const data = await progressService.getExerciseProgress(selectedExercise.id, { limit: 20 });
-      // Backend returns { exercise, logs, statistics }
-      setExerciseProgress(data.logs || []);
-    } catch (err) {
-      console.error('Error fetching exercise progress:', err);
+      const response = await progressService.getExerciseProgress(exerciseId, { limit: 20 });
+      setExerciseProgress(response?.logs || []);
+    } catch {
       setExerciseProgress([]);
     }
   };
 
+  const handleDeleteWorkout = async (workoutId) => {
+    if (!confirm('Delete this workout log? This cannot be undone.')) {
+      return;
+    }
+
+    try {
+      setDeletingWorkoutId(workoutId);
+      await progressService.deleteWorkoutLog(workoutId);
+      await fetchInitial();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete workout');
+    } finally {
+      setDeletingWorkoutId(null);
+    }
+  };
+
+  const workoutsThisMonth = useMemo(() => {
+    const now = new Date();
+    return recentWorkouts.filter((workout) => {
+      const date = new Date(workout.completedDate);
+      return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    }).length;
+  }, [recentWorkouts]);
+
+  const chartData = useMemo(() => {
+    return [...exerciseProgress].reverse().map((log) => {
+      const sourceDate = log?.workoutLog?.completedDate || log.createdAt;
+      const weight = Number.parseFloat(log.weightKg) || 0;
+      const reps = Number.parseInt(log.repsCompleted, 10) || 0;
+      return {
+        date: format(parseISO(sourceDate), 'MMM d'),
+        weight,
+        reps,
+        volume: weight * reps
+      };
+    });
+  }, [exerciseProgress]);
+
+  const selectedExerciseLogsByWorkout = useMemo(() => {
+    const grouped = new Map();
+
+    exerciseProgress.forEach((log) => {
+      const workoutLogId = log.workoutLog?.id;
+      if (!workoutLogId) return;
+
+      const date = log.workoutLog?.completedDate || log.createdAt;
+      const workoutName = log.workoutLog?.workoutName || log.workoutLog?.workoutDay?.dayName || 'Workout';
+      const reps = Number.parseInt(log.repsCompleted, 10) || 0;
+      const weight = Number.parseFloat(log.weightKg) || 0;
+      const volume = reps * weight;
+
+      if (!grouped.has(workoutLogId)) {
+        grouped.set(workoutLogId, {
+          workoutLogId,
+          date,
+          workoutName,
+          totalVolume: 0,
+          sets: []
+        });
+      }
+
+      const group = grouped.get(workoutLogId);
+      group.totalVolume += volume;
+      group.sets.push({
+        id: log.id,
+        setNumber: log.setNumber,
+        reps,
+        weight,
+        notes: log.notes
+      });
+    });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        ...group,
+        sets: group.sets.sort((a, b) => a.setNumber - b.setNumber)
+      }))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [exerciseProgress]);
+
   if (loading) {
-    return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-800">Progress Tracking</h1>
-        <div className="card p-8 text-center">
-          <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
-          </div>
-        </div>
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   if (error) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-800">Progress Tracking</h1>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <p className="text-red-800 font-medium">Error: {error}</p>
-          <button
-            onClick={fetchData}
-            className="mt-4 btn-danger"
-          >
-            Try Again
-          </button>
-        </div>
+      <div className="card p-6">
+        <p className="text-error">{error}</p>
+        <button className="btn-primary mt-4" onClick={fetchInitial}>Retry</button>
       </div>
     );
   }
-
-  return (
-    <>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Progress Tracking</h1>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <Link
-              to="/log-manual"
-              className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition text-sm sm:text-base"
-            >
-              + Log Manual Workout
-            </Link>
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="inline-flex items-center justify-center px-4 sm:px-6 py-2 sm:py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition text-sm sm:text-base"
-            >
-              📜 Share Progress
-            </button>
-            <select
-              value={dateRange}
-              onChange={(e) => setDateRange(parseInt(e.target.value))}
-              className="input-field w-full sm:w-auto sm:min-w-[170px]"
-            >
-              <option value={7}>Last 7 days</option>
-              <option value={30}>Last 30 days</option>
-              <option value={90}>Last 90 days</option>
-              <option value={365}>Last year</option>
-            </select>
-          </div>
-        </div>
-
-        {/* View Tabs */}
-        <div className="card">
-          <div className="border-b border-gray-200">
-            <div className="flex">
-              <button
-                onClick={() => setView('history')}
-                className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 font-medium transition text-sm sm:text-base ${
-                  view === 'history'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <span className="hidden sm:inline">Workout History</span>
-                <span className="sm:hidden">History</span>
-              </button>
-              <button
-                onClick={() => setView('exercise')}
-                className={`flex-1 px-3 sm:px-6 py-2 sm:py-3 font-medium transition text-sm sm:text-base ${
-                  view === 'exercise'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                <span className="hidden sm:inline">Exercise Progress</span>
-                <span className="sm:hidden">Progress</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="p-4 sm:p-6">
-            {view === 'history' ? (
-              <WorkoutHistoryView workouts={workoutHistory} />
-            ) : (
-              <ExerciseProgressView
-                exercises={exercises}
-                selectedExercise={selectedExercise}
-                onSelectExercise={setSelectedExercise}
-                progressData={exerciseProgress}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Summary Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="card p-6">
-            <h3 className="text-sm font-medium text-gray-600">Total Workouts</h3>
-            <p className="text-3xl font-bold text-gray-800 mt-2">{workoutHistory.length}</p>
-            <p className="text-sm text-gray-500 mt-1">In last {dateRange} days</p>
-          </div>
-          <div className="card p-6">
-            <h3 className="text-sm font-medium text-gray-600">Exercises Tracked</h3>
-            <p className="text-3xl font-bold text-gray-800 mt-2">{exercises.length}</p>
-            <p className="text-sm text-gray-500 mt-1">In library</p>
-          </div>
-          <div className="card p-6">
-            <h3 className="text-sm font-medium text-gray-600">Consistency</h3>
-            <p className="text-3xl font-bold text-gray-800 mt-2">
-              {dateRange > 0 ? Math.round((workoutHistory.length / dateRange) * 7) : 0}x/week
-            </p>
-            <p className="text-sm text-gray-500 mt-1">Average frequency</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Share Progress Modal */}
-      {showShareModal && (
-        <ShareProgressModal onClose={() => setShowShareModal(false)} />
-      )}
-    </>
-  );
-}
-
-/**
- * Share Progress Modal Component
- * Modal wrapper for the History component following app modal pattern
- */
-function ShareProgressModal({ onClose }) {
-  const modalRef = useRef(null);
-  const closeBtnRef = useRef(null);
-  useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
-
-  return (
-    <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-3 sm:p-4 z-50"
-      onClick={onClose}
-    >
-      <div
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="share-progress-title"
-        tabIndex={-1}
-        className="card max-w-4xl w-full max-h-[90vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-4 sm:px-6 py-3 sm:py-4 text-white flex justify-between items-start rounded-t-lg flex-shrink-0">
-          <div>
-            <h2 id="share-progress-title" className="text-xl sm:text-2xl font-bold">Workout History</h2>
-            <p className="text-purple-100 mt-1 text-sm hidden sm:block">
-              View and share your workout history for any date range
-            </p>
-          </div>
-          <button
-            ref={closeBtnRef}
-            onClick={onClose}
-            className="text-white hover:text-gray-200 transition p-1"
-            aria-label="Close workout history dialog"
-          >
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Content - Scrollable */}
-        <div className="overflow-y-auto flex-1 p-4 sm:p-6">
-          <History />
-        </div>
-
-        {/* Footer */}
-        <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 flex justify-end flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm sm:text-base"
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Workout History View Component
- * Displays list of completed workouts
- */
-function WorkoutHistoryView({ workouts }) {
-  if (workouts.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <div className="text-gray-400 mb-4">
-          <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        </div>
-        <h3 className="text-xl font-semibold text-gray-700 mb-2">No Workouts Logged Yet</h3>
-        <p className="text-gray-600 mb-4">
-          Start tracking your workouts to see your progress here.
-        </p>
-        <Link
-          to="/"
-          className="inline-block btn-primary px-6"
-        >
-          Go to Dashboard
-        </Link>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-gray-800 mb-4">
-        Recent Workouts ({workouts.length})
-      </h2>
-
-      {workouts.map((workout) => (
-        <WorkoutHistoryCard key={workout.id} workout={workout} />
-      ))}
-    </div>
-  );
-}
-
-/**
- * Workout History Card Component
- */
-function WorkoutHistoryCard({ workout }) {
-  const [expanded, setExpanded] = useState(false);
-  const isManualWorkout = workout.isManual || !workout.workoutDay;
-  const workoutTitle = isManualWorkout
-    ? (workout.workoutName || 'Manual Workout')
-    : (workout.workoutDay?.dayName || 'Workout');
-
-  return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition">
-      <div
-        className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between p-3 sm:p-4 cursor-pointer bg-gray-50 hover:bg-gray-100"
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className="flex items-start sm:items-center gap-3 sm:gap-4 min-w-0">
-          <div className={`flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 text-white rounded-lg flex items-center justify-center ${
-            isManualWorkout ? 'bg-purple-600' : 'bg-green-600'
-          }`}>
-            <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <h4 className="font-semibold text-gray-800 break-words">{workoutTitle}</h4>
-              {isManualWorkout && (
-                <span className="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded">
-                  Manual
-                </span>
-              )}
-            </div>
-            <p className="text-xs sm:text-sm text-gray-600 break-words">
-              {format(parseISO(workout.completedDate), 'EEEE, MMMM d, yyyy')}
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
-          <div className="text-center">
-            <p className="text-xs text-gray-600">Exercises</p>
-            <p className="font-bold text-gray-800">
-              {workout.exerciseLogs?.length > 0
-                ? new Set(workout.exerciseLogs.map(log => log.exercise.id)).size
-                : 0}
-            </p>
-          </div>
-          <svg
-            className={`w-5 h-5 text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </div>
-      </div>
-
-      {expanded && (
-        <div className="p-4 bg-white border-t border-gray-200">
-          {workout.notes && (
-            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
-              <p className="text-sm text-gray-700"><strong>Notes:</strong> {workout.notes}</p>
-            </div>
-          )}
-
-          <div className="mb-4">
-            <Link
-              to={`/edit-manual/${workout.id}`}
-              className="inline-flex items-center btn-primary transition text-sm font-medium"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit Workout
-            </Link>
-          </div>
-
-          <h5 className="font-semibold text-gray-800 mb-3">Exercise Details</h5>
-          <div className="space-y-3">
-            {workout.exerciseLogs && workout.exerciseLogs.length > 0 ? (
-              Object.values(
-                workout.exerciseLogs.reduce((acc, log) => {
-                  const exerciseId = log.exercise.id;
-                  if (!acc[exerciseId]) {
-                    acc[exerciseId] = {
-                      exercise: log.exercise,
-                      sets: []
-                    };
-                  }
-                  acc[exerciseId].sets.push(log);
-                  return acc;
-                }, {})
-              ).map(({ exercise, sets }) => (
-                <div key={exercise.id} className="bg-gray-50 rounded-lg p-3">
-                  <h6 className="font-semibold text-gray-800 mb-2">{exercise.name}</h6>
-                  <div className="grid grid-cols-1 gap-2">
-                    {sets.sort((a, b) => a.setNumber - b.setNumber).map((set) => (
-                      <div key={set.id} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-600">Set {set.setNumber}</span>
-                        <span className="font-medium text-gray-800">
-                          {set.repsCompleted} reps × {set.weightKg} kg
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-sm">No exercise logs found</p>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Exercise Progress View Component
- * Select an exercise and view progress over time
- */
-function ExerciseProgressView({ exercises, selectedExercise, onSelectExercise, progressData }) {
-  const [searchTerm, setSearchTerm] = useState('');
-
-  const filteredExercises = exercises.filter(ex =>
-    ex.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  if (!selectedExercise) {
-    return (
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select an Exercise to View Progress
-          </label>
-          <input
-            type="text"
-            placeholder="Search exercises..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="input-field mb-3"
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto">
-            {filteredExercises.map(exercise => (
-              <button
-                key={exercise.id}
-                onClick={() => onSelectExercise(exercise)}
-                className="text-left p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition"
-              >
-                <h4 className="font-semibold text-gray-800">{exercise.name}</h4>
-                <p className="text-sm text-gray-600">{exercise.muscleGroup?.name}</p>
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Use workout completion date when available (supports backdated/manual logs)
-  const getLogDate = (log) => log?.workoutLog?.completedDate || log.createdAt;
-
-  // Prepare chart data
-  const chartData = progressData.map(log => ({
-    date: format(parseISO(getLogDate(log)), 'MMM d'),
-    weight: parseFloat(log.weightKg),
-    reps: log.repsCompleted,
-    volume: parseFloat(log.weightKg) * log.repsCompleted
-  })).reverse();
-
-  const maxWeight = progressData.length > 0
-    ? Math.max(...progressData.map(log => parseFloat(log.weightKg)))
-    : 0;
-
-  const totalVolume = progressData.reduce((sum, log) =>
-    sum + (parseFloat(log.weightKg) * log.repsCompleted), 0
-  );
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">{selectedExercise.name}</h2>
-          <p className="text-gray-600">{selectedExercise.muscleGroup?.name}</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-app-muted">Performance</p>
+          <h1 className="text-3xl font-bold text-app-primary">Progress Tracking</h1>
         </div>
-        <button
-          onClick={() => onSelectExercise(null)}
-          className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-        >
-          Change Exercise
-        </button>
       </div>
 
-      {progressData.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <p className="text-gray-600 mb-2">No progress data for this exercise yet.</p>
-          <p className="text-sm text-gray-500">Start logging workouts to see your progress!</p>
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <StatCard label="Total Workouts" value={stats?.totalWorkouts || 0} icon={iconPath('dumbbell')} />
+        <StatCard label="Workouts This Month" value={workoutsThisMonth} icon={iconPath('calendar')} tone="amber" />
+        <StatCard label="Total Volume" value={`${Math.round(stats?.totalVolume || 0).toLocaleString()} kg`} icon={iconPath('bolt')} tone="green" />
+        <StatCard label="Current Streak" value={`${stats?.currentStreak || 0} days`} icon={iconPath('flame')} tone="red" />
+      </section>
+
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="card p-5 sm:p-6">
+          <label className="label">Exercise</label>
+          <select
+            value={selectedExercise?.id || ''}
+            onChange={(e) => {
+              const id = Number.parseInt(e.target.value, 10);
+              const matched = exercises.find((exercise) => exercise.id === id);
+              setSelectedExercise(matched || null);
+            }}
+            className="input-field"
+          >
+            {exercises.map((exercise) => (
+              <option key={exercise.id} value={exercise.id}>
+                {exercise.name}
+              </option>
+            ))}
+          </select>
+
+          <div className="mt-5 space-y-3">
+            <div className="rounded-xl border border-app-subtle bg-surface p-4">
+              <p className="text-xs text-app-muted">Tracked Sets</p>
+              <p className="text-2xl font-bold text-app-primary">{exerciseProgress.length}</p>
+            </div>
+            <div className="rounded-xl border border-app-subtle bg-surface p-4">
+              <p className="text-xs text-app-muted">Best Weight</p>
+              <p className="text-2xl font-bold text-app-primary">
+                {exerciseProgress.length > 0 ? Math.max(...exerciseProgress.map((log) => Number.parseFloat(log.weightKg) || 0)) : 0} kg
+              </p>
+            </div>
+          </div>
         </div>
-      ) : (
-        <>
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-blue-800">Personal Record</h3>
-              <p className="text-2xl font-bold text-blue-900 mt-1">{maxWeight} kg</p>
-            </div>
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-green-800">Total Sets Logged</h3>
-              <p className="text-2xl font-bold text-green-900 mt-1">{progressData.length}</p>
-            </div>
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <h3 className="text-sm font-medium text-purple-800">Total Volume</h3>
-              <p className="text-2xl font-bold text-purple-900 mt-1">{totalVolume.toLocaleString()} kg</p>
-            </div>
+
+        <div className="xl:col-span-2">
+          <ExerciseTrendChart data={chartData} metric={metric} onMetricChange={setMetric} />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-app-primary">
+            {selectedExercise ? `${selectedExercise.name} Recent Workouts` : 'Exercise Recent Workouts'}
+          </h2>
+          <p className="text-xs text-app-muted">{selectedExerciseLogsByWorkout.length} logs</p>
+        </div>
+
+        {!selectedExercise ? (
+          <div className="card p-6 text-app-muted">Select an exercise to view its recent workout entries.</div>
+        ) : selectedExerciseLogsByWorkout.length === 0 ? (
+          <div className="card p-6 text-app-muted">No logs found yet for this exercise.</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3">
+            {selectedExerciseLogsByWorkout.slice(0, 10).map((group) => {
+              return (
+                <article key={group.workoutLogId} className="card p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-app-muted">{format(parseISO(group.date), 'EEEE, MMM d')}</p>
+                      <h3 className="mt-1 text-lg font-semibold text-app-primary">{group.workoutName}</h3>
+                      <p className="text-sm text-app-muted">{group.sets.length} sets</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-app-muted">Volume</p>
+                      <p className="text-base font-semibold text-app-primary">{Math.round(group.totalVolume)} kg</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 space-y-2">
+                    {group.sets.map((set) => (
+                      <div key={set.id} className="rounded-lg border border-app-subtle bg-surface px-3 py-2 text-sm text-app-primary">
+                        <div className="grid grid-cols-4 gap-2">
+                          <span>Set {set.setNumber}</span>
+                          <span>{set.reps} reps</span>
+                          <span>{set.weight} kg</span>
+                          <span>{Math.round(set.reps * set.weight)} volume</span>
+                        </div>
+                        {set.notes && <p className="mt-1">{set.notes}</p>}
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              );
+            })}
           </div>
+        )}
+      </section>
 
-          {/* Weight Progression Chart */}
-          {chartData.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Weight Progression</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="weight"
-                    stroke="#2563eb"
-                    strokeWidth={2}
-                    name="Weight (kg)"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-app-primary">Recent Workouts</h2>
+          <p className="text-xs text-app-muted">{recentWorkouts.length} sessions</p>
+        </div>
 
-          {/* Volume Chart */}
-          {chartData.length > 0 && (
-            <div className="bg-white border border-gray-200 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Volume Progression</h3>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="date" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line
-                    type="monotone"
-                    dataKey="volume"
-                    stroke="#10b981"
-                    strokeWidth={2}
-                    name="Volume (kg × reps)"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          )}
+        {recentWorkouts.length === 0 ? (
+          <div className="card p-8 text-center text-app-muted">No workouts logged yet.</div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3">
+            {recentWorkouts.map((workout) => {
+              const volume = getWorkoutVolume(workout);
+              const exerciseCount = new Set((workout.exerciseLogs || []).map((set) => set.exerciseId)).size;
 
-          {/* Recent Sets Table */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Sets</h3>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Date</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Set #</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Reps</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Weight</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Volume</th>
-                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Notes</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {progressData.slice(0, 10).map((log) => (
-                    <tr key={log.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-800">
-                        {format(parseISO(getLogDate(log)), 'MMM d, yyyy')}
-                      </td>
-                      <td className="px-4 py-3 text-gray-800">{log.setNumber}</td>
-                      <td className="px-4 py-3 text-gray-800">{log.repsCompleted}</td>
-                      <td className="px-4 py-3 text-gray-800">{log.weightKg} kg</td>
-                      <td className="px-4 py-3 text-gray-800">
-                        {(parseFloat(log.weightKg) * log.repsCompleted).toFixed(1)} kg
-                      </td>
-                      <td className="px-4 py-3 text-gray-600 text-xs">
-                        {log.notes || '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+              return (
+                <article key={workout.id} className="card p-4 transition duration-200 hover:-translate-y-0.5 hover:border-blue-500/50">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-app-muted">{format(parseISO(workout.completedDate), 'EEEE, MMM d')}</p>
+                      <h3 className="mt-1 text-lg font-semibold text-app-primary">{workout.workoutName || workout.workoutDay?.dayName || 'Workout'}</h3>
+                      <p className="text-sm text-app-muted">{exerciseCount} exercises</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-app-muted">Volume</p>
+                      <p className="text-base font-semibold text-app-primary">{Math.round(volume)} kg</p>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {(workout.exerciseLogs || []).slice(0, 4).map((set) => (
+                      <span key={set.id} className="rounded-lg border border-app-subtle bg-surface px-2 py-1 text-xs text-app-muted">
+                        {set.exercise?.name}: {set.repsCompleted}x{set.weightKg}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap justify-end gap-2 border-t border-app-subtle pt-3">
+                    <Link to={`/edit-manual/${workout.id}`} className="btn-outline">
+                      Edit
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteWorkout(workout.id)}
+                      className="btn-outline border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/15 disabled:opacity-60"
+                      disabled={deletingWorkoutId === workout.id}
+                    >
+                      {deletingWorkoutId === workout.id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
-        </>
-      )}
+        )}
+      </section>
     </div>
   );
 }
 
 export default Progress;
-
-

@@ -22,6 +22,12 @@ const progressService = {
     return response.data;
   },
 
+  // Backward-compatible alias used by WorkoutLogger component
+  startWorkoutLog: async (logData) => {
+    const response = await apiClient.post('/logs/start', logData);
+    return response.data;
+  },
+
   /**
    * Save manual workout header and sets in one request
    * @param {Object} payload - Full manual workout payload

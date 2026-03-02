@@ -218,7 +218,7 @@ function PlanCard({ plan, onDelete, onSetActive }) {
           )}
           <button
             onClick={() => onDelete(plan.id)}
-            className="px-4 py-2 btn-danger transition text-sm font-medium"
+            className="rounded-lg border border-red-500/40 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/10"
             title="Delete plan"
           >
             Delete

@@ -159,6 +159,7 @@ const getExerciseProgress = async (userId, exerciseId, query) => {
       workoutLog: {
         select: {
           id: true,
+          workoutName: true,
           completedDate: true,
           workoutDay: {
             select: {

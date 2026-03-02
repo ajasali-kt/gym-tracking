@@ -238,8 +238,9 @@ const SharesManagement = () => {
                           </button>
                         )}
                         <button
+                          type="button"
                           onClick={() => handleDelete(share.token)}
-                          className="text-gray-600 hover:text-gray-900"
+                          className="rounded-lg border border-red-500/40 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/10"
                         >
                           Delete
                         </button>

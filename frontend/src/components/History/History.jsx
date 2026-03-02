@@ -1,10 +1,57 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { format, subDays, startOfMonth } from 'date-fns';
 import { getWorkoutHistory } from '../../services/historyService';
-import { createShareLink } from '../../services/shareService';
-import WorkoutTimeline from './WorkoutTimeline';
 import ShareLinkModal from './ShareLinkModal';
+import { createShareLink } from '../../services/shareService';
+import TimelineItem from '../history/TimelineItem';
 
-const History = () => {
+function toDateInput(date) {
+  return format(date, 'yyyy-MM-dd');
+}
+
+function HistorySkeleton() {
+  return (
+    <div className="space-y-4 animate-pulse">
+      <div className="card h-40 bg-surface" />
+      <div className="card h-24 bg-surface" />
+      <div className="card h-48 bg-surface" />
+    </div>
+  );
+}
+
+function Heatmap({ workouts }) {
+  const counts = workouts.reduce((acc, workout) => {
+    const key = toDateInput(new Date(workout.date));
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+
+  const days = [...Array(35)].map((_, index) => {
+    const date = subDays(new Date(), 34 - index);
+    const key = toDateInput(date);
+    return { key, count: counts[key] || 0 };
+  });
+
+  return (
+    <div className="card p-4">
+      <p className="mb-3 text-xs uppercase tracking-[0.12em] text-app-muted">Workout Frequency</p>
+      <div className="grid grid-cols-7 gap-2 sm:grid-cols-7">
+        {days.map((day) => (
+          <div
+            key={day.key}
+            title={`${day.key}: ${day.count} workout(s)`}
+            className="h-7 rounded-md border border-app-subtle"
+            style={{
+              backgroundColor: day.count === 0 ? '#1E1E25' : day.count === 1 ? '#1D4ED8' : day.count === 2 ? '#2563EB' : '#3B82F6'
+            }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function History() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [historyData, setHistoryData] = useState(null);
@@ -13,36 +60,32 @@ const History = () => {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareData, setShareData] = useState(null);
 
-  // Quick date presets
-  const handleQuickSelect = (preset) => {
+  const presets = [
+    { key: '7days', label: '7D' },
+    { key: '30days', label: '30D' },
+    { key: '90days', label: '90D' },
+    { key: 'thisMonth', label: 'This Month' }
+  ];
+
+  const applyPreset = (preset) => {
     const today = new Date();
-    const to = today.toISOString().split('T')[0];
     let from;
 
-    switch (preset) {
-      case '7days':
-        from = new Date(today.setDate(today.getDate() - 7)).toISOString().split('T')[0];
-        break;
-      case '30days':
-        from = new Date(today.setDate(today.getDate() - 30)).toISOString().split('T')[0];
-        break;
-      case 'thisMonth':
-        from = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
-        break;
-      default:
-        return;
-    }
+    if (preset === '7days') from = subDays(today, 7);
+    if (preset === '30days') from = subDays(today, 30);
+    if (preset === '90days') from = subDays(today, 90);
+    if (preset === 'thisMonth') from = startOfMonth(today);
 
-    setFromDate(from);
-    setToDate(to);
+    setFromDate(toDateInput(from));
+    setToDate(toDateInput(today));
     setHistoryData(null);
-    setShareData(null);
     setError(null);
+    setShareData(null);
   };
 
   const handleViewHistory = async () => {
     if (!fromDate || !toDate) {
-      setError('Please select both start and end dates');
+      setError('Select both start and end dates');
       return;
     }
 
@@ -54,7 +97,6 @@ const History = () => {
       setHistoryData(response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to fetch workout history');
-      console.error('Fetch history error:', err);
     } finally {
       setLoading(false);
     }
@@ -72,129 +114,102 @@ const History = () => {
       setShowShareModal(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to generate share link');
-      console.error('Generate share error:', err);
     }
   };
 
+  const summary = useMemo(() => {
+    if (!historyData) return null;
+    return [
+      { label: 'Total Workouts', value: historyData.totalWorkouts || 0 },
+      { label: 'Total Sets', value: historyData.totalSets || 0 },
+      { label: 'Total Volume', value: `${Math.round(historyData.totalVolume || 0)} kg` }
+    ];
+  }, [historyData]);
+
   return (
-    <>
-      {/* Date Range Picker */}
-      <div className="space-y-8">
-        {/* Quick Presets */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Quick Select
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => handleQuickSelect('7days')}
-              className="px-4 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 text-sm font-medium"
-            >
-              Last 7 Days
+    <div className="space-y-6">
+      <div>
+        <p className="text-xs uppercase tracking-[0.16em] text-app-muted">Timeline</p>
+        <h1 className="text-3xl font-bold text-app-primary">Workout History</h1>
+      </div>
+
+      <section className="card p-4 sm:p-5 space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {presets.map((preset) => (
+            <button key={preset.key} onClick={() => applyPreset(preset.key)} className="pill-btn">
+              {preset.label}
             </button>
-            <button
-              onClick={() => handleQuickSelect('30days')}
-              className="px-4 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 text-sm font-medium"
-            >
-              Last 30 Days
-            </button>
-            <button
-              onClick={() => handleQuickSelect('thisMonth')}
-              className="px-4 py-2 bg-blue-50 text-blue-700 rounded-md hover:bg-blue-100 text-sm font-medium"
-            >
-              This Month
-            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor="fromDate" className="label">From Date</label>
+            <input id="fromDate" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="input-field" />
+          </div>
+          <div>
+            <label htmlFor="toDate" className="label">To Date</label>
+            <input id="toDate" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="input-field" />
           </div>
         </div>
 
-        {/* Custom Date Range */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="fromDate" className="block text-sm font-medium text-gray-700 mb-2">
-              From Date
-            </label>
-            <input
-              type="date"
-              id="fromDate"
-              value={fromDate}
-              onChange={(e) => {
-                setFromDate(e.target.value);
-                setHistoryData(null);
-                setShareData(null);
-                setError(null);
-              }}
-              className="input-field"
-            />
-          </div>
-          <div>
-            <label htmlFor="toDate" className="block text-sm font-medium text-gray-700 mb-2">
-              To Date
-            </label>
-            <input
-              type="date"
-              id="toDate"
-              value={toDate}
-              onChange={(e) => {
-                setToDate(e.target.value);
-                setHistoryData(null);
-                setShareData(null);
-                setError(null);
-              }}
-              className="input-field"
-            />
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
-          <button
-            onClick={handleViewHistory}
-            disabled={loading || !fromDate || !toDate}
-            className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 btn-primary font-medium transition text-sm sm:text-base disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300"
-          >
+        <div className="flex flex-wrap gap-2">
+          <button onClick={handleViewHistory} disabled={loading} className="btn-primary disabled:opacity-50">
             {loading ? 'Loading...' : 'View History'}
           </button>
-          {historyData && historyData.totalWorkouts > 0 && (
-            <button
-              onClick={() => {
-                setShareData(null);
-                setShowShareModal(true);
-              }}
-              className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition text-sm sm:text-base"
-            >
+          {historyData?.totalWorkouts > 0 && (
+            <button onClick={() => setShowShareModal(true)} className="btn-outline">
               Generate Share Link
             </button>
           )}
         </div>
 
-        {/* Error Message */}
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
-      </div>
+        {error && <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-300">{error}</div>}
+      </section>
 
-      {/* Workout Timeline */}
-      {historyData && (
-        <div className="mt-8">
-          <WorkoutTimeline data={historyData} />
-        </div>
+      {loading && <HistorySkeleton />}
+
+      {!loading && historyData && (
+        <>
+          {summary && (
+            <section className="grid grid-cols-1 gap-3 md:grid-cols-3">
+              {summary.map((item) => (
+                <div key={item.label} className="card p-4">
+                  <p className="text-xs text-app-muted">{item.label}</p>
+                  <p className="mt-2 text-2xl font-bold text-app-primary">{item.value}</p>
+                </div>
+              ))}
+            </section>
+          )}
+
+          <Heatmap workouts={historyData.workouts || []} />
+
+          <section className="timeline-container">
+            {(historyData.workouts || []).length === 0 ? (
+              <div className="card p-8 text-center text-app-muted">No workouts in this range.</div>
+            ) : (
+              historyData.workouts.map((workout, index) => (
+                <TimelineItem key={`${workout.date}-${index}`} workout={workout} />
+              ))
+            )}
+          </section>
+        </>
       )}
 
-      {/* Share Link Modal */}
       {showShareModal && (
         <ShareLinkModal
           fromDate={fromDate}
           toDate={toDate}
           shareData={shareData}
-          onClose={() => setShowShareModal(false)}
+          onClose={() => {
+            setShowShareModal(false);
+            setShareData(null);
+          }}
           onGenerate={handleGenerateShare}
         />
       )}
-    </>
+    </div>
   );
-};
+}
 
 export default History;
-

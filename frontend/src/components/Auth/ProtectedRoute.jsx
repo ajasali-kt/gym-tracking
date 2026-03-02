@@ -11,6 +11,7 @@ const PROTECTED_ROUTE_PATTERNS = [
   '/log-manual',
   '/edit-manual/:workoutId',
   '/progress',
+  '/history',
   '/settings/system'
 ];
 
