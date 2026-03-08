@@ -482,7 +482,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
           {/* Track Your Sets Section */}
           <div className="p-4 bg-card">
             <div className="flex items-center justify-between mb-3">
-              <h5 className="font-semibold text-app-primary">Track Your Sets</h5>
+              <h5 className="text-lg font-semibold text-app-primary">Track Your Sets</h5>
 
               {/* Loading existing data */}
               {isLoadingExistingData && (
@@ -527,11 +527,11 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
               )}
             </div>
             {!isTimeBased && (
-              <div className="grid grid-cols-12 gap-2 px-2 pb-2 text-[11px] uppercase tracking-[0.1em] text-app-muted">
-                <div className="col-span-2">Set</div>
-                <div className="col-span-2">Reps</div>
-                <div className="col-span-2">Weight</div>
-                <div className="col-span-6">Notes (Optional)</div>
+              <div className="grid grid-cols-12 gap-2 px-2 pb-2 text-[11px] uppercase tracking-[0.1em] text-app-muted sm:text-xs">
+                <div className="col-span-1 sm:col-span-1">Set</div>
+                <div className="col-span-3 sm:col-span-2">Reps</div>
+                <div className="col-span-3 sm:col-span-2">Weight</div>
+                <div className="col-span-5 sm:col-span-7">Notes (Optional)</div>
               </div>
             )}
 
@@ -539,124 +539,60 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
               {sets.map((set, setIndex) => (
                 <div
                   key={setIndex}
-                  className="group grid grid-cols-12 gap-2 rounded-xl border border-app-subtle bg-surface px-2 py-2 transition hover:border-blue-500/40"
+                  className="group grid grid-cols-12 items-center gap-1.5 sm:gap-2 rounded-xl border border-app-subtle bg-surface px-2 py-2 transition hover:border-blue-500/40"
                 >
-                  {/* Mobile Layout - Stacked */}
-                  <div className="sm:hidden col-span-12">
-                    {/* Header row with set number */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-medium text-app-primary">Set {set.setNumber}</span>
-                    </div>
-
-                    {/* Input fields - stacked vertically with labels on top */}
-                    {isTimeBased ? (
-                      /* Time-based exercises: Show only Time field */
-                      <div className="mb-2">
-                        <label className="block text-xs font-medium text-app-primary mb-1">
-                          Time
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            placeholder="2"
-                            value={set.time}
-                            onChange={(e) => handleSetChange(setIndex, 'time', e.target.value)}
-                            className="input-field flex-1 !px-2 !py-2"
-                          />
-                          <span className="text-sm text-app-muted">min</span>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Weight-based exercises: Show Weight and Reps fields */
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <div>
-                          <label className="block text-xs font-medium text-app-primary mb-1">
-                            Reps *
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="10"
-                            value={set.reps}
-                            onChange={(e) => handleSetChange(setIndex, 'reps', e.target.value)}
-                            className="input-field w-full text-sm !px-2 !py-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-app-primary mb-1">
-                            Weight (kg) *
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="10-15"
-                            value={set.weight}
-                            onChange={(e) => handleSetChange(setIndex, 'weight', e.target.value)}
-                            className="input-field w-full text-sm !px-2 !py-2"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="block text-xs font-medium text-app-primary mb-1">
-                        Notes
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Optional"
-                        value={set.notes}
-                        onChange={(e) => handleSetChange(setIndex, 'notes', e.target.value)}
-                        className="input-field w-full text-sm !px-2 !py-2"
-                      />
-                    </div>
-
+                  <div className="col-span-1 sm:col-span-1 flex items-center text-xs sm:text-sm text-app-muted whitespace-nowrap">
+                    <span className="sm:hidden">S{set.setNumber}</span>
+                    <span className="hidden sm:inline">Set {set.setNumber}</span>
                   </div>
 
-                  {/* Desktop Layout - Single Row */}
-                  <div className="hidden sm:contents">
-                    <div className="col-span-2 flex items-center text-sm text-app-muted">Set {set.setNumber}</div>
-
-                    {/* Time-based exercises: Show only Time field */}
-                    {isTimeBased ? (
-                      <div className="col-span-8 flex items-center gap-2">
-                        <label className="text-sm font-medium text-app-primary whitespace-nowrap">Time:</label>
+                  {/* Time-based exercises: keep one row on mobile and desktop */}
+                  {isTimeBased ? (
+                    <>
+                      <div className="col-span-4 sm:col-span-4 flex items-center gap-1 sm:gap-2">
                         <input
                           type="text"
                           placeholder="2"
                           value={set.time}
                           onChange={(e) => handleSetChange(setIndex, 'time', e.target.value)}
-                          className="input-field w-20 text-sm"
+                          className="input-field w-full text-sm !px-2 !py-2"
                         />
                         <span className="text-sm text-app-muted">min</span>
                       </div>
-                    ) : (
-                      /* Weight-based exercises: Show Weight and Reps fields */
-                      <>
-                        <input
-                          type="number"
-                          min="1"
-                          placeholder="Reps"
-                          value={set.reps}
-                          onChange={(e) => handleSetChange(setIndex, 'reps', e.target.value)}
-                          className="col-span-2 input-field"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Kg"
-                          value={set.weight}
-                          onChange={(e) => handleSetChange(setIndex, 'weight', e.target.value)}
-                          className="col-span-2 input-field"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Optional"
-                          value={set.notes}
-                          onChange={(e) => handleSetChange(setIndex, 'notes', e.target.value)}
-                          className="col-span-6 input-field"
-                        />
-                      </>
-                    )}
-
-                  </div>
+                      <input
+                        type="text"
+                        placeholder="Optional"
+                        value={set.notes}
+                        onChange={(e) => handleSetChange(setIndex, 'notes', e.target.value)}
+                        className="col-span-7 input-field text-sm !px-2 !py-2"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Reps"
+                        value={set.reps}
+                        onChange={(e) => handleSetChange(setIndex, 'reps', e.target.value)}
+                        className="col-span-3 sm:col-span-2 input-field text-sm !px-2 !py-2"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Kg"
+                        value={set.weight}
+                        onChange={(e) => handleSetChange(setIndex, 'weight', e.target.value)}
+                        className="col-span-3 sm:col-span-2 input-field text-sm !px-2 !py-2"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Optional"
+                        value={set.notes}
+                        onChange={(e) => handleSetChange(setIndex, 'notes', e.target.value)}
+                        className="col-span-5 sm:col-span-7 input-field text-sm !px-2 !py-2"
+                      />
+                    </>
+                  )}
                 </div>
               ))}
             </div>
@@ -681,13 +617,13 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
             {exercise.steps && exercise.steps.length > 0 && (
               <>
                 <h5 className="font-semibold text-app-primary mb-3">How to Perform</h5>
-                <ol className="space-y-2">
+                <ol className="m-0 list-none space-y-2.5 p-0">
                   {exercise.steps.map((step, idx) => (
-                    <li key={idx} className="flex">
-                      <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                    <li key={idx} className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-app-subtle bg-surface text-xs font-semibold text-app-primary">
                         {idx + 1}
                       </span>
-                      <span className="pt-0.5 text-app-muted">{step}</span>
+                      <span className="flex-1 leading-6 text-app-muted">{step}</span>
                     </li>
                   ))}
                 </ol>

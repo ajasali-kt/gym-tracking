@@ -46,12 +46,12 @@ function ExerciseCard({
         </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-2 px-2 pb-2 text-[11px] uppercase tracking-[0.1em] text-app-muted">
-        <div className="col-span-2">Set</div>
-        <div className="col-span-2">Reps</div>
-        <div className="col-span-2">Weight</div>
-        <div className="col-span-4">Notes (Optional)</div>
-        <div className="col-span-2 text-right">Actions</div>
+      <div className="grid grid-cols-12 gap-2 px-2 pb-2 text-[11px] uppercase tracking-[0.1em] text-app-muted sm:text-xs">
+        <div className="col-span-1 sm:col-span-2">Set</div>
+        <div className="col-span-3 sm:col-span-2">Reps</div>
+        <div className="col-span-3 sm:col-span-2">Weight</div>
+        <div className="col-span-3 sm:col-span-4">Notes (Optional)</div>
+        <div className="col-span-2 sm:col-span-2 text-right">Actions</div>
       </div>
 
       <div className="space-y-2">

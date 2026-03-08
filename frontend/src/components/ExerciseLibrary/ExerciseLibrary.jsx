@@ -254,7 +254,7 @@ function ExerciseDetailModal({ exercise, onClose }) {
           {exercise.steps && exercise.steps.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold text-gray-800 mb-3">How to Perform</h3>
-              <ol className="space-y-2">
+              <ol className="m-0 list-none space-y-2 p-0">
                 {exercise.steps.map((step, index) => (
                   <li key={index} className="flex">
                     <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">

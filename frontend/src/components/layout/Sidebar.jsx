@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const links = [
@@ -26,8 +26,17 @@ function Icon({ name }) {
 }
 
 function Sidebar() {
+  const location = useLocation();
   const { isAdmin } = useAuth();
   const visibleLinks = links.filter((link) => !link.adminOnly || isAdmin);
+  const pathname = location.pathname;
+
+  const isLinkActive = (linkPath, isNavLinkActive) => {
+    if (linkPath === '/progress') {
+      return isNavLinkActive || pathname.startsWith('/edit-manual/');
+    }
+    return isNavLinkActive;
+  };
 
   return (
     <>
@@ -42,7 +51,7 @@ function Sidebar() {
             <NavLink
               key={link.path}
               to={link.path}
-              className={({ isActive }) => `nav-item ${isActive ? 'nav-item-active' : 'nav-item-idle'}`}
+              className={({ isActive }) => `nav-item ${isLinkActive(link.path, isActive) ? 'nav-item-active' : 'nav-item-idle'}`}
             >
               <Icon name={link.icon} />
               <span>{link.label}</span>
@@ -56,7 +65,7 @@ function Sidebar() {
           <NavLink
             key={link.path}
             to={link.path}
-            className={({ isActive }) => `mobile-nav-item ${isActive ? 'mobile-nav-item-active' : ''}`}
+            className={({ isActive }) => `mobile-nav-item ${isLinkActive(link.path, isActive) ? 'mobile-nav-item-active' : ''}`}
           >
             <Icon name={link.icon} />
             <span>{link.label}</span>
