@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import SetRow from './SetRow';
 
 function ExerciseCard({
@@ -12,8 +12,6 @@ function ExerciseCard({
   showSavedGlow,
   showPrBadge
 }) {
-  const [showNotes, setShowNotes] = useState(false);
-
   const totalVolume = useMemo(
     () => sets.reduce((sum, set) => sum + ((Number.parseFloat(set.weightKg) || 0) * (Number.parseInt(set.repsCompleted, 10) || 0)), 0),
     [sets]
@@ -49,10 +47,11 @@ function ExerciseCard({
       </div>
 
       <div className="grid grid-cols-12 gap-2 px-2 pb-2 text-[11px] uppercase tracking-[0.1em] text-app-muted">
-        <div className="col-span-3">Set</div>
-        <div className="col-span-3">Reps</div>
-        <div className="col-span-3">Weight</div>
-        <div className="col-span-3 text-right">Actions</div>
+        <div className="col-span-2">Set</div>
+        <div className="col-span-2">Reps</div>
+        <div className="col-span-2">Weight</div>
+        <div className="col-span-4">Notes (Optional)</div>
+        <div className="col-span-2 text-right">Actions</div>
       </div>
 
       <div className="space-y-2">
@@ -64,16 +63,12 @@ function ExerciseCard({
             onUpdate={onUpdateSet}
             onRemove={() => onRemoveSet(setIndex)}
             showRemove={sets.length > 1}
-            showNotes={showNotes}
           />
         ))}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <button type="button" onClick={onAddSet} className="btn-outline">+ Add Set</button>
-        <button type="button" onClick={() => setShowNotes((v) => !v)} className="text-xs text-app-muted hover:text-app-primary transition">
-          {showNotes ? 'Hide Notes' : 'Show Notes'}
-        </button>
       </div>
     </section>
   );

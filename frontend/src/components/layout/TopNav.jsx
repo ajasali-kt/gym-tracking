@@ -2,44 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
-const ACTIVE_WORKOUT_KEY = 'gm_active_workout';
-
-function formatDuration(startedAt) {
-  if (!startedAt) return '0 min';
-  const diff = Math.max(0, Date.now() - new Date(startedAt).getTime());
-  const mins = Math.floor(diff / 60000);
-  const hrs = Math.floor(mins / 60);
-  const rem = mins % 60;
-  if (hrs > 0) return `${hrs}h ${rem}m`;
-  return `${mins} min`;
-}
-
 function TopNav() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const [, setTick] = useState(0);
-  const [activeWorkout, setActiveWorkout] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
-
-  useEffect(() => {
-    const readActive = () => {
-      try {
-        const raw = localStorage.getItem(ACTIVE_WORKOUT_KEY);
-        setActiveWorkout(raw ? JSON.parse(raw) : null);
-      } catch {
-        setActiveWorkout(null);
-      }
-    };
-
-    readActive();
-    window.addEventListener('storage', readActive);
-
-    const interval = setInterval(() => setTick((v) => v + 1), 15000);
-    return () => {
-      window.removeEventListener('storage', readActive);
-      clearInterval(interval);
-    };
-  }, []);
 
   useEffect(() => {
     const handleEscape = (event) => {
@@ -83,15 +49,6 @@ function TopNav() {
         </div>
 
         <div className="flex items-center gap-3">
-          {activeWorkout?.startedAt && (
-            <div className="hidden items-center gap-2 rounded-xl border border-blue-500/40 bg-blue-500/10 px-3 py-2 text-xs text-blue-300 sm:flex">
-              <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-blue-400" />
-              <span>
-                Workout in Progress - {formatDuration(activeWorkout.startedAt)}
-              </span>
-            </div>
-          )}
-
           <button
             type="button"
             data-profile-menu

@@ -3,7 +3,7 @@ import { format, subDays, startOfMonth } from 'date-fns';
 import { getWorkoutHistory } from '../../services/historyService';
 import ShareLinkModal from './ShareLinkModal';
 import { createShareLink } from '../../services/shareService';
-import TimelineItem from '../history/TimelineItem';
+import TimelineItem from '../History/TimelineItem';
 
 function toDateInput(date) {
   return format(date, 'yyyy-MM-dd');
@@ -54,6 +54,7 @@ function Heatmap({ workouts }) {
 function History() {
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [selectedPreset, setSelectedPreset] = useState(null);
   const [historyData, setHistoryData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -78,6 +79,23 @@ function History() {
 
     setFromDate(toDateInput(from));
     setToDate(toDateInput(today));
+    setSelectedPreset(preset);
+    setHistoryData(null);
+    setError(null);
+    setShareData(null);
+  };
+
+  const handleFromDateChange = (value) => {
+    setFromDate(value);
+    setSelectedPreset(null);
+    setHistoryData(null);
+    setError(null);
+    setShareData(null);
+  };
+
+  const handleToDateChange = (value) => {
+    setToDate(value);
+    setSelectedPreset(null);
     setHistoryData(null);
     setError(null);
     setShareData(null);
@@ -136,7 +154,11 @@ function History() {
       <section className="card p-4 sm:p-5 space-y-4">
         <div className="flex flex-wrap gap-2">
           {presets.map((preset) => (
-            <button key={preset.key} onClick={() => applyPreset(preset.key)} className="pill-btn">
+            <button
+              key={preset.key}
+              onClick={() => applyPreset(preset.key)}
+              className={`pill-btn ${selectedPreset === preset.key ? 'border-blue-500 text-blue-300 shadow-[0_0_0_1px_rgba(59,130,246,0.2)]' : ''}`}
+            >
               {preset.label}
             </button>
           ))}
@@ -145,20 +167,27 @@ function History() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label htmlFor="fromDate" className="label">From Date</label>
-            <input id="fromDate" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} className="input-field" />
+            <input id="fromDate" type="date" value={fromDate} onChange={(e) => handleFromDateChange(e.target.value)} className="input-field" />
           </div>
           <div>
             <label htmlFor="toDate" className="label">To Date</label>
-            <input id="toDate" type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} className="input-field" />
+            <input id="toDate" type="date" value={toDate} onChange={(e) => handleToDateChange(e.target.value)} className="input-field" />
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button onClick={handleViewHistory} disabled={loading} className="btn-primary disabled:opacity-50">
+          <button
+            onClick={handleViewHistory}
+            disabled={loading}
+            className="btn-outline border-blue-500/50 bg-transparent text-blue-300 hover:bg-blue-500/10 disabled:opacity-50"
+          >
             {loading ? 'Loading...' : 'View History'}
           </button>
           {historyData?.totalWorkouts > 0 && (
-            <button onClick={() => setShowShareModal(true)} className="btn-outline">
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="btn-outline border-green-500/50 bg-transparent text-green-300 hover:bg-green-500/10"
+            >
               Generate Share Link
             </button>
           )}
@@ -171,28 +200,38 @@ function History() {
 
       {!loading && historyData && (
         <>
-          {summary && (
-            <section className="grid grid-cols-1 gap-3 md:grid-cols-3">
-              {summary.map((item) => (
-                <div key={item.label} className="card p-4">
-                  <p className="text-xs text-app-muted">{item.label}</p>
-                  <p className="mt-2 text-2xl font-bold text-app-primary">{item.value}</p>
-                </div>
-              ))}
-            </section>
-          )}
-
-          <Heatmap workouts={historyData.workouts || []} />
-
-          <section className="timeline-container">
-            {(historyData.workouts || []).length === 0 ? (
+          {(historyData.workouts || []).length === 0 ? (
+            <section className="timeline-container">
               <div className="card p-8 text-center text-app-muted">No workouts in this range.</div>
-            ) : (
-              historyData.workouts.map((workout, index) => (
-                <TimelineItem key={`${workout.date}-${index}`} workout={workout} />
-              ))
-            )}
-          </section>
+            </section>
+          ) : (
+            <>
+              {summary && (
+                <section className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                  {summary.map((item) => (
+                    <div key={item.label} className="card p-4">
+                      <p className="text-xs text-app-muted">{item.label}</p>
+                      <p className="mt-2 text-2xl font-bold text-app-primary">{item.value}</p>
+                    </div>
+                  ))}
+                </section>
+              )}
+
+              <Heatmap workouts={historyData.workouts || []} />
+
+              <section className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-semibold text-app-primary">Recent Workouts</h2>
+                  <p className="text-xs text-app-muted">{historyData.workouts.length} sessions</p>
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  {historyData.workouts.map((workout, index) => (
+                    <TimelineItem key={`${workout.date}-${index}`} workout={workout} />
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
         </>
       )}
 

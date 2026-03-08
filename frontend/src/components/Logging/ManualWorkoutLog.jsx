@@ -6,16 +6,6 @@ import progressService from '../../services/progressService';
 import useAccessibleModal from '../../hooks/useAccessibleModal';
 import ExerciseCard from '../log/ExerciseCard';
 
-const ACTIVE_WORKOUT_KEY = 'gm_active_workout';
-
-function elapsedSince(startedAt) {
-  if (!startedAt) return '0:00';
-  const diff = Math.max(0, Date.now() - new Date(startedAt).getTime());
-  const mins = Math.floor(diff / 60000);
-  const seconds = Math.floor((diff % 60000) / 1000);
-  return `${mins}:${String(seconds).padStart(2, '0')}`;
-}
-
 function SaveIndicator({ status }) {
   if (status === 'saving') return <span className="text-xs text-warning">Saving</span>;
   if (status === 'saved') return <span className="text-xs text-success">Saved</span>;
@@ -43,12 +33,9 @@ function ManualWorkoutLog() {
   const [pendingChanges, setPendingChanges] = useState(false);
   const [error, setError] = useState(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
-  const [startedAt, setStartedAt] = useState(null);
-  const [, setTimerTick] = useState(0);
   const [savePulse, setSavePulse] = useState(false);
 
   const autosaveTimerRef = useRef(null);
-  const clockRef = useRef(null);
   const isSyncInFlightRef = useRef(false);
   const hasQueuedSyncRef = useRef(false);
   const pendingChangesRef = useRef(false);
@@ -81,26 +68,9 @@ function ManualWorkoutLog() {
     return () => clearTimeout(t);
   }, [saveStatus]);
 
-  useEffect(() => {
-    if (!startedAt) return;
-    clockRef.current = setInterval(() => setTimerTick((value) => value + 1), 1000);
-    return () => clearInterval(clockRef.current);
-  }, [startedAt]);
-
   useEffect(() => () => {
     if (autosaveTimerRef.current) clearTimeout(autosaveTimerRef.current);
   }, []);
-
-  const setActiveWorkoutStorage = (value) => {
-    if (!value) {
-      localStorage.removeItem(ACTIVE_WORKOUT_KEY);
-      window.dispatchEvent(new Event('storage'));
-      return;
-    }
-
-    localStorage.setItem(ACTIVE_WORKOUT_KEY, JSON.stringify(value));
-    window.dispatchEvent(new Event('storage'));
-  };
 
   const fetchData = async () => {
     try {
@@ -145,17 +115,12 @@ function ManualWorkoutLog() {
         setSelectedExercises(uniqueExercises);
         setExerciseLogs(groupedLogs);
 
-        const startTime = new Date().toISOString();
-        setStartedAt(startTime);
-        setActiveWorkoutStorage({ startedAt: startTime, workoutName: workoutData.workoutName || 'Workout Session' });
       } else {
         setSelectedExercises([]);
         setExerciseLogs({});
         setWorkoutName('');
         setWorkoutNotes('');
         setWorkoutDate(format(new Date(), 'yyyy-MM-dd'));
-        setStartedAt(null);
-        setActiveWorkoutStorage(null);
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load workout');
@@ -186,12 +151,6 @@ function ManualWorkoutLog() {
   const markDirty = () => {
     setPendingChanges(true);
     setSaveStatus((previous) => (previous === 'error' ? 'error' : 'idle'));
-
-    if (!startedAt) {
-      const now = new Date().toISOString();
-      setStartedAt(now);
-      setActiveWorkoutStorage({ startedAt: now, workoutName: workoutName?.trim() || 'Workout Session' });
-    }
   };
 
   const handleAddExercise = async (exercise) => {
@@ -349,12 +308,6 @@ function ManualWorkoutLog() {
       setSaveStatus('saved');
       setLastSavedAt(response.savedAt || new Date().toISOString());
 
-      setActiveWorkoutStorage({
-        startedAt: startedAt || new Date().toISOString(),
-        workoutName: workoutName.trim() || 'Workout Session',
-        workoutLogId: response.workoutLogId || workoutLogId
-      });
-
       return true;
     } catch (err) {
       const message = err.response?.data?.message || 'Autosave failed. Your changes are still visible.';
@@ -389,7 +342,6 @@ function ManualWorkoutLog() {
 
     try {
       await progressService.deleteWorkoutLog(workoutLogId);
-      setActiveWorkoutStorage(null);
       navigate('/progress');
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete workout');
@@ -397,9 +349,6 @@ function ManualWorkoutLog() {
   };
 
   const handleBack = () => {
-    if (!workoutLogId && !workoutName.trim() && selectedExercises.length === 0) {
-      setActiveWorkoutStorage(null);
-    }
     navigate('/progress');
   };
 
@@ -430,7 +379,6 @@ function ManualWorkoutLog() {
             <div>
               <p className="text-xs uppercase tracking-[0.12em] text-app-muted">Live Logging</p>
               <h1 className="text-2xl font-bold text-app-primary">{isEditMode ? 'Edit Workout' : 'Manual Workout Log'}</h1>
-              <p className="mt-1 text-sm text-app-muted">Session Time: {elapsedSince(startedAt)}</p>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">

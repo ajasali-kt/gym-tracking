@@ -15,6 +15,28 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
     setTimeout(() => setCopied(false), 1800);
   };
 
+  const getShareStatusMessage = () => {
+    if (!shareData) return null;
+    if (shareData.reused && shareData.renewed) {
+      return {
+        text: 'Existing link was reactivated and updated.',
+        className: 'rounded-xl border border-blue-500/40 bg-blue-500/10 p-3 text-sm text-blue-300'
+      };
+    }
+    if (shareData.reused) {
+      return {
+        text: 'Existing link reused for this date range.',
+        className: 'rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-300'
+      };
+    }
+    return {
+      text: 'New link created successfully.',
+      className: 'rounded-xl border border-green-500/40 bg-green-500/10 p-3 text-sm text-green-300'
+    };
+  };
+
+  const shareStatus = getShareStatusMessage();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
       <div
@@ -52,15 +74,18 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
                 <option value={90}>90 days</option>
                 <option value={0}>Never expires</option>
               </select>
-              <button onClick={() => onGenerate(expiresIn === 0 ? null : expiresIn)} className="btn-primary w-full">
-                Generate Link
-              </button>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => onGenerate(expiresIn === 0 ? null : expiresIn)}
+                  className="btn-outline border-blue-500/50 bg-transparent px-3 py-1.5 text-sm text-blue-300 hover:bg-blue-500/10"
+                >
+                  Generate Link
+                </button>
+              </div>
             </>
           ) : (
             <>
-              <div className="rounded-xl border border-green-500/40 bg-green-500/10 p-3 text-sm text-green-300">
-                Link ready to share.
-              </div>
+              {shareStatus && <div className={shareStatus.className}>{shareStatus.text}</div>}
               <div className="flex gap-2">
                 <input type="text" readOnly value={shareData.shareUrl} className="input-field" />
                 <button onClick={handleCopyLink} className="btn-outline min-w-[90px]">

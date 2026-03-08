@@ -246,7 +246,7 @@ function Progress() {
               key={range.key}
               type="button"
               onClick={() => setSelectedRange(range.key)}
-              className={`pill-btn ${selectedRange === range.key ? 'bg-blue-600 border-blue-500 text-white' : ''}`}
+              className={`pill-btn ${selectedRange === range.key ? 'border-blue-500 text-blue-300 shadow-[0_0_0_1px_rgba(59,130,246,0.2)]' : ''}`}
             >
               {range.label}
             </button>
