@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import workoutService from '../../services/workoutService';
 import progressService from '../../services/progressService';
+import { getInvalidInputClass, isValidPositiveInteger } from '../../utils/inputValidation';
 
 /**
  * Workout Logger Component
@@ -65,9 +66,12 @@ function WorkoutLogger() {
 
   const handleLogSet = async (exerciseId, setIndex) => {
     const setData = exerciseLogs[exerciseId][setIndex];
+    const repsValid = isValidPositiveInteger(setData.repsCompleted);
+    const weightValue = Number.parseFloat(setData.weightKg);
+    const weightValid = Number.isFinite(weightValue) && weightValue > 0;
 
-    if (!setData.repsCompleted || !setData.weightKg) {
-      alert('Please enter reps and weight');
+    if (!repsValid || !weightValid) {
+      alert('Please enter valid reps and weight');
       return;
     }
 
@@ -75,8 +79,8 @@ function WorkoutLogger() {
       await progressService.logSet(workoutLog.id, {
         exerciseId: parseInt(exerciseId),
         setNumber: setIndex + 1,
-        repsCompleted: parseInt(setData.repsCompleted),
-        weightKg: parseFloat(setData.weightKg),
+        repsCompleted: parseInt(setData.repsCompleted, 10),
+        weightKg: weightValue,
         notes: setData.notes || null
       });
 
@@ -386,6 +390,7 @@ function WorkoutLogger() {
 function SetLogger({ setNumber, setData, onUpdate, onLog }) {
   const [restTimer, setRestTimer] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
+  const isRepsInvalid = !!setData.repsCompleted && !isValidPositiveInteger(setData.repsCompleted);
 
   useEffect(() => {
     if (restTimer) {
@@ -428,11 +433,13 @@ function SetLogger({ setNumber, setData, onUpdate, onLog }) {
           <input
             type="number"
             min="1"
+            step="1"
             value={setData.repsCompleted}
             onChange={(e) => onUpdate('repsCompleted', e.target.value)}
             disabled={setData.logged}
             placeholder="e.g., 10"
-            className="input-field disabled:bg-gray-100"
+            inputMode="numeric"
+            className={`input-field disabled:bg-gray-100 ${getInvalidInputClass(isRepsInvalid)}`}
           />
         </div>
         <div>
@@ -441,12 +448,12 @@ function SetLogger({ setNumber, setData, onUpdate, onLog }) {
           </label>
           <input
             type="number"
-            step="0.5"
-            min="0"
+            min="1"
             value={setData.weightKg}
             onChange={(e) => onUpdate('weightKg', e.target.value)}
             disabled={setData.logged}
             placeholder="e.g., 20"
+            inputMode="decimal"
             className="input-field disabled:bg-gray-100"
           />
         </div>

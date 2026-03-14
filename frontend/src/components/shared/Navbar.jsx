@@ -15,7 +15,6 @@ function Navbar() {
     { path: '/', label: 'Dashboard' },
     { path: '/exercises', label: 'Exercises' },
     { path: '/plans', label: 'Plans' },
-    { path: '/log-manual', label: 'Log' },
     { path: '/progress', label: 'Progress' }
   ];
 

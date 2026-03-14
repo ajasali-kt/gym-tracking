@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import workoutService from '../../services/workoutService';
+import { getInvalidInputClass, isValidPositiveInteger } from '../../utils/inputValidation';
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
 const FALLBACK_PREFIX = 'dashboard_unsaved_set';
@@ -52,24 +53,15 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
   const parseWeightValue = (weightInput) => {
     if (!weightInput || !weightInput.trim()) return null;
     const normalized = weightInput.trim();
-
-    if (normalized.includes('-')) {
-      const [minRaw, maxRaw] = normalized.split('-');
-      const min = Number.parseFloat((minRaw || '').trim());
-      const max = Number.parseFloat((maxRaw || '').trim());
-      if (!Number.isFinite(min) || !Number.isFinite(max) || min <= 0 || max <= 0) {
-        return null;
-      }
-      return (min + max) / 2;
-    }
-
     const single = Number.parseFloat(normalized);
     if (!Number.isFinite(single) || single <= 0) return null;
     return single;
   };
 
   const parseRepsValue = (repsInput) => {
-    const parsed = Number.parseInt(repsInput, 10);
+    const normalized = (repsInput || '').trim();
+    if (!isValidPositiveInteger(normalized)) return null;
+    const parsed = Number.parseInt(normalized, 10);
     if (!Number.isInteger(parsed) || parsed <= 0) return null;
     return parsed;
   };
@@ -537,6 +529,9 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
 
             <div className="space-y-2">
               {sets.map((set, setIndex) => (
+                (() => {
+                  const isRepsInvalid = !!set.reps && parseRepsValue(set.reps) === null;
+                  return (
                 <div
                   key={setIndex}
                   className="group grid grid-cols-12 items-center gap-1.5 sm:gap-2 rounded-xl border border-app-subtle bg-surface px-2 py-2 transition hover:border-blue-500/40"
@@ -572,16 +567,20 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
                       <input
                         type="number"
                         min="1"
+                        step="1"
                         placeholder="Reps"
                         value={set.reps}
                         onChange={(e) => handleSetChange(setIndex, 'reps', e.target.value)}
-                        className="col-span-3 sm:col-span-2 input-field text-sm !px-2 !py-2"
+                        inputMode="numeric"
+                        className={`col-span-3 sm:col-span-2 input-field text-sm !px-2 !py-2 ${getInvalidInputClass(isRepsInvalid)}`}
                       />
                       <input
-                        type="text"
+                        type="number"
+                        min="1"
                         placeholder="Kg"
                         value={set.weight}
                         onChange={(e) => handleSetChange(setIndex, 'weight', e.target.value)}
+                        inputMode="decimal"
                         className="col-span-3 sm:col-span-2 input-field text-sm !px-2 !py-2"
                       />
                       <input
@@ -594,6 +593,8 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
                     </>
                   )}
                 </div>
+                  );
+                })()
               ))}
             </div>
 

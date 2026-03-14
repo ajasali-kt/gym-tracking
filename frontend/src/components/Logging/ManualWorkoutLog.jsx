@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { format } from 'date-fns';
 import exerciseService from '../../services/exerciseService';
 import progressService from '../../services/progressService';
 import useAccessibleModal from '../../hooks/useAccessibleModal';
 import ExerciseCard from '../log/ExerciseCard';
+import { isValidPositiveInteger } from '../../utils/inputValidation';
 
 function SaveIndicator({ status }) {
   if (status === 'saving') return <span className="text-xs text-warning">Saving</span>;
@@ -16,6 +17,7 @@ function SaveIndicator({ status }) {
 function ManualWorkoutLog() {
   const AUTO_SAVE_DEBOUNCE_MS = 800;
   const navigate = useNavigate();
+  const location = useLocation();
   const { workoutId } = useParams();
   const isEditMode = !!workoutId;
 
@@ -234,10 +236,10 @@ function ManualWorkoutLog() {
     for (const exercise of selectedExercises) {
       const sets = exerciseLogs[exercise.id] || [];
       for (const set of sets) {
-        const repsCompleted = Number.parseInt(set.repsCompleted, 10);
+        const repsValid = isValidPositiveInteger(set.repsCompleted);
+        const repsCompleted = repsValid ? Number.parseInt(set.repsCompleted, 10) : null;
         const weightKg = Number.parseFloat(set.weightKg);
         const hasExistingId = set.id !== undefined && set.id !== null;
-        const repsValid = Number.isInteger(repsCompleted) && repsCompleted > 0;
         const weightValid = Number.isFinite(weightKg) && weightKg > 0;
 
         if (hasExistingId && (!repsValid || !weightValid)) {
@@ -349,7 +351,17 @@ function ManualWorkoutLog() {
   };
 
   const handleBack = () => {
-    navigate('/progress');
+    if (location.state?.from) {
+      navigate(location.state.from);
+      return;
+    }
+
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate('/');
   };
 
   const pageVolume = useMemo(() => {

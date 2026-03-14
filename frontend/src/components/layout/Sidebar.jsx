@@ -3,7 +3,8 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const links = [
   { path: '/', label: 'Dashboard', icon: 'home' },
-  { path: '/log-manual', label: 'Log Workout', icon: 'bolt' },
+  { path: '/exercises', label: 'Exercises', icon: 'bolt' },
+  { path: '/plans', label: 'Plans', icon: 'calendar' },
   { path: '/progress', label: 'Progress', icon: 'chart' },
   { path: '/history', label: 'History', icon: 'clock' },
   { path: '/settings/system', label: 'Settings', icon: 'cog', adminOnly: true }
@@ -15,6 +16,7 @@ function Icon({ name }) {
     bolt: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="m13 2-8 11h6l-1 9 9-12h-6l0-8Z" />,
     chart: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 19V5m8 14V9m8 10V3" />,
     clock: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 7v5l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />,
+    calendar: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 3v3m8-3v3M4 9h16m-14 12h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2Z" />,
     cog: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 0 0-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 0 0-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 0 0-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 0 0-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 0 0 1.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.607 2.296.07 2.572-1.065Z M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
   };
 
@@ -60,7 +62,11 @@ function Sidebar() {
         </nav>
       </aside>
 
-      <nav className={`mobile-bottom-nav md:hidden ${visibleLinks.length === 4 ? 'grid-cols-4' : 'grid-cols-5'}`}>
+      <nav
+        className={`mobile-bottom-nav md:hidden ${
+          visibleLinks.length <= 4 ? 'grid-cols-4' : visibleLinks.length === 5 ? 'grid-cols-5' : 'grid-cols-6'
+        }`}
+      >
         {visibleLinks.map((link) => (
           <NavLink
             key={link.path}

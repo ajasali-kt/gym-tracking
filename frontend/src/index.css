@@ -110,6 +110,17 @@ body {
     background: rgba(59, 130, 246, 0.14);
   }
 
+  .btn-green-outline {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold transition;
+    border-color: rgba(16, 185, 129, 0.5);
+    background: rgba(16, 185, 129, 0.1);
+    color: #86efac;
+  }
+
+  .btn-green-outline:hover {
+    background: rgba(16, 185, 129, 0.15);
+  }
+
   .btn-danger {
     @apply inline-flex min-h-[44px] items-center justify-center rounded-xl border border-transparent px-4 py-2 text-sm font-semibold text-white transition;
     background: var(--error);

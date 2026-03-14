@@ -1,4 +1,8 @@
+import { getInvalidInputClass, isValidPositiveInteger } from '../../utils/inputValidation';
+
 function SetRow({ set, setIndex, onUpdate, onRemove, showRemove }) {
+  const isRepsInvalid = !!set.repsCompleted && !isValidPositiveInteger(set.repsCompleted);
+
   return (
     <div className="group grid grid-cols-12 gap-2 rounded-xl border border-app-subtle bg-surface px-2 py-2 transition hover:border-blue-500/40">
       <div className="col-span-1 sm:col-span-2 flex items-center text-xs sm:text-sm text-app-muted whitespace-nowrap">
@@ -8,18 +12,20 @@ function SetRow({ set, setIndex, onUpdate, onRemove, showRemove }) {
       <input
         type="number"
         min="1"
+        step="1"
         value={set.repsCompleted}
         onChange={(e) => onUpdate(setIndex, 'repsCompleted', e.target.value)}
         placeholder="Reps"
-        className="col-span-3 sm:col-span-2 input-field text-sm !px-2 !py-2"
+        inputMode="numeric"
+        className={`col-span-3 sm:col-span-2 input-field text-sm !px-2 !py-2 ${getInvalidInputClass(isRepsInvalid)}`}
       />
       <input
         type="number"
-        min="0"
-        step="0.5"
+        min="1"
         value={set.weightKg}
         onChange={(e) => onUpdate(setIndex, 'weightKg', e.target.value)}
         placeholder="Kg"
+        inputMode="decimal"
         className="col-span-3 sm:col-span-2 input-field text-sm !px-2 !py-2"
       />
       <input
