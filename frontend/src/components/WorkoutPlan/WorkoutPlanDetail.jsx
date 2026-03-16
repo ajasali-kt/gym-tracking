@@ -54,11 +54,11 @@ function WorkoutPlanDetail() {
     return (
       <>
         <div className="space-y-6">
-          <h1 className="text-3xl font-bold text-gray-800">Plan Details</h1>
+          <h1 className="text-3xl font-bold text-app-primary">Plan Details</h1>
           <div className="card p-8 text-center">
             <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+              <div className="h-4 bg-surface rounded w-1/4 mx-auto mb-4"></div>
+              <div className="h-4 bg-surface rounded w-1/2 mx-auto"></div>
             </div>
           </div>
         </div>
@@ -70,9 +70,9 @@ function WorkoutPlanDetail() {
     return (
       <>
         <div className="space-y-6">
-          <h1 className="text-3xl font-bold text-gray-800">Plan Details</h1>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <p className="text-red-800 font-medium">Error: {error}</p>
+          <h1 className="text-3xl font-bold text-app-primary">Plan Details</h1>
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6">
+            <p className="font-medium text-red-200">Error: {error}</p>
             <button
               onClick={fetchPlanDetails}
               className="mt-4 px-4 py-2 btn-danger mr-2"
@@ -81,7 +81,7 @@ function WorkoutPlanDetail() {
             </button>
             <button
               onClick={() => navigate('/plans')}
-              className="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              className="mt-4 px-4 py-2 btn-secondary"
             >
               Back to Plans
             </button>
@@ -95,12 +95,12 @@ function WorkoutPlanDetail() {
     return (
       <>
         <div className="space-y-6">
-          <h1 className="text-3xl font-bold text-gray-800">Plan Not Found</h1>
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-            <p className="text-gray-600 mb-4">The requested plan could not be found.</p>
+          <h1 className="text-3xl font-bold text-app-primary">Plan Not Found</h1>
+          <div className="card p-6">
+            <p className="text-app-muted mb-4">The requested plan could not be found.</p>
             <button
               onClick={() => navigate('/plans')}
-              className="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
+              className="px-4 py-2 btn-secondary"
             >
               Back to Plans
             </button>
@@ -160,14 +160,14 @@ function WorkoutPlanDetail() {
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-start">
           <div>
             <div className="flex items-center space-x-4 mb-2">
-              <h1 className="text-3xl font-bold text-gray-800">{plan.name}</h1>
+              <h1 className="text-3xl font-bold text-app-primary">{plan.name}</h1>
               {plan.isActive && (
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm font-medium rounded-full">
+                <span className="px-3 py-1 rounded-full border border-green-500/30 bg-green-500/15 text-sm font-medium text-green-200">
                   Active
                 </span>
               )}
             </div>
-            <div className="space-y-1 text-gray-600">
+            <div className="space-y-1 text-app-muted">
               <p>
                 Started: {format(new Date(plan.startDate), 'MMMM d, yyyy')}
                 {plan.endDate && ` • Ends: ${format(new Date(plan.endDate), 'MMMM d, yyyy')}`}
@@ -182,18 +182,20 @@ function WorkoutPlanDetail() {
             </div>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <button
-              onClick={() => {
-                setSelectedDayNumber(null);
-                setShowAddDayModal(true);
-              }}
-              className="w-full sm:w-auto px-4 py-2 btn-primary transition"
-            >
-              + Add Day
-            </button>
+            {workoutDays.length > 0 && (
+              <button
+                onClick={() => {
+                  setSelectedDayNumber(null);
+                  setShowAddDayModal(true);
+                }}
+                className="w-full sm:w-auto px-4 py-2 btn-outline transition"
+              >
+                + Add Day
+              </button>
+            )}
             <button
               onClick={() => navigate('/plans')}
-              className="w-full sm:w-auto px-4 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition"
+              className="w-full sm:w-auto px-4 py-2 btn-secondary transition"
             >
               Back to Plans
             </button>
@@ -202,9 +204,9 @@ function WorkoutPlanDetail() {
 
         {/* Progression Notes */}
         {plan.notes && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-yellow-900 mb-2">Progression Plan</h3>
-            <div className="text-sm text-yellow-800 whitespace-pre-line">
+          <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4">
+            <h3 className="text-lg font-semibold text-yellow-200 mb-2">Progression Plan</h3>
+            <div className="text-sm text-yellow-100/90 whitespace-pre-line">
               {plan.notes}
             </div>
           </div>
@@ -212,9 +214,9 @@ function WorkoutPlanDetail() {
 
         {/* Workout Days Grid */}
         {workoutDays.length === 0 ? (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">No Workout Days Yet</h2>
-            <p className="text-gray-600 mb-4">
+          <div className="card p-8 text-center">
+            <h2 className="text-xl font-semibold text-app-primary mb-2">No Workout Days Yet</h2>
+            <p className="text-app-muted mb-4">
               Start building your weekly plan by adding workout days.
             </p>
             <button
@@ -222,7 +224,7 @@ function WorkoutPlanDetail() {
                 setSelectedDayNumber(null);
                 setShowAddDayModal(true);
               }}
-              className="px-6 py-2 btn-primary"
+              className="px-6 py-2 btn-outline"
             >
               Add Your First Day
             </button>
@@ -279,8 +281,7 @@ function WorkoutPlanDetail() {
       {editingDay && (
         <EditDayModal
           workoutDay={editingDay}
-          onClose={() => setEditingDay(null)}
-          onSuccess={() => {
+          onClose={() => {
             setEditingDay(null);
             fetchPlanDetails();
           }}
@@ -299,24 +300,24 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
 
   if (!workoutDay) {
     return (
-      <div className={`bg-gray-50 border-2 border-dashed rounded-lg p-6 ${isToday ? 'border-blue-400 bg-blue-50' : 'border-gray-300'}`}>
+      <div className={`rounded-lg border-2 border-dashed p-6 ${isToday ? 'border-neutral-500/60 bg-black/30' : 'border-app-subtle bg-surface'}`}>
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h3 className="text-lg font-semibold text-gray-500">
+              <h3 className="text-lg font-semibold text-app-muted">
                 Day {dayNumber}
               </h3>
               {isToday && (
-                <span className="px-2 py-1 bg-blue-500 text-white text-xs font-bold rounded">
+                <span className="px-2 py-1 bg-black text-white text-xs font-bold rounded border border-white/10">
                   TODAY
                 </span>
               )}
             </div>
-            <p className="text-sm text-gray-400 mt-1">{dateStr} • Rest day or not scheduled</p>
+            <p className="text-sm text-app-muted mt-1">{dateStr} • Rest day or not scheduled</p>
           </div>
           <button
             onClick={onAddDay}
-            className="px-4 py-2 btn-primary transition text-sm"
+            className="btn-green-outline text-sm"
           >
             + Add Workout
           </button>
@@ -328,29 +329,29 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
   const exercises = workoutDay.workoutDayExercises || [];
 
   return (
-    <div className={`bg-white border rounded-lg shadow hover:shadow-md transition overflow-hidden ${isToday ? 'border-blue-500 border-2 ring-2 ring-blue-200' : 'border-gray-200'}`}>
-      <div className={`bg-gradient-to-r px-6 py-4 text-white ${isToday ? 'from-blue-600 to-blue-700' : 'from-blue-500 to-blue-600'}`}>
+    <div className={`card overflow-hidden transition ${isToday ? 'border-white/15 ring-2 ring-white/10' : ''}`}>
+      <div className="border-b border-app-subtle bg-surface px-4 py-3 sm:px-6 sm:py-4">
         <div className="flex items-center justify-between">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h3 className="text-xl font-bold">{workoutDay.dayName}</h3>
+            <div className="flex items-center gap-3">
+              <h3 className="text-xl font-bold text-app-primary sm:text-2xl">{workoutDay.dayName}</h3>
               {isToday && (
-                <span className="px-2 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded animate-pulse">
-                  TODAY
+                <span className="px-2 py-1 rounded-full border border-green-500/30 bg-green-500/15 text-xs font-medium text-green-200">
+                  Today
                 </span>
               )}
             </div>
-            <p className="text-blue-100 text-sm">
+            <p className="mt-1 text-sm text-app-muted sm:text-base">
               Day {dayNumber} • {dateStr}
             </p>
-            <p className="text-blue-100 text-sm mt-1">
+            <p className="text-sm text-app-muted sm:text-base">
               {workoutDay.muscleGroup?.name || 'General Workout'}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <button
               onClick={onEdit}
-              className="w-full sm:w-auto px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded transition text-sm"
+              className="w-full sm:w-auto rounded-lg border border-green-500/40 px-3 py-1 text-sm text-green-300 transition hover:bg-green-500/15"
             >
               Edit
             </button>
@@ -367,10 +368,10 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
       <div className="p-6">
         {exercises.length === 0 ? (
           <div className="text-center py-4">
-            <p className="text-gray-500 mb-3">No exercises added yet</p>
+            <p className="text-app-muted mb-3">No exercises added yet</p>
             <button
               onClick={onEdit}
-              className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+              className="btn-green-outline text-xs"
             >
               + Add Exercises
             </button>
@@ -382,31 +383,31 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
               .map((assignment, index) => (
                 <div
                   key={assignment.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  className="flex items-center justify-between rounded-lg bg-surface p-3"
                 >
                   <div className="flex items-center space-x-3">
-                    <div className="flex-shrink-0 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                    <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-app-subtle bg-surface text-xs font-semibold text-app-primary">
                       {index + 1}
                     </div>
                     <div>
-                      <h4 className="font-semibold text-gray-800">{assignment.exercise.name}</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-semibold text-app-primary">{assignment.exercise.name}</h4>
+                      <p className="text-sm text-app-muted">
                         {assignment.exercise.muscleGroup?.name}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-4 text-sm">
                     <div className="text-center">
-                      <p className="text-gray-600">Sets</p>
-                      <p className="font-bold text-gray-800">{assignment.sets}</p>
+                      <p className="text-app-muted">Sets</p>
+                      <p className="font-bold text-app-primary">{assignment.sets}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-gray-600">Reps</p>
-                      <p className="font-bold text-gray-800">{assignment.reps}</p>
+                      <p className="text-app-muted">Reps</p>
+                      <p className="font-bold text-app-primary">{assignment.reps}</p>
                     </div>
                     <div className="text-center">
-                      <p className="text-gray-600">Rest</p>
-                      <p className="font-bold text-gray-800">{assignment.restSeconds}s</p>
+                      <p className="text-app-muted">Rest</p>
+                      <p className="font-bold text-app-primary">{assignment.restSeconds}s</p>
                     </div>
                   </div>
                 </div>
@@ -471,7 +472,7 @@ function AddDayModal({ planId, planDates, existingDays, initialDayNumber, onClos
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
     >
       <div
@@ -480,15 +481,15 @@ function AddDayModal({ planId, planDates, existingDays, initialDayNumber, onClos
         aria-modal="true"
         aria-labelledby="add-day-title"
         tabIndex={-1}
-        className="card max-w-md w-full"
+        className="w-full max-w-md rounded-2xl border border-app-subtle bg-card shadow-card"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white flex justify-between items-center">
-          <h2 id="add-day-title" className="text-2xl font-bold">Add Workout Day</h2>
+        <div className="flex items-center justify-between border-b border-app-subtle px-5 py-4">
+          <h2 id="add-day-title" className="text-xl font-semibold text-app-primary">Add Workout Day</h2>
           <button
             ref={closeBtnRef}
             onClick={onClose}
-            className="text-white hover:text-gray-200"
+            className="text-app-muted hover:text-app-primary"
             aria-label="Close add workout day modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -499,13 +500,13 @@ function AddDayModal({ planId, planDates, existingDays, initialDayNumber, onClos
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-3 text-red-800 text-sm">
+            <div className="rounded border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="add-day-number" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="add-day-number" className="block text-sm font-medium text-app-muted mb-2">
               Select Day *
             </label>
             <select
@@ -532,7 +533,7 @@ function AddDayModal({ planId, planDates, existingDays, initialDayNumber, onClos
           </div>
 
           <div>
-            <label htmlFor="add-day-name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="add-day-name" className="block text-sm font-medium text-app-muted mb-2">
               Day Name *
             </label>
             <input
@@ -547,7 +548,7 @@ function AddDayModal({ planId, planDates, existingDays, initialDayNumber, onClos
           </div>
 
           <div>
-            <label htmlFor="add-day-muscle-group" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="add-day-muscle-group" className="block text-sm font-medium text-app-muted mb-2">
               Primary Muscle Group (Optional)
             </label>
             <select
@@ -563,18 +564,11 @@ function AddDayModal({ planId, planDates, existingDays, initialDayNumber, onClos
             </select>
           </div>
 
-          <div className="flex space-x-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 btn-secondary"
-            >
-              Cancel
-            </button>
+          <div className="pt-4 flex justify-end">
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 btn-primary disabled:opacity-50"
+              className="btn-outline px-4 py-2 disabled:opacity-50"
             >
               {loading ? 'Adding...' : 'Add Day'}
             </button>
@@ -588,7 +582,7 @@ function AddDayModal({ planId, planDates, existingDays, initialDayNumber, onClos
 /**
  * Edit Day Modal Component
  */
-function EditDayModal({ workoutDay, onClose, onSuccess }) {
+function EditDayModal({ workoutDay, onClose }) {
   const [exercises, setExercises] = useState([]);
   const [assignments, setAssignments] = useState(workoutDay.workoutDayExercises || []);
   const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
@@ -625,8 +619,9 @@ function EditDayModal({ workoutDay, onClose, onSuccess }) {
   const handleAddExercise = async (exerciseData) => {
     try {
       await workoutService.addExerciseToDay(workoutDay.id, exerciseData);
+      const updatedDay = await workoutService.getWorkoutDayById(workoutDay.id);
+      setAssignments(updatedDay.workoutDayExercises || []);
       setShowAddExerciseModal(false);
-      onSuccess();
     } catch (err) {
       alert('Failed to add exercise: ' + (err.response?.data?.message || 'Unknown error'));
     }
@@ -634,7 +629,7 @@ function EditDayModal({ workoutDay, onClose, onSuccess }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
     >
       <div
@@ -643,18 +638,18 @@ function EditDayModal({ workoutDay, onClose, onSuccess }) {
         aria-modal="true"
         aria-labelledby="edit-day-title"
         tabIndex={-1}
-        className="card max-w-4xl w-full max-h-[90vh] flex flex-col"
+        className="w-full max-w-xl max-h-[90vh] flex flex-col rounded-2xl border border-app-subtle bg-card shadow-card"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white flex justify-between items-center rounded-t-lg flex-shrink-0">
+        <div className="flex items-center justify-between border-b border-app-subtle px-6 py-4 flex-shrink-0">
           <div>
-            <h2 id="edit-day-title" className="text-2xl font-bold">Edit {workoutDay.dayName}</h2>
-            <p className="text-blue-100 text-sm">Day {workoutDay.dayNumber}</p>
+            <h2 id="edit-day-title" className="text-2xl font-bold text-app-primary">Edit {workoutDay.dayName}</h2>
+            <p className="text-sm text-app-muted">Day {workoutDay.dayNumber}</p>
           </div>
           <button
             ref={closeBtnRef}
             onClick={onClose}
-            className="text-white hover:text-gray-200"
+            className="text-app-muted hover:text-app-primary"
             aria-label="Close edit workout day modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -665,18 +660,18 @@ function EditDayModal({ workoutDay, onClose, onSuccess }) {
 
         <div className="p-6 overflow-y-auto flex-1">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-800">Exercises ({assignments.length})</h3>
+            <h3 className="text-lg font-semibold text-app-primary">Exercises ({assignments.length})</h3>
             <button
               onClick={() => setShowAddExerciseModal(true)}
-              className="px-4 py-2 btn-primary"
+              className="px-4 py-2 btn-green-outline"
             >
               + Add Exercise
             </button>
           </div>
 
           {assignments.length === 0 ? (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-              <p className="text-gray-600 mb-4">No exercises added yet</p>
+            <div className="card p-8 text-center">
+              <p className="text-app-muted mb-4">No exercises added yet</p>
               <button
                 onClick={() => setShowAddExerciseModal(true)}
                 className="px-6 py-2 btn-primary"
@@ -689,38 +684,38 @@ function EditDayModal({ workoutDay, onClose, onSuccess }) {
               {assignments
                 .sort((a, b) => a.orderIndex - b.orderIndex)
                 .map((assignment, index) => (
-                  <div
-                    key={assignment.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-4 flex-1">
-                      <div className="flex-shrink-0 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold">
-                        {index + 1}
+                <div
+                  key={assignment.id}
+                  className="flex items-center justify-between rounded-lg bg-surface p-4"
+                >
+                  <div className="flex items-center space-x-4 flex-1">
+                    <div className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-app-subtle bg-surface text-xs font-semibold text-app-primary">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-app-primary">{assignment.exercise.name}</h4>
+                      <p className="text-sm text-app-muted">
+                        {assignment.exercise.muscleGroup?.name}
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-6 text-sm">
+                      <div className="text-center">
+                        <p className="text-app-muted">Sets</p>
+                        <p className="font-bold text-app-primary">{assignment.sets}</p>
                       </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-800">{assignment.exercise.name}</h4>
-                        <p className="text-sm text-gray-600">
-                          {assignment.exercise.muscleGroup?.name}
-                        </p>
+                      <div className="text-center">
+                        <p className="text-app-muted">Reps</p>
+                        <p className="font-bold text-app-primary">{assignment.reps}</p>
                       </div>
-                      <div className="flex items-center space-x-6 text-sm">
-                        <div className="text-center">
-                          <p className="text-gray-600">Sets</p>
-                          <p className="font-bold text-gray-800">{assignment.sets}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-gray-600">Reps</p>
-                          <p className="font-bold text-gray-800">{assignment.reps}</p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-gray-600">Rest</p>
-                          <p className="font-bold text-gray-800">{assignment.restSeconds}s</p>
-                        </div>
+                      <div className="text-center">
+                        <p className="text-app-muted">Rest</p>
+                        <p className="font-bold text-app-primary">{assignment.restSeconds}s</p>
                       </div>
                     </div>
+                  </div>
                     <button
                       onClick={() => handleRemoveExercise(assignment.id)}
-                      className="ml-4 px-3 py-1 btn-danger text-sm"
+                      className="ml-4 rounded-lg border border-red-500/40 px-2 py-1 text-sm text-red-300 transition hover:bg-red-500/10"
                     >
                       Remove
                     </button>
@@ -779,7 +774,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-3"
       onClick={onClose}
     >
       <div
@@ -788,15 +783,15 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
         aria-modal="true"
         aria-labelledby="add-exercise-title"
         tabIndex={-1}
-        className="card max-w-2xl w-full"
+        className="w-full max-w-2xl rounded-2xl border border-app-subtle bg-card shadow-card"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-white flex justify-between items-center">
-          <h2 id="add-exercise-title" className="text-2xl font-bold">Add Exercise</h2>
+        <div className="flex items-center justify-between border-b border-app-subtle px-5 py-4">
+          <h2 id="add-exercise-title" className="text-xl font-semibold text-app-primary">Add Exercise</h2>
           <button
             ref={closeBtnRef}
             onClick={onClose}
-            className="text-white hover:text-gray-200"
+            className="text-app-muted hover:text-app-primary"
             aria-label="Close add exercise modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -805,9 +800,9 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
           <div>
-            <label htmlFor="search-exercise-input" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="search-exercise-input" className="block text-sm font-medium text-app-muted mb-2">
               Search Exercise *
             </label>
             <input
@@ -840,15 +835,15 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
           </div>
 
           {selectedExercise && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <h4 className="font-semibold text-gray-800 mb-1">{selectedExercise.name}</h4>
-              <p className="text-sm text-gray-600">{selectedExercise.description}</p>
+            <div className="rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
+              <h4 className="font-semibold text-blue-100 mb-1">{selectedExercise.name}</h4>
+              <p className="text-sm text-blue-100/80">{selectedExercise.description}</p>
             </div>
           )}
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label htmlFor="add-exercise-sets" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="add-exercise-sets" className="block text-sm font-medium text-app-muted mb-2">
                 Sets *
               </label>
               <input
@@ -863,7 +858,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
               />
             </div>
             <div>
-              <label htmlFor="add-exercise-reps" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="add-exercise-reps" className="block text-sm font-medium text-app-muted mb-2">
                 Reps *
               </label>
               <input
@@ -877,7 +872,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
               />
             </div>
             <div>
-              <label htmlFor="add-exercise-rest" className="block text-sm font-medium text-gray-700 mb-2">
+              <label htmlFor="add-exercise-rest" className="block text-sm font-medium text-app-muted mb-2">
                 Rest (sec) *
               </label>
               <input
@@ -904,7 +899,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="flex-1 px-4 py-2 btn-green-outline"
             >
               Add Exercise
             </button>

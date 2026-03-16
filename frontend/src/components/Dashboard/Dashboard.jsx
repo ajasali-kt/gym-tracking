@@ -133,7 +133,10 @@ function Dashboard() {
             >
               Create Workout Plan
             </Link>
-            <Link to="/log-manual" className="btn-outline whitespace-nowrap">
+            <Link
+              to="/log-manual"
+              className="btn-outline whitespace-nowrap"
+            >
               Log Workout
             </Link>
           </div>

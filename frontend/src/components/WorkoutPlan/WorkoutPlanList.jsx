@@ -59,11 +59,11 @@ function WorkoutPlanList() {
     return (
       <>
         <div className="space-y-6">
-          <h1 className="text-3xl font-bold text-gray-800">Workout Plans</h1>
+          <h1 className="text-3xl font-bold text-app-primary">Workout Plans</h1>
           <div className="card p-8 text-center">
             <div className="animate-pulse">
-              <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+              <div className="h-4 bg-surface rounded w-1/4 mx-auto mb-4"></div>
+              <div className="h-4 bg-surface rounded w-1/2 mx-auto"></div>
             </div>
           </div>
         </div>
@@ -75,9 +75,9 @@ function WorkoutPlanList() {
     return (
       <>
         <div className="space-y-6">
-          <h1 className="text-3xl font-bold text-gray-800">Workout Plans</h1>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <p className="text-red-800 font-medium">Error: {error}</p>
+          <h1 className="text-3xl font-bold text-app-primary">Workout Plans</h1>
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6">
+            <p className="font-medium text-red-200">Error: {error}</p>
             <button
               onClick={fetchPlans}
               className="mt-4 px-4 py-2 btn-danger"
@@ -95,36 +95,46 @@ function WorkoutPlanList() {
       <div className="space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 sm:gap-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Workout Plans</h1>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <button
-              onClick={() => setShowImportModal(true)}
-              className="px-4 sm:px-6 py-2 sm:py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition text-sm sm:text-base"
-            >
-              Import from JSON
-            </button>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-4 sm:px-6 py-2 sm:py-3 btn-primary font-medium transition text-sm sm:text-base"
-            >
-              + Create New Plan
-            </button>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-app-primary">Workout Plans</h1>
+          {plans.length > 0 && (
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="btn-green-outline px-4 sm:px-6 font-medium transition text-sm sm:text-base"
+              >
+                Import from JSON
+              </button>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="btn-outline px-4 sm:px-6 font-medium transition text-sm sm:text-base"
+              >
+                + Create New Plan
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Plans List */}
         {plans.length === 0 ? (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-            <h2 className="text-xl font-semibold text-gray-700 mb-2">No Workout Plans Yet</h2>
-            <p className="text-gray-600 mb-4">
+          <div className="card p-8 text-center">
+            <h2 className="text-xl font-semibold text-app-primary mb-2">No Workout Plans Yet</h2>
+            <p className="text-app-muted mb-4">
               Create your first workout plan to start tracking your fitness journey!
             </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-2 btn-primary"
-            >
-              Create Your First Plan
-            </button>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-6 py-2 btn-outline"
+              >
+                Create Your First Plan
+              </button>
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="px-6 py-2 btn-green-outline"
+              >
+                Import from JSON
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -175,15 +185,15 @@ function PlanCard({ plan, onDelete, onSetActive }) {
   return (
     <div className="card hover:shadow-lg transition overflow-hidden">
       {plan.isActive && (
-        <div className="bg-green-600 text-white text-center py-2 text-sm font-medium">
+        <div className="text-green-500 text-center py-2 text-sm font-medium border-b border-app-subtle">
           Active Plan
         </div>
       )}
 
       <div className="p-6">
-        <h3 className="text-xl font-bold text-gray-800 mb-2">{plan.name}</h3>
+        <h3 className="text-xl font-bold text-app-primary mb-2">{plan.name}</h3>
 
-        <div className="space-y-2 text-sm text-gray-600 mb-4">
+        <div className="space-y-2 text-sm text-app-muted mb-4">
           <p>
             <span className="font-medium">Started:</span> {format(new Date(plan.startDate), 'MMM d, yyyy')}
           </p>
@@ -194,7 +204,7 @@ function PlanCard({ plan, onDelete, onSetActive }) {
           )}
           <p>
             <span className="font-medium">Status:</span>{' '}
-            <span className={plan.isActive ? 'text-green-600 font-medium' : 'text-gray-500'}>
+            <span className={plan.isActive ? 'text-success font-medium' : 'text-app-muted'}>
               {plan.isActive ? 'Active' : 'Inactive'}
             </span>
           </p>
@@ -203,14 +213,14 @@ function PlanCard({ plan, onDelete, onSetActive }) {
         <div className="flex space-x-2">
           <button
             onClick={() => navigate(`/plans/${plan.id}`)}
-            className="flex-1 px-4 py-2 btn-primary transition text-sm font-medium"
+            className="flex-1 px-4 py-2 btn-outline transition text-sm font-medium"
           >
             View Details
           </button>
           {!plan.isActive && (
             <button
               onClick={() => onSetActive(plan.id)}
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition text-sm font-medium"
+              className="px-4 py-2 btn-green-outline text-sm font-medium"
               title="Set as active plan"
             >
               Activate
@@ -296,13 +306,13 @@ function CreatePlanModal({ onClose, onSuccess }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-3 text-red-800 text-sm">
+            <div className="rounded border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
               {error}
             </div>
           )}
 
           <div>
-            <label htmlFor="plan-name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="plan-name" className="block text-sm font-medium text-app-muted mb-2">
               Plan Name *
             </label>
             <input
@@ -317,7 +327,7 @@ function CreatePlanModal({ onClose, onSuccess }) {
           </div>
 
           <div>
-            <label htmlFor="plan-start-date" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="plan-start-date" className="block text-sm font-medium text-app-muted mb-2">
               Start Date *
             </label>
             <input
@@ -331,7 +341,7 @@ function CreatePlanModal({ onClose, onSuccess }) {
           </div>
 
           <div>
-            <label htmlFor="plan-end-date" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="plan-end-date" className="block text-sm font-medium text-app-muted mb-2">
               End Date (Optional)
             </label>
             <input
@@ -481,15 +491,15 @@ function ImportPlanModal({ onClose, onSuccess }) {
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded p-3 text-red-800 text-sm">
+            <div className="rounded border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200">
               {error}
             </div>
           )}
 
           {/* Example JSON */}
-          <div className="bg-blue-50 border border-blue-200 rounded p-4">
+          <div className="rounded border border-blue-500/30 bg-blue-500/10 p-4">
             <div className="flex justify-between items-start mb-2">
-              <h3 className="text-sm font-semibold text-blue-900">Example JSON Format:</h3>
+              <h3 className="text-sm font-semibold text-blue-200">Example JSON Format:</h3>
               <button
                 type="button"
                 onClick={() => setJsonInput(JSON.stringify(exampleJson, null, 2))}
@@ -498,13 +508,13 @@ function ImportPlanModal({ onClose, onSuccess }) {
                 Use Example
               </button>
             </div>
-            <pre className="text-xs text-blue-800 overflow-x-auto">
+            <pre className="text-xs text-blue-100/90 overflow-x-auto">
               {JSON.stringify(exampleJson, null, 2)}
             </pre>
           </div>
 
           <div>
-            <label htmlFor="import-plan-name" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="import-plan-name" className="block text-sm font-medium text-app-muted mb-2">
               Plan Name (Optional)
             </label>
             <input
@@ -518,7 +528,7 @@ function ImportPlanModal({ onClose, onSuccess }) {
           </div>
 
           <div>
-            <label htmlFor="import-start-date" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="import-start-date" className="block text-sm font-medium text-app-muted mb-2">
               Start Date *
             </label>
             <input
@@ -532,10 +542,10 @@ function ImportPlanModal({ onClose, onSuccess }) {
           </div>
 
           <div>
-            <label htmlFor="import-plan-json" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="import-plan-json" className="block text-sm font-medium text-app-muted mb-2">
               Workout Plan JSON *
               {validationError && (
-                <span className="text-red-600 ml-2 text-xs">({validationError})</span>
+                <span className="text-red-300 ml-2 text-xs">({validationError})</span>
               )}
             </label>
             <textarea
@@ -545,11 +555,11 @@ function ImportPlanModal({ onClose, onSuccess }) {
               onChange={handleJsonChange}
               placeholder="Paste your workout plan JSON here..."
               rows={12}
-              className={`w-full px-4 py-2 border ${
-                validationError ? 'border-red-300' : 'border-gray-300'
-              } rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent font-mono text-sm`}
+              className={`w-full px-4 py-2 rounded-lg border font-mono text-sm text-app-primary bg-surface ${
+                validationError ? 'border-red-500/50' : 'border-app-subtle'
+              } focus:ring-2 focus:ring-green-500/40 focus:border-transparent`}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-app-muted mt-1">
               Paste the complete JSON structure including weeklySchedule, duration, etc.
             </p>
           </div>
@@ -565,7 +575,7 @@ function ImportPlanModal({ onClose, onSuccess }) {
             <button
               type="submit"
               disabled={loading || !!validationError}
-              className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2 btn-green-outline transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Importing...' : 'Import Plan'}
             </button>
