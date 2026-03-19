@@ -51,6 +51,7 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
           <h3 className="text-lg font-semibold text-app-primary">{shareData ? 'Share Link' : 'Generate Share Link'}</h3>
           <button
             ref={closeBtnRef}
+            id="share-link-modal-close-button"
             type="button"
             onClick={onClose}
             className="text-app-muted hover:text-app-primary"
@@ -76,6 +77,7 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
               </select>
               <div className="flex justify-end">
                 <button
+                  id="share-link-generate-button"
                   onClick={() => onGenerate(expiresIn === 0 ? null : expiresIn)}
                   className="btn-outline border-blue-500/50 bg-transparent px-3 py-1.5 text-sm text-blue-300 hover:bg-blue-500/10"
                 >
@@ -88,7 +90,7 @@ const ShareLinkModal = ({ fromDate, toDate, shareData, onClose, onGenerate }) =>
               {shareStatus && <div className={shareStatus.className}>{shareStatus.text}</div>}
               <div className="flex gap-2">
                 <input type="text" readOnly value={shareData.shareUrl} className="input-field" />
-                <button onClick={handleCopyLink} className="btn-outline min-w-[90px]">
+                <button id="share-link-copy-button" onClick={handleCopyLink} className="btn-outline min-w-[90px]">
                   {copied ? 'Copied' : 'Copy'}
                 </button>
               </div>

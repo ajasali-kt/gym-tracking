@@ -99,9 +99,10 @@ function Dashboard() {
     return (
       <div className="space-y-6">
         <h1 className="text-3xl font-bold text-app-primary">Dashboard</h1>
-        <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-6">
+          <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-6">
           <p className="text-red-300 font-medium">Error: {error}</p>
           <button
+            id="dashboard-try-again-button"
             onClick={fetchTodayWorkout}
             className="mt-4 btn-outline border-red-500/50 bg-red-500/10 text-red-300 hover:bg-red-500/15"
           >

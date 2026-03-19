@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import workoutService from '../../services/workoutService';
 import useAccessibleModal from '../../hooks/useAccessibleModal';
+import CustomPopup from '../ui/CustomPopup';
 
 /**
  * Workout Plan List Component
@@ -14,6 +15,7 @@ function WorkoutPlanList() {
   const [error, setError] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [deleteCandidate, setDeleteCandidate] = useState(null);
 
   useEffect(() => {
     fetchPlans();
@@ -33,14 +35,17 @@ function WorkoutPlanList() {
     }
   };
 
-  const handleDeletePlan = async (planId) => {
-    if (!confirm('Are you sure you want to delete this workout plan? This will also delete all associated workout days and exercises.')) {
-      return;
-    }
+  const handleDeletePlan = (planId) => {
+    const plan = plans.find((p) => p.id === planId);
+    setDeleteCandidate(plan ? { id: plan.id, name: plan.name } : { id: planId, name: 'this plan' });
+  };
 
+  const handleConfirmDeletePlan = async () => {
+    if (!deleteCandidate?.id) return;
     try {
-      await workoutService.deletePlan(planId);
-      setPlans(plans.filter(p => p.id !== planId));
+      await workoutService.deletePlan(deleteCandidate.id);
+      setPlans((prev) => prev.filter((p) => p.id !== deleteCandidate.id));
+      setDeleteCandidate(null);
     } catch (err) {
       alert('Failed to delete plan: ' + (err.response?.data?.message || 'Unknown error'));
     }
@@ -79,6 +84,7 @@ function WorkoutPlanList() {
           <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6">
             <p className="font-medium text-red-200">Error: {error}</p>
             <button
+              id="workout-plans-retry-button"
               onClick={fetchPlans}
               className="mt-4 px-4 py-2 btn-danger"
             >
@@ -99,12 +105,14 @@ function WorkoutPlanList() {
           {plans.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <button
+                id="workout-plans-import-button"
                 onClick={() => setShowImportModal(true)}
                 className="btn-green-outline px-4 sm:px-6 font-medium transition text-sm sm:text-base"
               >
                 Import from JSON
               </button>
               <button
+                id="workout-plans-create-button"
                 onClick={() => setShowCreateModal(true)}
                 className="btn-outline px-4 sm:px-6 font-medium transition text-sm sm:text-base"
               >
@@ -123,12 +131,14 @@ function WorkoutPlanList() {
             </p>
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 justify-center">
               <button
+                id="workout-plans-empty-create-button"
                 onClick={() => setShowCreateModal(true)}
                 className="px-6 py-2 btn-outline"
               >
                 Create Your First Plan
               </button>
               <button
+                id="workout-plans-empty-import-button"
                 onClick={() => setShowImportModal(true)}
                 className="px-6 py-2 btn-green-outline"
               >
@@ -171,6 +181,21 @@ function WorkoutPlanList() {
           }}
         />
       )}
+
+      {/* Delete Plan Confirm */}
+      <CustomPopup
+        isOpen={Boolean(deleteCandidate)}
+        title="Delete workout plan?"
+        idBase="workout-plan-delete-popup"
+        bodyText={[
+          `Are you sure you want to delete ${deleteCandidate?.name || 'this plan'}?`,
+          'This will also delete all associated workout days and exercises.'
+        ].join('\n')}
+        onClose={() => setDeleteCandidate(null)}
+        onOk={handleConfirmDeletePlan}
+        buttonType="delete"
+        buttonText="Delete"
+      />
     </>
   );
 }
@@ -212,6 +237,7 @@ function PlanCard({ plan, onDelete, onSetActive }) {
 
         <div className="flex space-x-2">
           <button
+            id={`workout-plan-${plan.id}-view-details-button`}
             onClick={() => navigate(`/plans/${plan.id}`)}
             className="flex-1 px-4 py-2 btn-outline transition text-sm font-medium"
           >
@@ -219,6 +245,7 @@ function PlanCard({ plan, onDelete, onSetActive }) {
           </button>
           {!plan.isActive && (
             <button
+              id={`workout-plan-${plan.id}-activate-button`}
               onClick={() => onSetActive(plan.id)}
               className="px-4 py-2 btn-green-outline text-sm font-medium"
               title="Set as active plan"
@@ -227,6 +254,7 @@ function PlanCard({ plan, onDelete, onSetActive }) {
             </button>
           )}
           <button
+            id={`workout-plan-${plan.id}-delete-button`}
             onClick={() => onDelete(plan.id)}
             className="rounded-lg border border-red-500/40 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/10"
             title="Delete plan"
@@ -293,6 +321,7 @@ function CreatePlanModal({ onClose, onSuccess }) {
           <h2 id="create-plan-title" className="text-2xl font-bold">Create Workout Plan</h2>
           <button
             ref={closeBtnRef}
+            id="create-plan-modal-close-button"
             onClick={onClose}
             className="text-white hover:text-gray-200 transition"
             aria-label="Close create plan modal"
@@ -355,6 +384,7 @@ function CreatePlanModal({ onClose, onSuccess }) {
 
           <div className="flex space-x-3 pt-4">
             <button
+              id="create-plan-cancel-button"
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-2 btn-secondary transition"
@@ -362,6 +392,7 @@ function CreatePlanModal({ onClose, onSuccess }) {
               Cancel
             </button>
             <button
+              id="create-plan-submit-button"
               type="submit"
               disabled={loading}
               className="flex-1 px-4 py-2 btn-primary transition disabled:opacity-50"
@@ -478,6 +509,7 @@ function ImportPlanModal({ onClose, onSuccess }) {
           <h2 id="import-plan-title" className="text-2xl font-bold">Import Workout Plan from JSON</h2>
           <button
             ref={closeBtnRef}
+            id="import-plan-modal-close-button"
             onClick={onClose}
             className="text-white hover:text-gray-200 transition"
             aria-label="Close import plan modal"
@@ -501,6 +533,7 @@ function ImportPlanModal({ onClose, onSuccess }) {
             <div className="flex justify-between items-start mb-2">
               <h3 className="text-sm font-semibold text-blue-200">Example JSON Format:</h3>
               <button
+                id="import-plan-use-example-button"
                 type="button"
                 onClick={() => setJsonInput(JSON.stringify(exampleJson, null, 2))}
                 className="text-xs px-3 py-1 btn-primary transition"
@@ -566,6 +599,7 @@ function ImportPlanModal({ onClose, onSuccess }) {
 
           <div className="flex space-x-3 pt-4">
             <button
+              id="import-plan-cancel-button"
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-2 btn-secondary transition"
@@ -573,6 +607,7 @@ function ImportPlanModal({ onClose, onSuccess }) {
               Cancel
             </button>
             <button
+              id="import-plan-submit-button"
               type="submit"
               disabled={loading || !!validationError}
               className="flex-1 px-4 py-2 btn-green-outline transition disabled:opacity-50 disabled:cursor-not-allowed"

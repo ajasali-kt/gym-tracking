@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import workoutService from '../../services/workoutService';
 import exerciseService from '../../services/exerciseService';
 import useAccessibleModal from '../../hooks/useAccessibleModal';
+import CustomPopup from '../ui/CustomPopup';
 
 /**
  * Workout Plan Detail Component
@@ -18,6 +19,8 @@ function WorkoutPlanDetail() {
   const [editingDay, setEditingDay] = useState(null);
   const [showAddDayModal, setShowAddDayModal] = useState(false);
   const [selectedDayNumber, setSelectedDayNumber] = useState(null);
+  const [deleteDayModal, setDeleteDayModal] = useState({ isOpen: false, workoutDay: null, actualDate: null });
+  const [isDeletingDay, setIsDeletingDay] = useState(false);
 
   useEffect(() => {
     fetchPlanDetails();
@@ -37,17 +40,9 @@ function WorkoutPlanDetail() {
     }
   };
 
-  const handleDeleteDay = async (dayId) => {
-    if (!confirm('Are you sure you want to delete this workout day?')) {
-      return;
-    }
-
-    try {
-      await workoutService.deleteWorkoutDay(dayId);
-      await fetchPlanDetails();
-    } catch (err) {
-      alert('Failed to delete day: ' + (err.response?.data?.message || 'Unknown error'));
-    }
+  const openDeleteDayModal = (workoutDay, actualDate) => {
+    setIsDeletingDay(false);
+    setDeleteDayModal({ isOpen: true, workoutDay, actualDate });
   };
 
   if (loading) {
@@ -74,12 +69,14 @@ function WorkoutPlanDetail() {
           <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-6">
             <p className="font-medium text-red-200">Error: {error}</p>
             <button
+              id="workout-plan-detail-retry-button"
               onClick={fetchPlanDetails}
               className="mt-4 px-4 py-2 btn-danger mr-2"
             >
               Try Again
             </button>
             <button
+              id="workout-plan-detail-back-to-plans-button"
               onClick={() => navigate('/plans')}
               className="mt-4 px-4 py-2 btn-secondary"
             >
@@ -99,6 +96,7 @@ function WorkoutPlanDetail() {
           <div className="card p-6">
             <p className="text-app-muted mb-4">The requested plan could not be found.</p>
             <button
+              id="workout-plan-detail-back-to-plans-button"
               onClick={() => navigate('/plans')}
               className="px-4 py-2 btn-secondary"
             >
@@ -184,6 +182,7 @@ function WorkoutPlanDetail() {
           <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
             {workoutDays.length > 0 && (
               <button
+                id="workout-plan-detail-add-day-button"
                 onClick={() => {
                   setSelectedDayNumber(null);
                   setShowAddDayModal(true);
@@ -194,6 +193,7 @@ function WorkoutPlanDetail() {
               </button>
             )}
             <button
+              id="workout-plan-detail-back-to-plans-button"
               onClick={() => navigate('/plans')}
               className="w-full sm:w-auto px-4 py-2 btn-secondary transition"
             >
@@ -220,6 +220,7 @@ function WorkoutPlanDetail() {
               Start building your weekly plan by adding workout days.
             </p>
             <button
+              id="workout-plan-detail-add-first-day-button"
               onClick={() => {
                 setSelectedDayNumber(null);
                 setShowAddDayModal(true);
@@ -244,7 +245,7 @@ function WorkoutPlanDetail() {
                   isToday={isToday}
                   workoutDay={workoutDay}
                   onEdit={() => setEditingDay(workoutDay)}
-                  onDelete={() => handleDeleteDay(workoutDay.id)}
+                  onDelete={() => openDeleteDayModal(workoutDay, actualDate)}
                   onAddDay={() => {
                     setSelectedDayNumber(dayNumber);
                     setShowAddDayModal(true);
@@ -255,6 +256,41 @@ function WorkoutPlanDetail() {
           </div>
         )}
       </div>
+
+      {/* Delete Day Modal */}
+      {deleteDayModal.isOpen && deleteDayModal.workoutDay && (
+        <CustomPopup
+          isOpen={deleteDayModal.isOpen}
+          title="Delete workout day?"
+          idBase={`delete-day-${deleteDayModal.workoutDay.id}`}
+          bodyText={[
+            `Are you sure you want to delete ${deleteDayModal.workoutDay.dayName}?`,
+            `Day ${deleteDayModal.workoutDay.dayNumber}${deleteDayModal.actualDate ? ` • ${format(deleteDayModal.actualDate, 'EEEE, MMM d, yyyy')}` : ''}`,
+            'This will also delete all associated exercises for this day.'
+          ].join('\n')}
+          onClose={() => {
+            setIsDeletingDay(false);
+            setDeleteDayModal({ isOpen: false, workoutDay: null, actualDate: null });
+          }}
+          onOk={async () => {
+            if (isDeletingDay) return;
+            setIsDeletingDay(true);
+            try {
+              await workoutService.deleteWorkoutDay(deleteDayModal.workoutDay.id);
+              setDeleteDayModal({ isOpen: false, workoutDay: null, actualDate: null });
+              await fetchPlanDetails();
+            } catch (err) {
+              alert('Failed to delete day: ' + (err.response?.data?.message || 'Unknown error'));
+            } finally {
+              setIsDeletingDay(false);
+            }
+          }}
+          buttonType="delete"
+          buttonText={isDeletingDay ? 'Deleting...' : 'Delete'}
+          okDisabled={isDeletingDay}
+          maxWidthClassName="max-w-md"
+        />
+      )}
 
       {/* Add Day Modal */}
       {showAddDayModal && (
@@ -316,6 +352,7 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
             <p className="text-sm text-app-muted mt-1">{dateStr} • Rest day or not scheduled</p>
           </div>
           <button
+            id={`workout-plan-day-${dayNumber}-add-workout-button`}
             onClick={onAddDay}
             className="btn-green-outline text-sm"
           >
@@ -350,12 +387,14 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <button
+              id={`workout-plan-day-${dayNumber}-edit-button`}
               onClick={onEdit}
               className="w-full sm:w-auto rounded-lg border border-green-500/40 px-3 py-1 text-sm text-green-300 transition hover:bg-green-500/15"
             >
               Edit
             </button>
             <button
+              id={`workout-plan-day-${dayNumber}-delete-button`}
               onClick={onDelete}
               className="w-full sm:w-auto rounded-lg border border-red-500/40 px-3 py-1 text-sm text-red-300 transition hover:bg-red-500/10"
             >
@@ -370,6 +409,7 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
           <div className="text-center py-4">
             <p className="text-app-muted mb-3">No exercises added yet</p>
             <button
+              id={`workout-plan-day-${dayNumber}-add-exercises-button`}
               onClick={onEdit}
               className="btn-green-outline text-xs"
             >
@@ -488,6 +528,7 @@ function AddDayModal({ planId, planDates, existingDays, initialDayNumber, onClos
           <h2 id="add-day-title" className="text-xl font-semibold text-app-primary">Add Workout Day</h2>
           <button
             ref={closeBtnRef}
+            id="add-day-modal-close-button"
             onClick={onClose}
             className="text-app-muted hover:text-app-primary"
             aria-label="Close add workout day modal"
@@ -566,6 +607,7 @@ function AddDayModal({ planId, planDates, existingDays, initialDayNumber, onClos
 
           <div className="pt-4 flex justify-end">
             <button
+              id="add-day-submit-button"
               type="submit"
               disabled={loading}
               className="btn-outline px-4 py-2 disabled:opacity-50"
@@ -648,6 +690,7 @@ function EditDayModal({ workoutDay, onClose }) {
           </div>
           <button
             ref={closeBtnRef}
+            id={`edit-day-${workoutDay.id}-close-button`}
             onClick={onClose}
             className="text-app-muted hover:text-app-primary"
             aria-label="Close edit workout day modal"
@@ -662,6 +705,7 @@ function EditDayModal({ workoutDay, onClose }) {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-app-primary">Exercises ({assignments.length})</h3>
             <button
+              id={`edit-day-${workoutDay.id}-add-exercise-button`}
               onClick={() => setShowAddExerciseModal(true)}
               className="px-4 py-2 btn-green-outline"
             >
@@ -673,6 +717,7 @@ function EditDayModal({ workoutDay, onClose }) {
             <div className="card p-8 text-center">
               <p className="text-app-muted mb-4">No exercises added yet</p>
               <button
+                id={`edit-day-${workoutDay.id}-add-first-exercise-button`}
                 onClick={() => setShowAddExerciseModal(true)}
                 className="px-6 py-2 btn-primary"
               >
@@ -714,6 +759,7 @@ function EditDayModal({ workoutDay, onClose }) {
                     </div>
                   </div>
                     <button
+                      id={`edit-day-assignment-${assignment.id}-remove-button`}
                       onClick={() => handleRemoveExercise(assignment.id)}
                       className="ml-4 rounded-lg border border-red-500/40 px-2 py-1 text-sm text-red-300 transition hover:bg-red-500/10"
                     >
@@ -790,6 +836,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
           <h2 id="add-exercise-title" className="text-xl font-semibold text-app-primary">Add Exercise</h2>
           <button
             ref={closeBtnRef}
+            id="workout-plan-add-exercise-modal-close-button"
             onClick={onClose}
             className="text-app-muted hover:text-app-primary"
             aria-label="Close add exercise modal"
@@ -891,6 +938,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
 
           <div className="flex space-x-3 pt-4">
             <button
+              id="workout-plan-add-exercise-cancel-button"
               type="button"
               onClick={onClose}
               className="flex-1 px-4 py-2 btn-secondary"
@@ -898,6 +946,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
               Cancel
             </button>
             <button
+              id="workout-plan-add-exercise-submit-button"
               type="submit"
               className="flex-1 px-4 py-2 btn-green-outline"
             >

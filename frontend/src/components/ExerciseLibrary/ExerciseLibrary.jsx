@@ -66,6 +66,7 @@ function ExerciseLibrary() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <p className="text-red-800 font-medium">Error: {error}</p>
           <button
+            id="exercise-library-retry-button"
             onClick={fetchData}
             className="mt-4 px-4 py-2 btn-danger"
           >
@@ -232,6 +233,7 @@ function ExerciseDetailModal({ exercise, onClose }) {
           </div>
           <button
             ref={closeBtnRef}
+            id={`exercise-detail-${exercise.id}-close-icon-button`}
             onClick={onClose}
             className="text-white hover:text-gray-200 transition"
             aria-label="Close exercise details"
@@ -289,6 +291,7 @@ function ExerciseDetailModal({ exercise, onClose }) {
         {/* Footer - Fixed */}
         <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end rounded-b-lg flex-shrink-0">
           <button
+            id={`exercise-detail-${exercise.id}-close-button`}
             onClick={onClose}
             className="px-6 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition"
           >

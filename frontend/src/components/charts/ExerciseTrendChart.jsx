@@ -15,6 +15,7 @@ function ExerciseTrendChart({ data, metric, onMetricChange }) {
           {['weight', 'volume', 'reps'].map((option) => (
             <button
               key={option}
+              id={`exercise-trend-metric-${option}-button`}
               onClick={() => onMetricChange(option)}
               className={`segment-btn ${metric === option ? 'segment-btn-active' : ''}`}
             >

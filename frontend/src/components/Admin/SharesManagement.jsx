@@ -122,6 +122,7 @@ const SharesManagement = () => {
 
           <div className="flex items-end">
             <button
+              id="admin-shares-apply-filters-button"
               onClick={handleApplyFilters}
               className="w-full px-4 py-2 btn-primary font-medium"
             >
@@ -224,6 +225,7 @@ const SharesManagement = () => {
                       <div className="flex justify-end space-x-2">
                         {share.isActive ? (
                           <button
+                            id={`share-${share.id}-revoke-button`}
                             onClick={() => handleRevoke(share.token)}
                             className="text-red-600 hover:text-red-900"
                           >
@@ -231,6 +233,7 @@ const SharesManagement = () => {
                           </button>
                         ) : (
                           <button
+                            id={`share-${share.id}-activate-button`}
                             onClick={() => handleActivate(share.token)}
                             className="text-green-600 hover:text-green-900"
                           >
@@ -238,6 +241,7 @@ const SharesManagement = () => {
                           </button>
                         )}
                         <button
+                          id={`share-${share.id}-delete-button`}
                           type="button"
                           onClick={() => handleDelete(share.token)}
                           className="rounded-lg border border-red-500/40 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/10"

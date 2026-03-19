@@ -178,6 +178,7 @@ function Admin() {
           <div className="border-b border-gray-200 mb-6">
             <nav className="-mb-px flex space-x-8">
               <button
+                id="admin-tab-data-button"
                 onClick={() => setActiveTab('data')}
                 className={`${
                   activeTab === 'data'
@@ -188,6 +189,7 @@ function Admin() {
                 Data Management
               </button>
               <button
+                id="admin-tab-shares-button"
                 onClick={() => setActiveTab('shares')}
                 className={`${
                   activeTab === 'shares'
@@ -213,6 +215,7 @@ function Admin() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-xl font-semibold text-gray-900">Database Statistics</h2>
               <button
+                id="admin-refresh-stats-button"
                 onClick={fetchStats}
                 disabled={loading}
                 className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
@@ -257,6 +260,7 @@ function Admin() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">Import Muscle Groups</h2>
                 <button
+                  id="admin-load-sample-muscle-groups-button"
                   onClick={loadSampleMuscleGroups}
                   className="text-blue-600 hover:text-blue-800 text-sm underline"
                 >
@@ -276,6 +280,7 @@ function Admin() {
               />
 
               <button
+                id="admin-import-muscle-groups-button"
                 onClick={importMuscleGroups}
                 disabled={loading || !muscleGroupsJson}
                 className="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:bg-gray-400 transition-colors font-semibold"
@@ -298,6 +303,7 @@ function Admin() {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold text-gray-900">Import Exercises</h2>
                 <button
+                  id="admin-load-sample-exercises-button"
                   onClick={loadSampleExercises}
                   className="text-blue-600 hover:text-blue-800 text-sm underline"
                 >
@@ -321,6 +327,7 @@ function Admin() {
               />
 
               <button
+                id="admin-import-exercises-button"
                 onClick={importExercises}
                 disabled={loading || !exercisesJson}
                 className="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:bg-gray-400 transition-colors font-semibold"
@@ -345,6 +352,7 @@ function Admin() {
                 This action will delete all data from the database. This cannot be undone!
               </p>
               <button
+                id="admin-clear-all-data-button"
                 onClick={clearAllData}
                 disabled={loading}
                 className="bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 disabled:bg-gray-400 transition-colors font-semibold"

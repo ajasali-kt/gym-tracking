@@ -37,6 +37,7 @@ function ExerciseCard({
           <p className="text-xs text-app-muted">Total sets: {sets.length}</p>
           <p className="mt-1 text-sm font-semibold text-app-primary">Volume: {Math.round(totalVolume)} kg</p>
           <button
+            id={`log-exercise-${exercise.id}-remove-button`}
             type="button"
             onClick={onRemoveExercise}
             className="mt-2 rounded-lg border border-red-500/40 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/10"
@@ -60,6 +61,7 @@ function ExerciseCard({
             key={`${exercise.id}-${set.setNumber}-${set.id || setIndex}`}
             set={set}
             setIndex={setIndex}
+            idPrefix={`log-exercise-${exercise.id}-set-${set.id ?? `${set.setNumber}-${setIndex}`}`}
             onUpdate={onUpdateSet}
             onRemove={() => onRemoveSet(setIndex)}
             showRemove={sets.length > 1}
@@ -68,7 +70,7 @@ function ExerciseCard({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <button type="button" onClick={onAddSet} className="btn-outline">+ Add Set</button>
+        <button id={`log-exercise-${exercise.id}-add-set-button`} type="button" onClick={onAddSet} className="btn-outline">+ Add Set</button>
       </div>
     </section>
   );

@@ -399,13 +399,14 @@ function ManualWorkoutLog() {
               {workoutLogId && (
                 <button
                   type="button"
+                  id="manual-workout-delete-button"
                   onClick={handleDeleteWorkout}
                   className="btn-outline border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/15"
                 >
                   Delete
                 </button>
               )}
-              <button onClick={handleBack} className="btn-outline">Back</button>
+              <button id="manual-workout-back-button" onClick={handleBack} className="btn-outline">Back</button>
             </div>
           </div>
 
@@ -468,6 +469,7 @@ function ManualWorkoutLog() {
             <p className="text-app-muted">No exercises added yet.</p>
             <button
               type="button"
+              id="manual-workout-empty-add-exercise-button"
               className="btn-outline mt-4 border-green-500/40 bg-green-500/10 text-green-300 hover:bg-green-500/15"
               onClick={() => setShowExercisePicker(true)}
             >
@@ -502,6 +504,7 @@ function ManualWorkoutLog() {
       </div>
 
       <button
+        id="manual-workout-fab-add-exercise-button"
         onClick={() => setShowExercisePicker(true)}
         className="fab-button"
         aria-label="Add exercise"
@@ -546,6 +549,7 @@ function ExercisePickerModal({ exercises, onSelect, onClose }) {
           <h2 className="text-xl font-semibold text-app-primary">Add Exercise</h2>
           <button
             ref={closeBtnRef}
+            id="manual-workout-exercise-picker-close-button"
             type="button"
             onClick={onClose}
             className="text-app-muted hover:text-app-primary"
@@ -571,6 +575,7 @@ function ExercisePickerModal({ exercises, onSelect, onClose }) {
             {filteredExercises.map((exercise) => (
               <button
                 key={exercise.id}
+                id={`manual-workout-exercise-picker-select-${exercise.id}-button`}
                 onClick={() => onSelect(exercise)}
                 className="w-full rounded-xl border border-app-subtle bg-surface p-3 text-left transition hover:border-blue-500/50"
               >

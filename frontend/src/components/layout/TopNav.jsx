@@ -50,6 +50,7 @@ function TopNav() {
 
         <div className="flex items-center gap-3">
           <button
+            id="topnav-profile-menu-button"
             type="button"
             data-profile-menu
             onClick={() => setMenuOpen((value) => !value)}
@@ -71,6 +72,7 @@ function TopNav() {
                 Signed in as <span className="text-app-primary">{user?.username}</span>
               </div>
               <button
+                id="topnav-logout-button"
                 type="button"
                 onClick={handleLogout}
                 className="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm text-app-primary transition hover:bg-surface"

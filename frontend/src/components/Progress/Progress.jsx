@@ -228,7 +228,7 @@ function Progress() {
     return (
       <div className="card p-6">
         <p className="text-error">{error}</p>
-        <button className="btn-primary mt-4" onClick={fetchInitial}>Retry</button>
+        <button id="progress-retry-button" className="btn-primary mt-4" onClick={fetchInitial}>Retry</button>
       </div>
     );
   }
@@ -244,6 +244,7 @@ function Progress() {
           {rangeOptions.map((range) => (
             <button
               key={range.key}
+              id={`progress-range-${range.key}-button`}
               type="button"
               onClick={() => setSelectedRange(range.key)}
               className={`pill-btn ${selectedRange === range.key ? 'border-blue-500 text-blue-300 shadow-[0_0_0_1px_rgba(59,130,246,0.2)]' : ''}`}
@@ -377,6 +378,7 @@ function Progress() {
               return (
                 <article key={workout.id} className="card p-4 transition duration-200 hover:-translate-y-0.5 hover:border-blue-500/50">
                   <button
+                    id={`progress-workout-${workout.id}-toggle-button`}
                     type="button"
                     onClick={() => toggleWorkoutExpanded(workout.id)}
                     className="w-full text-left"
@@ -440,6 +442,7 @@ function Progress() {
                       Edit
                     </Link>
                     <button
+                      id={`progress-workout-${workout.id}-delete-button`}
                       type="button"
                       onClick={() => handleDeleteWorkout(workout.id)}
                       className="btn-outline border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/15 disabled:opacity-60"

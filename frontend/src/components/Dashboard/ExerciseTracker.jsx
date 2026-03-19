@@ -403,10 +403,13 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
     return false;
   };
 
+  const assignmentIdToken = assignment.id ?? assignment.order;
+
   return (
     <div className="card mb-3 sm:mb-4 overflow-hidden">
       {/* Minimized Header - Always Visible */}
       <button
+        id={`exercise-tracker-${assignmentIdToken}-toggle-button`}
         type="button"
         className="w-full p-3 sm:p-4 cursor-pointer hover:bg-surface transition-colors select-none text-left"
         onClick={handleHeaderClick}
@@ -600,6 +603,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
               <button
+                id={`exercise-tracker-${assignmentIdToken}-add-set-button`}
                 type="button"
                 onClick={handleAddSet}
                 className="btn-outline"

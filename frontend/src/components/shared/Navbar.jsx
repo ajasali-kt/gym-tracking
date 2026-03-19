@@ -106,6 +106,7 @@ function Navbar() {
 
             <div ref={userMenuRef} className="relative ml-3">
               <button
+                id="navbar-user-menu-button"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                 onMouseEnter={cancelUserMenuClose}
                 onMouseLeave={scheduleUserMenuClose}
@@ -129,6 +130,7 @@ function Navbar() {
                   onMouseLeave={scheduleUserMenuClose}
                 >
                   <button
+                    id="navbar-logout-button"
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-2 rounded-md font-medium text-sm text-gray-700 hover:bg-gray-100 transition-colors duration-200 min-h-[44px]"
                   >
@@ -140,6 +142,7 @@ function Navbar() {
           </div>
 
           <button
+            id="navbar-mobile-menu-toggle-button"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
             aria-label="Toggle menu"
@@ -189,6 +192,7 @@ function Navbar() {
                 Logged in as <span className="font-medium text-gray-900">{user?.username}</span>
               </div>
               <button
+                id="navbar-mobile-logout-button"
                 onClick={() => {
                   handleLinkClick();
                   handleLogout();

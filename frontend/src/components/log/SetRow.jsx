@@ -1,7 +1,8 @@
 import { getInvalidInputClass, isValidPositiveInteger } from '../../utils/inputValidation';
 
-function SetRow({ set, setIndex, onUpdate, onRemove, showRemove }) {
+function SetRow({ set, setIndex, onUpdate, onRemove, showRemove, idPrefix }) {
   const isRepsInvalid = !!set.repsCompleted && !isValidPositiveInteger(set.repsCompleted);
+  const resolvedIdPrefix = idPrefix || `log-set-${set.id ?? set.setNumber ?? setIndex}`;
 
   return (
     <div className="group grid grid-cols-12 gap-2 rounded-xl border border-app-subtle bg-surface px-2 py-2 transition hover:border-blue-500/40">
@@ -38,6 +39,7 @@ function SetRow({ set, setIndex, onUpdate, onRemove, showRemove }) {
       <div className="col-span-2 sm:col-span-2 flex items-center justify-end">
         {showRemove && (
           <button
+            id={`${resolvedIdPrefix}-delete-button`}
             type="button"
             onClick={onRemove}
             className="rounded-lg border border-red-500/40 px-2 py-1 text-xs text-red-300 transition hover:bg-red-500/10"

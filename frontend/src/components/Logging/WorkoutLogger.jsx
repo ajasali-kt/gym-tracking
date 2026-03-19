@@ -142,6 +142,7 @@ function WorkoutLogger() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <p className="text-red-800 font-medium">Error: {error}</p>
           <button
+            id="workout-logger-error-back-button"
             onClick={() => navigate('/')}
             className="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
           >
@@ -159,6 +160,7 @@ function WorkoutLogger() {
         <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
           <p className="text-gray-600 mb-4">The requested workout could not be found.</p>
           <button
+            id="workout-logger-notfound-back-button"
             onClick={() => navigate('/')}
             className="btn-primary"
           >
@@ -228,12 +230,14 @@ function WorkoutLogger() {
 
             <div className="flex space-x-3">
               <button
+                id="workout-logger-prestart-cancel-button"
                 onClick={handleCancelWorkout}
                 className="flex-1 px-6 py-3 btn-secondary font-medium transition"
               >
                 Cancel
               </button>
               <button
+                id="workout-logger-prestart-start-button"
                 onClick={handleStartWorkout}
                 className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition"
               >
@@ -259,12 +263,14 @@ function WorkoutLogger() {
         </div>
         <div className="flex space-x-2">
           <button
+            id="workout-logger-complete-button"
             onClick={handleCompleteWorkout}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
           >
             Complete Workout
           </button>
           <button
+            id="workout-logger-cancel-button"
             onClick={handleCancelWorkout}
             className="px-4 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition"
           >
@@ -297,6 +303,7 @@ function WorkoutLogger() {
           {exercises.sort((a, b) => a.orderIndex - b.orderIndex).map((ex, index) => (
             <button
               key={ex.id}
+              id={`workout-logger-nav-${ex.id}-button`}
               onClick={() => setCurrentExerciseIndex(index)}
               className={`flex-shrink-0 px-4 py-2 rounded-lg font-medium transition ${
                 index === currentExerciseIndex
@@ -342,6 +349,7 @@ function WorkoutLogger() {
                 key={setIndex}
                 setNumber={setIndex + 1}
                 setData={setData}
+                idPrefix={`workout-logger-exercise-${currentExercise.exerciseId}-set-${setIndex + 1}`}
                 onUpdate={(field, value) => handleUpdateSet(currentExercise.exerciseId, setIndex, field, value)}
                 onLog={() => handleLogSet(currentExercise.exerciseId, setIndex)}
               />
@@ -351,6 +359,7 @@ function WorkoutLogger() {
           {/* Navigation */}
           <div className="flex space-x-3 mt-6 pt-6 border-t border-gray-200">
             <button
+              id="workout-logger-prev-exercise-button"
               onClick={() => setCurrentExerciseIndex(Math.max(0, currentExerciseIndex - 1))}
               disabled={currentExerciseIndex === 0}
               className="flex-1 px-4 py-2 btn-secondary disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -358,6 +367,7 @@ function WorkoutLogger() {
               Previous Exercise
             </button>
             <button
+              id="workout-logger-next-exercise-button"
               onClick={() => setCurrentExerciseIndex(Math.min(totalExercises - 1, currentExerciseIndex + 1))}
               disabled={currentExerciseIndex === totalExercises - 1}
               className="flex-1 px-4 py-2 btn-primary disabled:opacity-50 disabled:cursor-not-allowed transition"
@@ -387,10 +397,11 @@ function WorkoutLogger() {
  * Set Logger Component
  * Log individual set with reps and weight
  */
-function SetLogger({ setNumber, setData, onUpdate, onLog }) {
+function SetLogger({ setNumber, setData, onUpdate, onLog, idPrefix }) {
   const [restTimer, setRestTimer] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const isRepsInvalid = !!setData.repsCompleted && !isValidPositiveInteger(setData.repsCompleted);
+  const resolvedIdPrefix = idPrefix || `workout-logger-set-${setNumber}`;
 
   useEffect(() => {
     if (restTimer) {
@@ -475,6 +486,7 @@ function SetLogger({ setNumber, setData, onUpdate, onLog }) {
 
       {!setData.logged ? (
         <button
+          id={`${resolvedIdPrefix}-log-button`}
           onClick={onLog}
           className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition"
         >
@@ -488,6 +500,7 @@ function SetLogger({ setNumber, setData, onUpdate, onLog }) {
             </div>
           ) : (
             <button
+              id={`${resolvedIdPrefix}-rest-timer-button`}
               onClick={() => startRestTimer(90)}
               className="flex-1 px-4 py-2 btn-primary font-medium transition"
             >

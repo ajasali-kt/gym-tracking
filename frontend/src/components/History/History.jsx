@@ -156,6 +156,7 @@ function History() {
           {presets.map((preset) => (
             <button
               key={preset.key}
+              id={`history-preset-${preset.key}-button`}
               onClick={() => applyPreset(preset.key)}
               className={`pill-btn ${selectedPreset === preset.key ? 'border-blue-500 text-blue-300 shadow-[0_0_0_1px_rgba(59,130,246,0.2)]' : ''}`}
             >
@@ -177,6 +178,7 @@ function History() {
 
         <div className="flex flex-wrap gap-2">
           <button
+            id="history-view-button"
             onClick={handleViewHistory}
             disabled={loading}
             className="btn-outline border-blue-500/50 bg-transparent text-blue-300 hover:bg-blue-500/10 disabled:opacity-50"
@@ -185,6 +187,7 @@ function History() {
           </button>
           {historyData?.totalWorkouts > 0 && (
             <button
+              id="history-generate-share-link-button"
               onClick={() => setShowShareModal(true)}
               className="btn-outline border-green-500/50 bg-transparent text-green-300 hover:bg-green-500/10"
             >

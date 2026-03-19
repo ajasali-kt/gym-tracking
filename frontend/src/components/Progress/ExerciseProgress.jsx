@@ -67,6 +67,7 @@ function ExerciseProgress() {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <p className="text-red-800 font-medium">Error: {error}</p>
           <button
+            id="exercise-progress-retry-button"
             onClick={fetchExercises}
             className="mt-4 px-4 py-2 btn-danger"
           >
@@ -117,6 +118,7 @@ function ExerciseProgress() {
               {exercises.map((exercise) => (
                 <button
                   key={exercise.id}
+                  id={`exercise-progress-select-${exercise.id}-button`}
                   onClick={() => fetchExerciseProgress(exercise.id)}
                   className={`w-full p-4 text-left border-b border-gray-200 hover:bg-blue-50 transition-colors ${
                     selectedExercise === exercise.id ? 'bg-blue-100 border-l-4 border-l-blue-600' : ''

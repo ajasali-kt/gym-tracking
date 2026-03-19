@@ -12,11 +12,18 @@ function TimelineItem({ workout, defaultOpen = false, collapsible = true }) {
   const isOpen = collapsible ? open : true;
   const volume = getWorkoutVolume(workout);
   const exerciseCount = workout.exercises.length;
+  const workoutIdSafe = String(workout.id ?? workout.workoutLogId ?? workout.date).replace(/[^a-zA-Z0-9]+/g, '-');
 
   return (
     <article className="card p-4 transition duration-200 hover:-translate-y-0.5 hover:border-blue-500/50">
       {collapsible ? (
-        <button type="button" onClick={() => setOpen((v) => !v)} className="w-full text-left" aria-expanded={isOpen}>
+        <button
+          id={`timeline-item-${workoutIdSafe}-toggle-button`}
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="w-full text-left"
+          aria-expanded={isOpen}
+        >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-xs text-app-muted">{format(new Date(workout.date), 'EEEE, MMM d')}</p>
