@@ -121,6 +121,17 @@ body {
     background: rgba(16, 185, 129, 0.15);
   }
 
+  .btn-red-outline {
+    @apply inline-flex min-h-[44px] items-center justify-center rounded-xl border px-4 py-2 text-sm font-semibold transition;
+    border-color: rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.1);
+    color: #fca5a5;
+  }
+
+  .btn-red-outline:hover {
+    background: rgba(239, 68, 68, 0.15);
+  }
+ 
   .btn-danger {
     @apply inline-flex min-h-[44px] items-center justify-center rounded-xl border border-transparent px-4 py-2 text-sm font-semibold text-white transition;
     background: var(--error);
@@ -143,11 +154,28 @@ body {
   .input-field:focus {
     border-color: var(--primaryAccent);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    background: var(--elevatedSurface);
     outline: none;
   }
 
   .input-field::placeholder {
     color: #7f8796;
+  }
+
+  /* Prevent Chrome/Edge autofill from forcing a light background on dark inputs. */
+  input.input-field:-webkit-autofill,
+  input.input-field:-webkit-autofill:hover,
+  input.input-field:-webkit-autofill:focus,
+  textarea.input-field:-webkit-autofill,
+  textarea.input-field:-webkit-autofill:hover,
+  textarea.input-field:-webkit-autofill:focus,
+  select.input-field:-webkit-autofill,
+  select.input-field:-webkit-autofill:hover,
+  select.input-field:-webkit-autofill:focus {
+    -webkit-text-fill-color: var(--textPrimary);
+    caret-color: var(--textPrimary);
+    box-shadow: 0 0 0px 1000px var(--elevatedSurface) inset;
+    transition: background-color 9999s ease-out 0s;
   }
 
   .nav-item {

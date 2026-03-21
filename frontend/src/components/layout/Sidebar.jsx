@@ -34,6 +34,9 @@ function Sidebar() {
   const pathname = location.pathname;
 
   const isLinkActive = (linkPath, isNavLinkActive) => {
+    if (linkPath === '/') {
+      return isNavLinkActive || pathname === '/log-manual';
+    }
     if (linkPath === '/progress') {
       return isNavLinkActive || pathname.startsWith('/edit-manual/');
     }

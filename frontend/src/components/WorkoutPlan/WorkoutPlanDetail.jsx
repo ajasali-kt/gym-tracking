@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import workoutService from '../../services/workoutService';
 import exerciseService from '../../services/exerciseService';
 import useAccessibleModal from '../../hooks/useAccessibleModal';
 import CustomPopup from '../ui/CustomPopup';
+import { getInvalidInputClass, isValidPositiveInteger } from '../../utils/inputValidation';
 
 /**
  * Workout Plan Detail Component
@@ -628,6 +629,9 @@ function EditDayModal({ workoutDay, onClose }) {
   const [exercises, setExercises] = useState([]);
   const [assignments, setAssignments] = useState(workoutDay.workoutDayExercises || []);
   const [showAddExerciseModal, setShowAddExerciseModal] = useState(false);
+  const [removeExerciseModal, setRemoveExerciseModal] = useState({ isOpen: false, assignment: null });
+  const [isRemovingExercise, setIsRemovingExercise] = useState(false);
+  const [feedbackPopup, setFeedbackPopup] = useState({ isOpen: false, title: '', bodyText: '', idBase: '' });
   const modalRef = useRef(null);
   const closeBtnRef = useRef(null);
   useAccessibleModal({ isOpen: true, onClose, modalRef, initialFocusRef: closeBtnRef });
@@ -645,27 +649,60 @@ function EditDayModal({ workoutDay, onClose }) {
     }
   };
 
-  const handleRemoveExercise = async (assignmentId) => {
-    if (!confirm('Remove this exercise from the workout day?')) {
-      return;
-    }
+  const openRemoveExerciseModal = (assignment) => {
+    setIsRemovingExercise(false);
+    setRemoveExerciseModal({ isOpen: true, assignment });
+  };
 
-    try {
-      await workoutService.removeExerciseFromDay(assignmentId);
-      setAssignments(assignments.filter(a => a.id !== assignmentId));
-    } catch (err) {
-      alert('Failed to remove exercise: ' + (err.response?.data?.message || 'Unknown error'));
-    }
+  const closeRemoveExerciseModal = () => {
+    setIsRemovingExercise(false);
+    setRemoveExerciseModal({ isOpen: false, assignment: null });
+  };
+
+  const closeFeedbackPopup = () => {
+    setFeedbackPopup((prev) => ({ ...prev, isOpen: false }));
+  };
+
+  const openFeedbackPopup = ({ title, bodyText, idBase }) => {
+    setFeedbackPopup({ isOpen: true, title, bodyText, idBase });
   };
 
   const handleAddExercise = async (exerciseData) => {
+    const exerciseId = Number(exerciseData?.exerciseId);
+    const sets = Number(exerciseData?.sets);
+    const reps = String(exerciseData?.reps ?? '').trim();
+    const restSeconds = Number(exerciseData?.restSeconds);
+    const orderIndex = Number(exerciseData?.orderIndex);
+
+    if (!Number.isFinite(exerciseId)) {
+      openFeedbackPopup({
+        title: 'Select an exercise',
+        bodyText: 'Please select an exercise from the list before adding it to the day.',
+        idBase: `edit-day-${workoutDay.id}-missing-exercise`
+      });
+      return;
+    }
+
+    if (!Number.isFinite(sets) || !reps || !Number.isFinite(restSeconds) || !Number.isFinite(orderIndex)) {
+      openFeedbackPopup({
+        title: 'Missing required fields',
+        bodyText: 'Please provide Sets, Reps, and Rest (sec) before adding the exercise.',
+        idBase: `edit-day-${workoutDay.id}-missing-add-fields`
+      });
+      return;
+    }
+
     try {
       await workoutService.addExerciseToDay(workoutDay.id, exerciseData);
       const updatedDay = await workoutService.getWorkoutDayById(workoutDay.id);
       setAssignments(updatedDay.workoutDayExercises || []);
       setShowAddExerciseModal(false);
     } catch (err) {
-      alert('Failed to add exercise: ' + (err.response?.data?.message || 'Unknown error'));
+      openFeedbackPopup({
+        title: 'Failed to add exercise',
+        bodyText: err.response?.data?.message || 'Unknown error',
+        idBase: `edit-day-${workoutDay.id}-add-exercise-failed`
+      });
     }
   };
 
@@ -701,35 +738,37 @@ function EditDayModal({ workoutDay, onClose }) {
           </button>
         </div>
 
-        <div className="p-6 overflow-y-auto flex-1">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-app-primary">Exercises ({assignments.length})</h3>
-            <button
-              id={`edit-day-${workoutDay.id}-add-exercise-button`}
-              onClick={() => setShowAddExerciseModal(true)}
-              className="px-4 py-2 btn-green-outline"
-            >
-              + Add Exercise
-            </button>
-          </div>
-
-          {assignments.length === 0 ? (
-            <div className="card p-8 text-center">
-              <p className="text-app-muted mb-4">No exercises added yet</p>
-              <button
-                id={`edit-day-${workoutDay.id}-add-first-exercise-button`}
-                onClick={() => setShowAddExerciseModal(true)}
-                className="px-6 py-2 btn-primary"
-              >
-                Add First Exercise
-              </button>
+          <div className="p-6 overflow-y-auto flex-1">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-app-primary">Exercises ({assignments.length})</h3>
+              {assignments.length > 0 && (
+                <button
+                  id={`edit-day-${workoutDay.id}-add-exercise-button`}
+                  onClick={() => setShowAddExerciseModal(true)}
+                  className="px-4 py-2 btn-green-outline"
+                >
+                  + Add Exercise
+                </button>
+              )}
             </div>
-          ) : (
-            <div className="space-y-3">
-              {assignments
-                .sort((a, b) => a.orderIndex - b.orderIndex)
-                .map((assignment, index) => (
-                <div
+
+              {assignments.length === 0 ? (
+                <div className="card p-8 text-center">
+                  <p className="text-app-muted mb-4">No exercises added yet</p>
+                  <button
+                    id={`edit-day-${workoutDay.id}-add-first-exercise-button`}
+                    onClick={() => setShowAddExerciseModal(true)}
+                    className="px-6 py-2 btn-outline"
+                  >
+                    Add First Exercise
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                {assignments
+                  .sort((a, b) => a.orderIndex - b.orderIndex)
+                  .map((assignment, index) => (
+                  <div
                   key={assignment.id}
                   className="flex items-center justify-between rounded-lg bg-surface p-4"
                 >
@@ -760,7 +799,8 @@ function EditDayModal({ workoutDay, onClose }) {
                   </div>
                     <button
                       id={`edit-day-assignment-${assignment.id}-remove-button`}
-                      onClick={() => handleRemoveExercise(assignment.id)}
+                      type="button"
+                      onClick={() => openRemoveExerciseModal(assignment)}
                       className="ml-4 rounded-lg border border-red-500/40 px-2 py-1 text-sm text-red-300 transition hover:bg-red-500/10"
                     >
                       Remove
@@ -777,6 +817,46 @@ function EditDayModal({ workoutDay, onClose }) {
             existingExerciseIds={assignments.map(a => a.exerciseId)}
             onClose={() => setShowAddExerciseModal(false)}
             onAdd={handleAddExercise}
+          />
+        )}
+
+        {feedbackPopup.isOpen && (
+          <CustomPopup
+            isOpen={feedbackPopup.isOpen}
+            title={feedbackPopup.title}
+            idBase={feedbackPopup.idBase}
+            bodyText={feedbackPopup.bodyText}
+            onClose={closeFeedbackPopup}
+            onOk={closeFeedbackPopup}
+            buttonText="Ok"
+            maxWidthClassName="max-w-md"
+          />
+        )}
+
+        {removeExerciseModal.isOpen && removeExerciseModal.assignment && (
+          <CustomPopup
+            isOpen={removeExerciseModal.isOpen}
+            title="Remove exercise?"
+            idBase={`remove-exercise-${removeExerciseModal.assignment.id}`}
+            bodyText={`Are you sure you want to remove ${removeExerciseModal.assignment.exercise?.name ?? 'this exercise'} from Day ${workoutDay.dayNumber} - ${workoutDay.dayName}?`}
+            onClose={closeRemoveExerciseModal}
+            onOk={async () => {
+              if (isRemovingExercise) return;
+              setIsRemovingExercise(true);
+              try {
+                await workoutService.removeExerciseFromDay(removeExerciseModal.assignment.id);
+                setAssignments(prev => prev.filter(a => a.id !== removeExerciseModal.assignment.id));
+                closeRemoveExerciseModal();
+              } catch (err) {
+                alert('Failed to remove exercise: ' + (err.response?.data?.message || 'Unknown error'));
+              } finally {
+                setIsRemovingExercise(false);
+              }
+            }}
+            buttonType="delete"
+            buttonText={isRemovingExercise ? 'Removing...' : 'Remove'}
+            okDisabled={isRemovingExercise}
+            maxWidthClassName="max-w-md"
           />
         )}
       </div>
@@ -805,9 +885,25 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
   const filteredExercises = availableExercises.filter(ex =>
     ex.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const isSearchInvalid = !!searchTerm.trim() && filteredExercises.length === 0;
+
+  const setsString = String(formData.sets ?? '').trim();
+  const repsString = String(formData.reps ?? '').trim();
+  const restString = String(formData.restSeconds ?? '').trim();
+
+  const setsNumber = Number.parseInt(setsString, 10);
+  const restNumber = Number.parseInt(restString, 10);
+
+  const isSetsInvalid =
+    !!setsString && (!isValidPositiveInteger(setsString) || (Number.isFinite(setsNumber) && (setsNumber < 1 || setsNumber > 10)));
+  const isRepsInvalid = !!repsString && !isValidPositiveInteger(repsString);
+  const isRestInvalid =
+    !!restString &&
+    (!isValidPositiveInteger(restString) || (Number.isFinite(restNumber) && (restNumber < 30 || restNumber > 300)));
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isSetsInvalid || isRepsInvalid || isRestInvalid) return;
     const orderIndex = existingExerciseIds.length + 1;
     onAdd({
       exerciseId: parseInt(formData.exerciseId),
@@ -829,7 +925,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
         aria-modal="true"
         aria-labelledby="add-exercise-title"
         tabIndex={-1}
-        className="w-full max-w-2xl rounded-2xl border border-app-subtle bg-card shadow-card"
+        className="w-full max-w-lg rounded-2xl border border-app-subtle bg-card shadow-card"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-app-subtle px-5 py-4">
@@ -859,7 +955,8 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
               placeholder="Search exercises..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="input-field mb-2"
+              className={`input-field mb-2 ${getInvalidInputClass(isSearchInvalid)}`}
+              aria-invalid={isSearchInvalid}
             />
             <select
               id="select-exercise-input"
@@ -899,9 +996,11 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
                 required
                 min="1"
                 max="10"
+                step="1"
                 value={formData.sets}
                 onChange={(e) => setFormData({ ...formData, sets: e.target.value })}
-                className="input-field"
+                inputMode="numeric"
+                className={`input-field ${getInvalidInputClass(isSetsInvalid)}`}
               />
             </div>
             <div>
@@ -910,12 +1009,15 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
               </label>
               <input
                 id="add-exercise-reps"
-                type="text"
+                type="number"
                 required
+                min="1"
+                step="1"
                 value={formData.reps}
                 onChange={(e) => setFormData({ ...formData, reps: e.target.value })}
-                placeholder="e.g., 10 or 8-12"
-                className="input-field"
+                placeholder="e.g., 10"
+                inputMode="numeric"
+                className={`input-field ${getInvalidInputClass(isRepsInvalid)}`}
               />
             </div>
             <div>
@@ -931,24 +1033,17 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
                 step="15"
                 value={formData.restSeconds}
                 onChange={(e) => setFormData({ ...formData, restSeconds: e.target.value })}
-                className="input-field"
+                inputMode="numeric"
+                className={`input-field ${getInvalidInputClass(isRestInvalid)}`}
               />
             </div>
           </div>
 
-          <div className="flex space-x-3 pt-4">
-            <button
-              id="workout-plan-add-exercise-cancel-button"
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 btn-secondary"
-            >
-              Cancel
-            </button>
+          <div className="flex flex-wrap justify-end gap-3 pt-4">
             <button
               id="workout-plan-add-exercise-submit-button"
               type="submit"
-              className="flex-1 px-4 py-2 btn-green-outline"
+              className="px-4 py-2 btn-green-outline"
             >
               Add Exercise
             </button>

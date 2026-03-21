@@ -1,6 +1,24 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import apiClient from '../../services/api';
 import SharesManagement from './SharesManagement';
+import StatCard from '../stats/StatCard';
+
+function iconPath(name) {
+  const map = {
+    muscle: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 10h2m12 0h2M7 7v6m10-6v6m-7-2h4m-6 7h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2Z" />,
+    exercise: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 7h8M8 12h8M8 17h8M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />,
+    plan: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />,
+    day: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 2v4m8-4v4M3 10h18M5 5h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2Z" />,
+    log: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />,
+    set: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M12 3v18m8-9H4" />
+  };
+
+  return (
+    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      {map[name]}
+    </svg>
+  );
+}
 
 function Admin() {
   const [activeTab, setActiveTab] = useState('data');
@@ -152,220 +170,187 @@ function Admin() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="card p-6 mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Admin Panel</h1>
-          <p className="text-gray-600 mb-4">Manage database and share links</p>
-
-          {/* Info Banner */}
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-blue-700">
-                  <strong>Admin Panel:</strong> This panel is protected by role-based authentication. Only admin users can access this page.
-                </p>
-              </div>
-            </div>
+    <div className="space-y-6">
+      <div className="card p-6 sm:p-7">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-app-primary">System Settings</h1>
+            <p className="mt-1 text-app-muted">Admin tools for database data and share links</p>
           </div>
 
-          {/* Tabs */}
-          <div className="border-b border-gray-200 mb-6">
-            <nav className="-mb-px flex space-x-8">
-              <button
-                id="admin-tab-data-button"
-                onClick={() => setActiveTab('data')}
-                className={`${
-                  activeTab === 'data'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                Data Management
-              </button>
-              <button
-                id="admin-tab-shares-button"
-                onClick={() => setActiveTab('shares')}
-                className={`${
-                  activeTab === 'shares'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
-              >
-                Share Links
-              </button>
-            </nav>
+          <div className="segmented-control self-start">
+            <button
+              id="admin-tab-data-button"
+              onClick={() => setActiveTab('data')}
+              className={`segment-btn ${activeTab === 'data' ? 'segment-btn-active' : ''}`}
+            >
+              Data
+            </button>
+            <button
+              id="admin-tab-shares-button"
+              onClick={() => setActiveTab('shares')}
+              className={`segment-btn ${activeTab === 'shares' ? 'segment-btn-active' : ''}`}
+            >
+              Share Links
+            </button>
           </div>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === 'shares' ? (
-          <SharesManagement />
-        ) : (
-          <>
-            {/* Data Management Tab Content */}
-            <div className="card p-6 mb-6">
-              {/* Database Stats */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-xl font-semibold text-gray-900">Database Statistics</h2>
+        <div className="mt-5 rounded-xl border border-blue-500/25 bg-blue-500/10 p-4">
+          <div className="flex items-start gap-3">
+            <svg className="mt-0.5 h-5 w-5 text-blue-200" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <p className="text-sm text-blue-100">
+              <span className="font-semibold">Admin access:</span> Only users with admin role can access this page.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {activeTab === 'shares' ? (
+        <SharesManagement />
+      ) : (
+        <>
+          <div className="card p-6">
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-semibold text-app-primary">Database Statistics</h2>
               <button
                 id="admin-refresh-stats-button"
                 onClick={fetchStats}
                 disabled={loading}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
+                className="btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {loading ? 'Loading...' : 'Refresh Stats'}
+                {loading ? 'Loading..' : 'Refresh Stats'}
               </button>
             </div>
 
-            {stats && (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Muscle Groups</p>
-                  <p className="text-2xl font-bold text-blue-600">{stats.muscleGroups}</p>
-                </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Exercises</p>
-                  <p className="text-2xl font-bold text-green-600">{stats.exercises}</p>
-                </div>
-                <div className="bg-purple-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Workout Plans</p>
-                  <p className="text-2xl font-bold text-purple-600">{stats.workoutPlans}</p>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Workout Days</p>
-                  <p className="text-2xl font-bold text-yellow-600">{stats.workoutDays}</p>
-                </div>
-                <div className="bg-pink-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Workout Logs</p>
-                  <p className="text-2xl font-bold text-pink-600">{stats.workoutLogs}</p>
-                </div>
-                <div className="bg-indigo-50 p-4 rounded-lg">
-                  <p className="text-sm text-gray-600">Exercise Logs</p>
-                  <p className="text-2xl font-bold text-indigo-600">{stats.exerciseLogs}</p>
-                </div>
+            {stats ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <StatCard label="Muscle Groups" value={stats.muscleGroups} icon={iconPath('muscle')} />
+                <StatCard label="Exercises" value={stats.exercises} icon={iconPath('exercise')} tone="green" />
+                <StatCard label="Workout Plans" value={stats.workoutPlans} icon={iconPath('plan')} tone="amber" />
+                <StatCard label="Workout Days" value={stats.workoutDays} icon={iconPath('day')} />
+                <StatCard label="Workout Logs" value={stats.workoutLogs} icon={iconPath('log')} tone="red" />
+                <StatCard label="Exercise Logs" value={stats.exerciseLogs} icon={iconPath('set')} tone="green" />
+              </div>
+            ) : (
+              <div className="rounded-xl border border-app-subtle bg-surface p-5 text-sm text-app-muted">
+                No statistics loaded yet.
               </div>
             )}
-              </div>
+          </div>
+
+          <div className="card p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-semibold text-app-primary">Import Muscle Groups</h2>
+              <button
+                id="admin-load-sample-muscle-groups-button"
+                onClick={loadSampleMuscleGroups}
+                className="text-sm font-medium text-blue-200 underline decoration-blue-400/50 hover:text-blue-100"
+              >
+                Load Sample JSON
+              </button>
             </div>
 
-            {/* Import Muscle Groups */}
-            <div className="card p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Import Muscle Groups</h2>
-                <button
-                  id="admin-load-sample-muscle-groups-button"
-                  onClick={loadSampleMuscleGroups}
-                  className="text-blue-600 hover:text-blue-800 text-sm underline"
-                >
-                  Load Sample JSON
-                </button>
-              </div>
+            <p className="mt-3 text-sm text-app-muted">
+              Paste JSON with format: {`{ "muscleGroups": [{ "name": "Chest", "description": "..." }] }`}
+            </p>
 
-              <p className="text-sm text-gray-600 mb-4">
-                Paste JSON with format: {`{ "muscleGroups": [{ "name": "Chest", "description": "..." }] }`}
-              </p>
+            <textarea
+              value={muscleGroupsJson}
+              onChange={(e) => setMuscleGroupsJson(e.target.value)}
+              placeholder='{"muscleGroups": [{"name": "Chest", "description": "Pectoral muscles"}]}'
+              className="input-field mt-4 h-48 resize-y font-mono text-sm"
+            />
 
-              <textarea
-                value={muscleGroupsJson}
-                onChange={(e) => setMuscleGroupsJson(e.target.value)}
-                placeholder='{"muscleGroups": [{"name": "Chest", "description": "Pectoral muscles"}]}'
-                className="w-full h-48 p-3 border border-gray-300 rounded-md font-mono text-sm mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-
+            <div className="mt-4 flex justify-end">
               <button
                 id="admin-import-muscle-groups-button"
                 onClick={importMuscleGroups}
                 disabled={loading || !muscleGroupsJson}
-                className="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:bg-gray-400 transition-colors font-semibold"
+                className="btn-outline disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? 'Importing...' : 'Import Muscle Groups'}
               </button>
-
-              {muscleGroupsResult && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-md">
-                  <h3 className="font-semibold mb-2 text-gray-900">Result:</h3>
-                  <pre className="text-sm overflow-x-auto text-gray-700">
-                    {JSON.stringify(muscleGroupsResult, null, 2)}
-                  </pre>
-                </div>
-              )}
             </div>
 
-            {/* Import Exercises */}
-            <div className="card p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold text-gray-900">Import Exercises</h2>
-                <button
-                  id="admin-load-sample-exercises-button"
-                  onClick={loadSampleExercises}
-                  className="text-blue-600 hover:text-blue-800 text-sm underline"
-                >
-                  Load Sample JSON
-                </button>
+            {muscleGroupsResult && (
+              <div className="mt-4 rounded-xl border border-app-subtle bg-surface p-4">
+                <h3 className="text-sm font-semibold text-app-primary">Result</h3>
+                <pre className="mt-3 overflow-x-auto text-sm text-app-muted">
+                  {JSON.stringify(muscleGroupsResult, null, 2)}
+                </pre>
               </div>
+            )}
+          </div>
 
-              <p className="text-sm text-gray-600 mb-4">
-                Paste JSON with format: {`{ "exercises": [{ "name": "Bench Press", "muscleGroupName": "Chest", ... }] }`}
-              </p>
+          <div className="card p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-xl font-semibold text-app-primary">Import Exercises</h2>
+              <button
+                id="admin-load-sample-exercises-button"
+                onClick={loadSampleExercises}
+                className="text-sm font-medium text-blue-200 underline decoration-blue-400/50 hover:text-blue-100"
+              >
+                Load Sample JSON
+              </button>
+            </div>
 
-              <p className="text-xs text-yellow-700 mb-4 bg-yellow-50 p-2 rounded">
-                <strong>Note:</strong> Import muscle groups first! Exercises reference muscle groups by name.
-              </p>
+            <p className="mt-3 text-sm text-app-muted">
+              Paste JSON with format: {`{ "exercises": [{ "name": "Bench Press", "muscleGroupName": "Chest", ... }] }`}
+            </p>
 
-              <textarea
-                value={exercisesJson}
-                onChange={(e) => setExercisesJson(e.target.value)}
-                placeholder='{"exercises": [{"name": "Bench Press", "muscleGroupName": "Chest", "description": "...", "steps": [...]}]}'
-                className="w-full h-64 p-3 border border-gray-300 rounded-md font-mono text-sm mb-4 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+            <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+              <span className="font-semibold">Note:</span> Import muscle groups first. Exercises reference muscle groups by name.
+            </div>
 
+            <textarea
+              value={exercisesJson}
+              onChange={(e) => setExercisesJson(e.target.value)}
+              placeholder='{"exercises": [{"name": "Bench Press", "muscleGroupName": "Chest", "description": \"...\", \"steps\": [...]}]}'
+              className="input-field mt-4 h-64 resize-y font-mono text-sm"
+            />
+
+            <div className="mt-4 flex justify-end">
               <button
                 id="admin-import-exercises-button"
                 onClick={importExercises}
                 disabled={loading || !exercisesJson}
-                className="w-full bg-green-600 text-white px-6 py-3 rounded-md hover:bg-green-700 disabled:bg-gray-400 transition-colors font-semibold"
+                className="btn-outline disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {loading ? 'Importing...' : 'Import Exercises'}
               </button>
-
-              {exercisesResult && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-md">
-                  <h3 className="font-semibold mb-2 text-gray-900">Result:</h3>
-                  <pre className="text-sm overflow-x-auto text-gray-700">
-                    {JSON.stringify(exercisesResult, null, 2)}
-                  </pre>
-                </div>
-              )}
             </div>
 
-            {/* Danger Zone */}
-            <div className="card p-6 border-2 border-red-200">
-              <h2 className="text-xl font-semibold text-red-600 mb-4">Danger Zone</h2>
-              <p className="text-sm text-gray-600 mb-4">
-                This action will delete all data from the database. This cannot be undone!
-              </p>
-              <button
-                id="admin-clear-all-data-button"
-                onClick={clearAllData}
-                disabled={loading}
-                className="bg-red-600 text-white px-6 py-3 rounded-md hover:bg-red-700 disabled:bg-gray-400 transition-colors font-semibold"
-              >
-                {loading ? 'Clearing...' : 'Clear All Data'}
-              </button>
-            </div>
-          </>
-        )}
-      </div>
+            {exercisesResult && (
+              <div className="mt-4 rounded-xl border border-app-subtle bg-surface p-4">
+                <h3 className="text-sm font-semibold text-app-primary">Result</h3>
+                <pre className="mt-3 overflow-x-auto text-sm text-app-muted">
+                  {JSON.stringify(exercisesResult, null, 2)}
+                </pre>
+              </div>
+            )}
+          </div>
+
+          <div className="card border-red-500/30 bg-red-500/5 p-6">
+            <h2 className="text-xl font-semibold text-red-300">Danger Zone</h2>
+            <p className="mt-2 text-sm text-app-muted">
+              This action deletes all data from the database. This cannot be undone.
+            </p>
+            <button
+              id="admin-clear-all-data-button"
+              onClick={clearAllData}
+              disabled={loading}
+              className="btn-red-outline mt-4 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? 'Clearing...' : 'Clear All Data'}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 export default Admin;
-
