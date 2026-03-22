@@ -190,92 +190,6 @@ const getExerciseProgress = async (userId, exerciseId, query) => {
   };
 };
 
-const getExercisePersonalRecord = async (userId, exerciseId) => {
-  const parsedExerciseId = Number.parseInt(exerciseId, 10);
-
-  const maxWeightLog = await prisma.exerciseLog.findFirst({
-    where: {
-      exerciseId: parsedExerciseId,
-      workoutLog: {
-        userId
-      }
-    },
-    orderBy: { weightKg: 'desc' },
-    include: {
-      workoutLog: {
-        select: {
-          completedDate: true
-        }
-      }
-    }
-  });
-
-  const maxRepsLog = await prisma.exerciseLog.findFirst({
-    where: {
-      exerciseId: parsedExerciseId,
-      workoutLog: {
-        userId
-      }
-    },
-    orderBy: { repsCompleted: 'desc' },
-    include: {
-      workoutLog: {
-        select: {
-          completedDate: true
-        }
-      }
-    }
-  });
-
-  const allLogs = await prisma.exerciseLog.findMany({
-    where: {
-      exerciseId: parsedExerciseId,
-      workoutLog: {
-        userId
-      }
-    },
-    select: {
-      weightKg: true,
-      repsCompleted: true,
-      workoutLog: {
-        select: {
-          completedDate: true
-        }
-      }
-    }
-  });
-
-  let maxVolumeLog = null;
-  if (allLogs.length > 0) {
-    maxVolumeLog = allLogs.reduce((max, log) => {
-      const volume = log.weightKg * log.repsCompleted;
-      const maxVolume = max.weightKg * max.repsCompleted;
-      return volume > maxVolume ? log : max;
-    });
-  }
-
-  return {
-    personalRecords: {
-      maxWeight: maxWeightLog ? {
-        weight: maxWeightLog.weightKg,
-        reps: maxWeightLog.repsCompleted,
-        date: maxWeightLog.workoutLog.completedDate
-      } : null,
-      maxReps: maxRepsLog ? {
-        reps: maxRepsLog.repsCompleted,
-        weight: maxRepsLog.weightKg,
-        date: maxRepsLog.workoutLog.completedDate
-      } : null,
-      maxVolume: maxVolumeLog ? {
-        volume: maxVolumeLog.weightKg * maxVolumeLog.repsCompleted,
-        weight: maxVolumeLog.weightKg,
-        reps: maxVolumeLog.repsCompleted,
-        date: maxVolumeLog.workoutLog.completedDate
-      } : null
-    }
-  };
-};
-
 const getProgressStats = async (userId) => {
   const totalWorkouts = await prisma.workoutLog.count({
     where: { userId }
@@ -361,6 +275,5 @@ module.exports = {
   getProgressHistory,
   getRecentProgress,
   getExerciseProgress,
-  getExercisePersonalRecord,
   getProgressStats
 };

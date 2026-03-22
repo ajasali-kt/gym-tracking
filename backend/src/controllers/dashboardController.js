@@ -1,7 +1,6 @@
 const {
   getTodayWorkoutWithLog,
-  getDashboardSummary,
-  getWeekSchedule
+  getDashboardSummary
 } = require('../services/dashboardService');
 const { createHttpError } = require('../utils/http');
 
@@ -34,18 +33,7 @@ const getSummary = async (req, res, next) => {
   }
 };
 
-const getWeek = async (req, res, next) => {
-  try {
-    const todayDate = getTodayDateFromQuery(req);
-    const result = await getWeekSchedule(req.userId, todayDate);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-};
-
 module.exports = {
   getTodayWithLog,
-  getSummary,
-  getWeek
+  getSummary
 };

@@ -1,5 +1,4 @@
 const prisma = require('../prismaClient');
-const { createHttpError } = require('../utils/http');
 
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -215,69 +214,7 @@ const getDashboardSummary = async (userId) => {
   };
 };
 
-const getWeekSchedule = async (userId, todayDate) => {
-  const activePlan = await prisma.workoutPlan.findFirst({
-    where: {
-      isActive: true,
-      userId
-    },
-    include: {
-      workoutDays: {
-        include: {
-          muscleGroup: true,
-          _count: {
-            select: { workoutDayExercises: true }
-          }
-        },
-        orderBy: { dayNumber: 'asc' }
-      }
-    }
-  });
-
-  if (!activePlan) {
-    throw createHttpError(404, 'No active workout plan found');
-  }
-
-  const startDate = new Date(activePlan.startDate);
-  startDate.setHours(0, 0, 0, 0);
-
-  let numberOfDays = 7;
-  if (activePlan.endDate) {
-    const endDate = new Date(activePlan.endDate);
-    endDate.setHours(0, 0, 0, 0);
-    const diffTime = endDate.getTime() - startDate.getTime();
-    numberOfDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    numberOfDays = numberOfDays > 0 ? numberOfDays : 7;
-  }
-
-  const schedule = [];
-  for (let i = 1; i <= numberOfDays; i++) {
-    const workoutDay = activePlan.workoutDays.find((day) => day.dayNumber === i);
-    const dayDate = new Date(startDate);
-    dayDate.setDate(startDate.getDate() + (i - 1));
-
-    schedule.push({
-      dayNumber: i,
-      date: dayDate,
-      workout: workoutDay || null
-    });
-  }
-
-  return {
-    plan: {
-      id: activePlan.id,
-      name: activePlan.name,
-      startDate: activePlan.startDate,
-      endDate: activePlan.endDate
-    },
-    currentDay: getCurrentDayNumber(activePlan.startDate, todayDate),
-    numberOfDays,
-    schedule
-  };
-};
-
 module.exports = {
   getTodayWorkoutWithLog,
-  getDashboardSummary,
-  getWeekSchedule
+  getDashboardSummary
 };

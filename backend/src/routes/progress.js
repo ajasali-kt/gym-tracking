@@ -4,7 +4,6 @@ const {
   getHistory,
   getRecent,
   getExercise,
-  getPersonalRecord,
   getStats
 } = require('../controllers/progressController');
 
@@ -15,24 +14,16 @@ const {
 router.get('/history', getHistory);
 
 /**
- * GET /api/progress/recent
+ * POST /api/progress/recent
  * Get recent workout logs
  */
-router.get('/recent', getRecent);
 router.post('/recent', getRecent);
 
 /**
- * GET /api/progress/exercise/:id
+ * POST /api/progress/exercise/:id
  * Get progress for a specific exercise
  */
-router.get('/exercise/:id', getExercise);
 router.post('/exercise/:id', getExercise);
-
-/**
- * GET /api/progress/exercise/:id/personal-record
- * Get personal record for a specific exercise
- */
-router.get('/exercise/:id/personal-record', getPersonalRecord);
 
 /**
  * GET /api/progress/stats

@@ -2,7 +2,6 @@ const {
   getProgressHistory,
   getRecentProgress,
   getExerciseProgress,
-  getExercisePersonalRecord,
   getProgressStats
 } = require('../services/progressService');
 
@@ -40,15 +39,6 @@ const getExercise = async (req, res, next) => {
   }
 };
 
-const getPersonalRecord = async (req, res, next) => {
-  try {
-    const result = await getExercisePersonalRecord(req.userId, req.params.id);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-};
-
 const getStats = async (req, res, next) => {
   try {
     const result = await getProgressStats(req.userId);
@@ -62,6 +52,5 @@ module.exports = {
   getHistory,
   getRecent,
   getExercise,
-  getPersonalRecord,
   getStats
 };
