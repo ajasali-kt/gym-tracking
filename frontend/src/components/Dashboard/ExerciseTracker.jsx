@@ -437,17 +437,17 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
             </div>
             {/* Mobile metrics */}
             <div className="sm:hidden text-right">
-              <div className="grid grid-cols-3 gap-2 text-[11px] text-app-muted">
+              <div className="grid grid-cols-3 gap-2 text-[11px] text-gray-600">
                 <div>
-                  <p className="font-semibold text-app-primary leading-tight">Sets</p>
+                  <p className="font-semibold text-gray-700 leading-tight">Sets</p>
                   <p className="leading-tight">{assignment.sets}</p>
                 </div>
                 <div>
-                  <p className="font-semibold text-app-primary leading-tight">Reps</p>
+                  <p className="font-semibold text-gray-700 leading-tight">Reps</p>
                   <p className="leading-tight">{assignment.reps}</p>
                 </div>
                 <div>
-                  <p className="font-semibold text-app-primary leading-tight">Rest</p>
+                  <p className="font-semibold text-gray-700 leading-tight">Rest</p>
                   <p className="leading-tight">{assignment.restSeconds || assignment.rest || 0}s</p>
                 </div>
               </div>

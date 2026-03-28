@@ -22,11 +22,24 @@ const getTodayWithLog = async (req, res, next) => {
   } catch (error) {
     next(error);
   }
+
+  return todayDate;
+};
+
+const getTodayWithLog = async (req, res, next) => {
+  try {
+    const todayDate = getTodayDateFromQuery(req);
+    const result = await getTodayWorkoutWithLog(req.userId, todayDate);
+    res.json(result);
+  } catch (error) {
+    next(error);
+  }
 };
 
 const getSummary = async (req, res, next) => {
   try {
-    const result = await getDashboardSummary(req.userId);
+    const todayDate = getTodayDateFromQuery(req);
+    const result = await getWeekSchedule(req.userId, todayDate);
     res.json(result);
   } catch (error) {
     next(error);
