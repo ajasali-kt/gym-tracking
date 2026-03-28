@@ -387,13 +387,15 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            <button
-              id={`workout-plan-day-${dayNumber}-edit-button`}
-              onClick={onEdit}
-              className="w-full sm:w-auto rounded-lg border border-green-500/40 px-3 py-1 text-sm text-green-300 transition hover:bg-green-500/15"
-            >
-              Edit
-            </button>
+            {exercises.length > 0 && (
+              <button
+                id={`workout-plan-day-${dayNumber}-edit-button`}
+                onClick={onEdit}
+                className="w-full sm:w-auto rounded-lg border border-green-500/40 px-3 py-1 text-sm text-green-300 transition hover:bg-green-500/15"
+              >
+                Edit
+              </button>
+            )}
             <button
               id={`workout-plan-day-${dayNumber}-delete-button`}
               onClick={onDelete}

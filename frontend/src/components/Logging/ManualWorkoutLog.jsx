@@ -406,7 +406,13 @@ function ManualWorkoutLog() {
                   Delete
                 </button>
               )}
-              <button id="manual-workout-back-button" onClick={handleBack} className="btn-outline">Back</button>
+              <button
+                id="manual-workout-back-button"
+                onClick={handleBack}
+                className="w-full sm:w-auto px-4 py-2 btn-secondary transition"
+              >
+                Back
+              </button>
             </div>
           </div>
 

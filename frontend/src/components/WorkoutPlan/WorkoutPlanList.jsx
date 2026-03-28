@@ -147,7 +147,7 @@ function WorkoutPlanList() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {plans.map(plan => (
               <PlanCard
                 key={plan.id}
@@ -209,16 +209,19 @@ function PlanCard({ plan, onDelete, onSetActive }) {
 
   return (
     <div className="card hover:shadow-lg transition overflow-hidden">
-      {plan.isActive && (
-        <div className="text-green-500 text-center py-2 text-sm font-medium border-b border-app-subtle">
-          Active Plan
-        </div>
-      )}
+      <div
+        className={`text-center py-2 text-sm font-medium border-app-subtle ${
+          plan.isActive ? 'text-green-500 border-b' : 'text-transparent select-none'
+        }`}
+        aria-hidden={!plan.isActive}
+      >
+        Active Plan
+      </div>
 
-      <div className="p-6">
+      <div className="px-6 pt-6 pb-3">
         <h3 className="text-xl font-bold text-app-primary mb-2">{plan.name}</h3>
 
-        <div className="space-y-2 text-sm text-app-muted mb-4">
+        <div className="space-y-2 text-sm text-app-muted mb-3">
           <p>
             <span className="font-medium">Started:</span> {format(new Date(plan.startDate), 'MMM d, yyyy')}
           </p>
@@ -235,11 +238,11 @@ function PlanCard({ plan, onDelete, onSetActive }) {
           </p>
         </div>
 
-        <div className="flex space-x-2">
+        <div className="mt-auto flex gap-2 flex-nowrap justify-end overflow-x-auto">
           <button
             id={`workout-plan-${plan.id}-view-details-button`}
             onClick={() => navigate(`/plans/${plan.id}`)}
-            className="flex-1 px-4 py-2 btn-outline transition text-sm font-medium"
+            className="px-4 py-2 btn-outline transition text-sm font-medium whitespace-nowrap rounded-lg"
           >
             View Details
           </button>
@@ -247,7 +250,7 @@ function PlanCard({ plan, onDelete, onSetActive }) {
             <button
               id={`workout-plan-${plan.id}-activate-button`}
               onClick={() => onSetActive(plan.id)}
-              className="px-4 py-2 btn-green-outline text-sm font-medium"
+              className="px-4 py-2 btn-green-outline text-sm font-medium whitespace-nowrap rounded-lg"
               title="Set as active plan"
             >
               Activate
@@ -256,7 +259,7 @@ function PlanCard({ plan, onDelete, onSetActive }) {
           <button
             id={`workout-plan-${plan.id}-delete-button`}
             onClick={() => onDelete(plan.id)}
-            className="rounded-lg border border-red-500/40 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/10"
+            className="rounded-lg border border-red-500/40 px-4 py-2 text-sm font-medium text-red-300 transition hover:bg-red-500/10 whitespace-nowrap"
             title="Delete plan"
           >
             Delete
@@ -317,13 +320,13 @@ function CreatePlanModal({ onClose, onSuccess }) {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white flex justify-between items-center">
-          <h2 id="create-plan-title" className="text-2xl font-bold">Create Workout Plan</h2>
+        <div className="border-b border-app-subtle px-6 py-4 flex justify-between items-center">
+          <h2 id="create-plan-title" className="text-2xl font-bold text-app-primary">Create Workout Plan</h2>
           <button
             ref={closeBtnRef}
             id="create-plan-modal-close-button"
             onClick={onClose}
-            className="text-white hover:text-gray-200 transition"
+            className="text-app-muted hover:text-app-primary transition"
             aria-label="Close create plan modal"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -382,20 +385,12 @@ function CreatePlanModal({ onClose, onSuccess }) {
             />
           </div>
 
-          <div className="flex space-x-3 pt-4">
-            <button
-              id="create-plan-cancel-button"
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 btn-secondary transition"
-            >
-              Cancel
-            </button>
+          <div className="flex justify-end pt-4">
             <button
               id="create-plan-submit-button"
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 btn-primary transition disabled:opacity-50"
+              className="px-4 py-2 btn-outline transition disabled:opacity-50"
             >
               {loading ? 'Creating...' : 'Create Plan'}
             </button>

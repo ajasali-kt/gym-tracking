@@ -7,7 +7,11 @@ function getWorkoutVolume(workout) {
   }, 0);
 }
 
-function TimelineItem({ workout, defaultOpen = false, collapsible = true }) {
+function TimelineItem({
+  workout,
+  defaultOpen = false,
+  collapsible = true
+}) {
   const [open, setOpen] = useState(defaultOpen);
   const isOpen = collapsible ? open : true;
   const volume = getWorkoutVolume(workout);
@@ -68,10 +72,10 @@ function TimelineItem({ workout, defaultOpen = false, collapsible = true }) {
         <div className="space-y-3">
           {workout.exercises.map((exercise) => (
             <div key={`${workout.date}-${exercise.exerciseId}`} className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-app-primary">{exercise.exerciseName}</p>
-                <p className="text-xs text-app-muted">{exercise.muscleGroup}</p>
-              </div>
+               <div className="flex items-center justify-between">
+                 <p className="text-sm font-semibold text-app-primary">{exercise.exerciseName}</p>
+                 <p className="text-sm  text-app-muted">{exercise.muscleGroup}</p>
+               </div>
               <div className="space-y-2">
                 {exercise.sets
                   .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
