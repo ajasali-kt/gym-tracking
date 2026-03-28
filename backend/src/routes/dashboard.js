@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getTodayWithLog,
-  getSummary,
-  getWeek
+  getSummary
 } = require('../controllers/dashboardController');
 
 
@@ -21,9 +20,8 @@ router.get('/today-with-log', getTodayWithLog);
 router.get('/summary', getSummary);
 
 /**
- * GET /api/dashboard/week
- * Get the full workout schedule for active plan based on date range
+ * (Removed) GET /api/dashboard/week
+ * Not used by the current React UI.
  */
-router.get('/week', getWeek);
 
 module.exports = router;

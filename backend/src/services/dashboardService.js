@@ -1,5 +1,4 @@
 const prisma = require('../prismaClient');
-const { createHttpError } = require('../utils/http');
 
 const ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
 
@@ -278,6 +277,5 @@ const getWeekSchedule = async (userId, todayDate) => {
 
 module.exports = {
   getTodayWorkoutWithLog,
-  getDashboardSummary,
-  getWeekSchedule
+  getDashboardSummary
 };

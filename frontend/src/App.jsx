@@ -17,6 +17,7 @@ import WorkoutPlanDetail from './components/WorkoutPlan/WorkoutPlanDetail';
 import WorkoutLogger from './components/Logging/WorkoutLogger';
 import ManualWorkoutLog from './components/Logging/ManualWorkoutLog';
 import Progress from './components/Progress/Progress';
+import History from './components/History/History';
 import Admin from './components/Admin/Admin';
 import ShareView from './components/Share/ShareView';
 
@@ -60,6 +61,7 @@ function App() {
 
                     {/* Progress Tracking */}
                     <Route path="/progress" element={<Progress />} />
+                    <Route path="/history" element={<History />} />
 
                     {/* Admin Panel - Hidden route (Admin only) */}
                     <Route path="/settings/system" element={

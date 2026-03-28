@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import workoutService from '../../services/workoutService';
+import { getInvalidInputClass, isValidPositiveInteger } from '../../utils/inputValidation';
 
 const AUTO_SAVE_DEBOUNCE_MS = 800;
 const FALLBACK_PREFIX = 'dashboard_unsaved_set';
@@ -52,24 +53,15 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
   const parseWeightValue = (weightInput) => {
     if (!weightInput || !weightInput.trim()) return null;
     const normalized = weightInput.trim();
-
-    if (normalized.includes('-')) {
-      const [minRaw, maxRaw] = normalized.split('-');
-      const min = Number.parseFloat((minRaw || '').trim());
-      const max = Number.parseFloat((maxRaw || '').trim());
-      if (!Number.isFinite(min) || !Number.isFinite(max) || min <= 0 || max <= 0) {
-        return null;
-      }
-      return (min + max) / 2;
-    }
-
     const single = Number.parseFloat(normalized);
     if (!Number.isFinite(single) || single <= 0) return null;
     return single;
   };
 
   const parseRepsValue = (repsInput) => {
-    const parsed = Number.parseInt(repsInput, 10);
+    const normalized = (repsInput || '').trim();
+    if (!isValidPositiveInteger(normalized)) return null;
+    const parsed = Number.parseInt(normalized, 10);
     if (!Number.isInteger(parsed) || parsed <= 0) return null;
     return parsed;
   };
@@ -384,6 +376,20 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
     // Note: Auto-save is handled by useEffect hook monitoring sets state
   };
 
+  const handleAddSet = () => {
+    setSets((previousSets) => [
+      ...previousSets,
+      {
+        id: null,
+        setNumber: (previousSets[previousSets.length - 1]?.setNumber || 0) + 1,
+        reps: '',
+        time: '',
+        weight: '',
+        notes: ''
+      }
+    ]);
+  };
+
   const handleHeaderClick = (e) => {
     // Prevent any default action and stop all propagation
     if (e) {
@@ -397,34 +403,37 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
     return false;
   };
 
+  const assignmentIdToken = assignment.id ?? assignment.order;
+
   return (
-    <div className="bg-white border border-gray-200 rounded-lg shadow-sm mb-3 sm:mb-4 overflow-hidden">
+    <div className="card mb-3 sm:mb-4 overflow-hidden">
       {/* Minimized Header - Always Visible */}
       <button
+        id={`exercise-tracker-${assignmentIdToken}-toggle-button`}
         type="button"
-        className="w-full p-3 sm:p-4 cursor-pointer hover:bg-gray-50 transition-colors select-none text-left"
+        className="w-full p-3 sm:p-4 cursor-pointer hover:bg-surface transition-colors select-none text-left"
         onClick={handleHeaderClick}
       >
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div className="flex items-start sm:items-center gap-2 sm:gap-3 flex-1 min-w-0">
-            <span className="text-base sm:text-lg font-semibold text-gray-800 flex-shrink-0">{assignment.order}</span>
+            <span className="text-base sm:text-lg font-semibold text-app-primary flex-shrink-0">{assignment.order}</span>
             <div className="min-w-0 flex-1">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-800 truncate">{exercise.name}</h3>
-              <p className="text-xs sm:text-sm text-gray-600 truncate">{exercise.muscleGroup?.name || 'General'}</p>
+              <h3 className="text-base sm:text-lg font-semibold text-app-primary truncate">{exercise.name}</h3>
+              <p className="text-xs sm:text-sm text-app-muted truncate">{exercise.muscleGroup?.name || 'General'}</p>
             </div>
           </div>
           <div className="flex items-center gap-2 sm:gap-6 text-xs sm:text-sm flex-shrink-0">
             <div className="text-center hidden sm:block">
-              <p className="font-semibold text-gray-700">Sets</p>
-              <p className="text-gray-600">{assignment.sets}</p>
+              <p className="font-semibold text-app-primary">Sets</p>
+              <p className="text-app-muted">{assignment.sets}</p>
             </div>
             <div className="text-center hidden sm:block">
-              <p className="font-semibold text-gray-700">Reps</p>
-              <p className="text-gray-600">{assignment.reps}</p>
+              <p className="font-semibold text-app-primary">Reps</p>
+              <p className="text-app-muted">{assignment.reps}</p>
             </div>
             <div className="text-center hidden sm:block">
-              <p className="font-semibold text-gray-700">Rest</p>
-              <p className="text-gray-600">{assignment.restSeconds || assignment.rest || 0}s</p>
+              <p className="font-semibold text-app-primary">Rest</p>
+              <p className="text-app-muted">{assignment.restSeconds || assignment.rest || 0}s</p>
             </div>
             {/* Mobile metrics */}
             <div className="sm:hidden text-right">
@@ -444,7 +453,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
               </div>
             </div>
             <svg
-              className={`w-5 h-5 sm:w-6 sm:h-6 text-gray-600 transition-transform flex-shrink-0 ${
+              className={`w-5 h-5 sm:w-6 sm:h-6 text-app-muted transition-transform flex-shrink-0 ${
                 isExpanded ? 'rotate-180' : ''
               }`}
               fill="none"
@@ -464,15 +473,15 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="border-t border-gray-200">
+        <div className="border-t border-app-subtle">
           {/* Track Your Sets Section */}
-          <div className="p-4 bg-gray-50">
+          <div className="p-4 bg-card">
             <div className="flex items-center justify-between mb-3">
-              <h5 className="font-semibold text-gray-800">Track Your Sets</h5>
+              <h5 className="text-lg font-semibold text-app-primary">Track Your Sets</h5>
 
               {/* Loading existing data */}
               {isLoadingExistingData && (
-                <span className="text-xs text-gray-600 flex items-center gap-1">
+                <span className="text-xs text-app-muted flex items-center gap-1">
                   <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -483,7 +492,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
 
               {/* Saving indicator */}
               {!isLoadingExistingData && isSaving && (
-                <span className="text-xs text-blue-600 flex items-center gap-1">
+                <span className="text-xs text-blue-300 flex items-center gap-1">
                   <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
@@ -494,7 +503,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
 
               {/* Saved successfully */}
               {!isLoadingExistingData && !isSaving && lastSaved && (
-                <span className="text-xs text-green-600 flex items-center gap-1">
+                <span className="text-xs text-green-300 flex items-center gap-1">
                   <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
@@ -504,7 +513,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
 
               {/* Error indicator */}
               {saveError && (
-                <span className="text-xs text-red-600 flex items-center gap-1" title={saveError}>
+                <span className="text-xs text-red-300 flex items-center gap-1" title={saveError}>
                   <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
@@ -512,159 +521,114 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
                 </span>
               )}
             </div>
-            <div className="space-y-3">
+            {!isTimeBased && (
+              <div className="grid grid-cols-12 gap-2 px-2 pb-2 text-[11px] uppercase tracking-[0.1em] text-app-muted sm:text-xs">
+                <div className="col-span-1 sm:col-span-1">Set</div>
+                <div className="col-span-3 sm:col-span-2">Reps</div>
+                <div className="col-span-3 sm:col-span-2">Weight</div>
+                <div className="col-span-5 sm:col-span-7">Notes (Optional)</div>
+              </div>
+            )}
+
+            <div className="space-y-2">
               {sets.map((set, setIndex) => (
+                (() => {
+                  const isRepsInvalid = !!set.reps && parseRepsValue(set.reps) === null;
+                  return (
                 <div
                   key={setIndex}
-                  className={`p-3 rounded-lg border ${
-                    (set.reps || set.weight || set.time || set.notes) ? 'bg-green-50 border-green-300' : 'bg-white border-gray-200'
-                  }`}
+                  className="group grid grid-cols-12 items-center gap-1.5 sm:gap-2 rounded-xl border border-app-subtle bg-surface px-2 py-2 transition hover:border-blue-500/40"
                 >
-                  {/* Mobile Layout - Stacked */}
-                  <div className="sm:hidden">
-                    {/* Header row with set number */}
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="font-medium text-gray-700">Set {set.setNumber}</span>
-                    </div>
-
-                    {/* Input fields - stacked vertically with labels on top */}
-                    {isTimeBased ? (
-                      /* Time-based exercises: Show only Time field */
-                      <div className="mb-2">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">
-                          Time
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="text"
-                            placeholder="2"
-                            value={set.time}
-                            onChange={(e) => handleSetChange(setIndex, 'time', e.target.value)}
-                            className="input-field flex-1 !px-2 !py-2"
-                          />
-                          <span className="text-sm text-gray-600">min</span>
-                        </div>
-                      </div>
-                    ) : (
-                      /* Weight-based exercises: Show Weight and Reps fields */
-                      <div className="grid grid-cols-2 gap-2 mb-2">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Reps *
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="10"
-                            value={set.reps}
-                            onChange={(e) => handleSetChange(setIndex, 'reps', e.target.value)}
-                            className="input-field w-full text-sm !px-2 !py-2"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Weight (kg) *
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="10-15"
-                            value={set.weight}
-                            onChange={(e) => handleSetChange(setIndex, 'weight', e.target.value)}
-                            className="input-field w-full text-sm !px-2 !py-2"
-                          />
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">
-                        Notes
-                      </label>
-                      <input
-                        type="text"
-                        placeholder="Optional"
-                        value={set.notes}
-                        onChange={(e) => handleSetChange(setIndex, 'notes', e.target.value)}
-                        className="input-field w-full text-sm !px-2 !py-2"
-                      />
-                    </div>
+                  <div className="col-span-1 sm:col-span-1 flex items-center text-xs sm:text-sm text-app-muted whitespace-nowrap">
+                    <span className="sm:hidden">S{set.setNumber}</span>
+                    <span className="hidden sm:inline">Set {set.setNumber}</span>
                   </div>
 
-                  {/* Desktop Layout - Single Row */}
-                  <div className="hidden sm:flex sm:items-center sm:gap-3">
-                    <span className="font-medium text-gray-700 w-16">Set {set.setNumber}</span>
-
-                    {/* Time-based exercises: Show only Time field */}
-                    {isTimeBased ? (
-                      <div className="flex items-center gap-2">
-                        <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Time:</label>
+                  {/* Time-based exercises: keep one row on mobile and desktop */}
+                  {isTimeBased ? (
+                    <>
+                      <div className="col-span-4 sm:col-span-4 flex items-center gap-1 sm:gap-2">
                         <input
                           type="text"
                           placeholder="2"
                           value={set.time}
                           onChange={(e) => handleSetChange(setIndex, 'time', e.target.value)}
-                          className="input-field w-20 text-sm"
+                          className="input-field w-full text-sm !px-2 !py-2"
                         />
-                        <span className="text-sm text-gray-600">min</span>
+                        <span className="text-sm text-app-muted">min</span>
                       </div>
-                    ) : (
-                      /* Weight-based exercises: Show Weight and Reps fields */
-                      <>
-                        <div className="flex items-center gap-2">
-                          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Weight (kg):</label>
-                          <input
-                            type="text"
-                            placeholder="10-15"
-                            value={set.weight}
-                            onChange={(e) => handleSetChange(setIndex, 'weight', e.target.value)}
-                            className="input-field w-20 text-sm"
-                          />
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Reps:</label>
-                          <input
-                            type="text"
-                            placeholder="10"
-                            value={set.reps}
-                            onChange={(e) => handleSetChange(setIndex, 'reps', e.target.value)}
-                            className="input-field w-20 text-sm"
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    <div className="flex items-center gap-2 flex-1">
-                      <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Notes:</label>
                       <input
                         type="text"
                         placeholder="Optional"
                         value={set.notes}
                         onChange={(e) => handleSetChange(setIndex, 'notes', e.target.value)}
-                        className="input-field flex-1 text-sm"
+                        className="col-span-7 input-field text-sm !px-2 !py-2"
                       />
-                    </div>
-                  </div>
+                    </>
+                  ) : (
+                    <>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        placeholder="Reps"
+                        value={set.reps}
+                        onChange={(e) => handleSetChange(setIndex, 'reps', e.target.value)}
+                        inputMode="numeric"
+                        className={`col-span-3 sm:col-span-2 input-field text-sm !px-2 !py-2 ${getInvalidInputClass(isRepsInvalid)}`}
+                      />
+                      <input
+                        type="number"
+                        min="1"
+                        placeholder="Kg"
+                        value={set.weight}
+                        onChange={(e) => handleSetChange(setIndex, 'weight', e.target.value)}
+                        inputMode="decimal"
+                        className="col-span-3 sm:col-span-2 input-field text-sm !px-2 !py-2"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Optional"
+                        value={set.notes}
+                        onChange={(e) => handleSetChange(setIndex, 'notes', e.target.value)}
+                        className="col-span-5 sm:col-span-7 input-field text-sm !px-2 !py-2"
+                      />
+                    </>
+                  )}
                 </div>
+                  );
+                })()
               ))}
+            </div>
+
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              <button
+                id={`exercise-tracker-${assignmentIdToken}-add-set-button`}
+                type="button"
+                onClick={handleAddSet}
+                className="btn-outline"
+              >
+                + Add Set
+              </button>
             </div>
           </div>
 
           {/* Exercise Description Section */}
-          <div className="p-4 border-t border-gray-200">
-            <h5 className="font-semibold text-gray-800 mb-2">Exercise Description</h5>
-            <p className="text-gray-700 mb-4">{exercise.description || 'No description available.'}</p>
+          <div className="p-4 border-t border-app-subtle">
+            <h5 className="font-semibold text-app-primary mb-2">Exercise Description</h5>
+            <p className="mb-4 text-app-muted">{exercise.description || 'No description available.'}</p>
 
             {/* Exercise Steps */}
             {exercise.steps && exercise.steps.length > 0 && (
               <>
-                <h5 className="font-semibold text-gray-800 mb-3">How to Perform</h5>
-                <ol className="space-y-2">
+                <h5 className="font-semibold text-app-primary mb-3">How to Perform</h5>
+                <ol className="m-0 list-none space-y-2.5 p-0">
                   {exercise.steps.map((step, idx) => (
-                    <li key={idx} className="flex">
-                      <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                    <li key={idx} className="flex items-start gap-3">
+                      <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-app-subtle bg-surface text-xs font-semibold text-app-primary">
                         {idx + 1}
                       </span>
-                      <span className="text-gray-700 pt-0.5">{step}</span>
+                      <span className="flex-1 leading-6 text-app-muted">{step}</span>
                     </li>
                   ))}
                 </ol>
@@ -678,7 +642,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
                   href={exercise.youtubeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center btn-danger transition"
+                  className="inline-flex items-center btn-outline border-red-500/50 bg-red-500/10 text-red-300 hover:bg-red-500/15 transition"
                 >
                   <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -695,5 +659,6 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
 }
 
 export default ExerciseTracker;
+
 
 

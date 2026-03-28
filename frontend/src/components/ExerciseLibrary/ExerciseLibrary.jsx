@@ -48,11 +48,11 @@ function ExerciseLibrary() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-800">Exercise Library</h1>
+        <h1 className="text-3xl font-bold text-app-primary">Exercise Library</h1>
         <div className="card p-8 text-center">
           <div className="animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mx-auto mb-4"></div>
-            <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+            <div className="h-4 bg-surface rounded w-1/4 mx-auto mb-4"></div>
+            <div className="h-4 bg-surface rounded w-1/2 mx-auto"></div>
           </div>
         </div>
       </div>
@@ -62,12 +62,13 @@ function ExerciseLibrary() {
   if (error) {
     return (
       <div className="space-y-6">
-        <h1 className="text-3xl font-bold text-gray-800">Exercise Library</h1>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <p className="text-red-800 font-medium">Error: {error}</p>
+        <h1 className="text-3xl font-bold text-app-primary">Exercise Library</h1>
+        <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-6">
+          <p className="text-red-300 font-medium">Error: {error}</p>
           <button
+            id="exercise-library-retry-button"
             onClick={fetchData}
-            className="mt-4 px-4 py-2 btn-danger"
+            className="mt-4 btn-outline border-red-500/50 bg-red-500/10 text-red-300 hover:bg-red-500/15"
           >
             Try Again
           </button>
@@ -81,8 +82,8 @@ function ExerciseLibrary() {
       <div className="space-y-4 sm:space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-0">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Exercise Library</h1>
-          <p className="text-sm sm:text-base text-gray-600">
+          <h1 className="text-2xl sm:text-3xl font-bold text-app-primary">Exercise Library</h1>
+          <p className="text-sm sm:text-base text-app-muted">
             {filteredExercises.length} of {exercises.length} exercises
           </p>
         </div>
@@ -92,7 +93,7 @@ function ExerciseLibrary() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Search */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="label">
                 Search Exercises
               </label>
               <input
@@ -106,7 +107,7 @@ function ExerciseLibrary() {
 
             {/* Muscle Group Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="label">
                 Filter by Muscle Group
               </label>
               <select
@@ -127,9 +128,7 @@ function ExerciseLibrary() {
 
         {/* Exercise Grid */}
         {filteredExercises.length === 0 ? (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-            <p className="text-gray-600">No exercises found matching your criteria.</p>
-          </div>
+          <div className="card p-8 text-center text-app-muted">No exercises found matching your criteria.</div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredExercises.map(exercise => (
@@ -162,31 +161,31 @@ function ExerciseCard({ exercise, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="card hover:shadow-lg transition cursor-pointer overflow-hidden flex flex-col h-full"
+      className="card cursor-pointer overflow-hidden flex flex-col h-full transition duration-200 hover:-translate-y-0.5 hover:border-blue-500/50"
     >
       <div className="p-6">
         <div className="flex items-start justify-between mb-3">
-          <h3 className="text-lg font-bold text-gray-800 flex-1">
+          <h3 className="text-lg font-bold text-app-primary flex-1">
             {exercise.name}
           </h3>
           {exercise.youtubeUrl && (
-            <svg className="w-5 h-5 text-red-600 flex-shrink-0 ml-2" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-red-500 flex-shrink-0 ml-2" fill="currentColor" viewBox="0 0 24 24">
               <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
             </svg>
           )}
         </div>
 
-        <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-medium rounded-full mb-3">
+        <span className="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-sm font-medium text-blue-200 mb-3">
           {exercise.muscleGroup?.name || 'General'}
         </span>
 
-        <p className="text-gray-600 text-sm line-clamp-3">
+        <p className="text-app-muted text-sm line-clamp-3">
           {exercise.description}
         </p>
       </div>
 
-      <div className="bg-gray-50 px-6 py-3 border-t border-gray-100 mt-auto">
-        <p className="text-sm text-blue-600 font-medium">
+      <div className="bg-surface px-6 py-3 border-t border-app-subtle mt-auto">
+        <p className="text-sm text-blue-200 font-medium">
           Click to view details →
         </p>
       </div>
@@ -210,7 +209,7 @@ function ExerciseDetailModal({ exercise, onClose }) {
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       onClick={onClose}
     >
       <div
@@ -219,63 +218,61 @@ function ExerciseDetailModal({ exercise, onClose }) {
         aria-modal="true"
         aria-labelledby="exercise-detail-title"
         tabIndex={-1}
-        className="card max-w-2xl w-full max-h-[90vh] flex flex-col"
+        className="w-full max-w-2xl max-h-[90vh] rounded-2xl border border-app-subtle bg-card shadow-card flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header - Fixed */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white flex justify-between items-start rounded-t-lg flex-shrink-0">
-          <div>
-            <h2 id="exercise-detail-title" className="text-2xl font-bold">{exercise.name}</h2>
-            <p className="text-blue-100 mt-1">
+        <div className="flex items-center justify-between border-b border-app-subtle px-5 py-4">
+          <div className="min-w-0">
+            <h2 id="exercise-detail-title" className="truncate text-xl font-semibold text-app-primary">
+              {exercise.name}
+            </h2>
+            <p className="mt-1 text-sm text-app-muted">
               {exercise.muscleGroup?.name || 'General'}
             </p>
           </div>
           <button
             ref={closeBtnRef}
+            id={`exercise-detail-${exercise.id}-close-icon-button`}
             onClick={onClose}
-            className="text-white hover:text-gray-200 transition"
+            className="text-app-muted hover:text-app-primary"
             aria-label="Close exercise details"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        {/* Content - Scrollable */}
-        <div className="p-6 overflow-y-auto flex-1">
-          {/* Description */}
+        <div className="space-y-5 px-5 py-4 overflow-y-auto flex-1">
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Description</h3>
-            <p className="text-gray-700">{exercise.description}</p>
+            <h3 className="font-semibold text-app-primary mb-2">Description</h3>
+            <p className="text-app-muted">{exercise.description}</p>
           </div>
 
           {/* Steps */}
           {exercise.steps && exercise.steps.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">How to Perform</h3>
-              <ol className="space-y-2">
-                {exercise.steps.map((step, index) => (
-                  <li key={index} className="flex">
-                    <span className="flex-shrink-0 w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold mr-3">
-                      {index + 1}
+              <h3 className="font-semibold text-app-primary mb-3">How to Perform</h3>
+              <ol className="m-0 list-none space-y-2.5 p-0">
+                {exercise.steps.map((step, idx) => (
+                  <li key={idx} className="flex items-start gap-3">
+                    <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border border-app-subtle bg-surface text-xs font-semibold text-app-primary">
+                      {idx + 1}
                     </span>
-                    <span className="text-gray-700 pt-0.5">{step}</span>
+                    <span className="flex-1 leading-6 text-app-muted">{step}</span>
                   </li>
                 ))}
               </ol>
             </div>
           )}
 
-          {/* YouTube Video */}
           {exercise.youtubeUrl && (
-            <div className="mt-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">Video Tutorial</h3>
+            <div>
               <a
                 href={exercise.youtubeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 btn-danger transition"
+                className="inline-flex items-center btn-outline border-red-500/50 bg-red-500/10 text-red-300 hover:bg-red-500/15 transition"
               >
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
@@ -286,15 +283,6 @@ function ExerciseDetailModal({ exercise, onClose }) {
           )}
         </div>
 
-        {/* Footer - Fixed */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex justify-end rounded-b-lg flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 btn-secondary bg-gray-600 text-white hover:bg-gray-700 transition"
-          >
-            Close
-          </button>
-        </div>
       </div>
     </div>
   );

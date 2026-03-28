@@ -39,12 +39,16 @@ const normalizeDate = (completedDate) => {
     targetDate = new Date();
   } else if (typeof completedDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(completedDate)) {
     const [year, month, day] = completedDate.split('-').map((value) => Number.parseInt(value, 10));
-    targetDate = new Date(year, month - 1, day);
+    targetDate = new Date(Date.UTC(year, month - 1, day));
   } else {
-    targetDate = new Date(completedDate);
+    const parsed = new Date(completedDate);
+    if (Number.isNaN(parsed.getTime())) {
+      targetDate = new Date();
+    } else {
+      targetDate = new Date(Date.UTC(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate()));
+    }
   }
 
-  targetDate.setHours(0, 0, 0, 0);
   return targetDate;
 };
 

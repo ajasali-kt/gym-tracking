@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 const FOCUSABLE_SELECTOR = [
   'a[href]',
@@ -16,6 +16,12 @@ export default function useAccessibleModal({
   modalRef,
   initialFocusRef
 }) {
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!isOpen || !modalRef?.current) return undefined;
 
@@ -31,6 +37,15 @@ export default function useAccessibleModal({
     }
     bodyEl.dataset.modalScrollLockCount = String(currentLockCount + 1);
 
+    const focusElement = (element) => {
+      if (!element || typeof element.focus !== 'function') return;
+      try {
+        element.focus({ preventScroll: true });
+      } catch {
+        element.focus();
+      }
+    };
+
     const getFocusableEls = () => Array.from(modalEl.querySelectorAll(FOCUSABLE_SELECTOR));
     const isTopMostModal = () => {
       const openModals = Array.from(document.querySelectorAll('[data-accessible-modal="true"]'));
@@ -40,16 +55,14 @@ export default function useAccessibleModal({
     const focusableEls = getFocusableEls();
     const firstFocusable = initialFocusRef?.current || focusableEls[0] || modalEl;
 
-    if (firstFocusable && typeof firstFocusable.focus === 'function') {
-      firstFocusable.focus();
-    }
+    focusElement(firstFocusable);
 
     const handleKeyDown = (event) => {
       if (!isTopMostModal()) return;
 
       if (event.key === 'Escape') {
         event.preventDefault();
-        onClose?.();
+        onCloseRef.current?.();
         return;
       }
 
@@ -61,23 +74,23 @@ export default function useAccessibleModal({
 
       if (!modalEl.contains(document.activeElement)) {
         event.preventDefault();
-        currentFirstFocusable.focus();
+        focusElement(currentFirstFocusable);
         return;
       }
 
       if (currentFocusableEls.length === 0) {
         event.preventDefault();
-        modalEl.focus();
+        focusElement(modalEl);
         return;
       }
 
       const activeEl = document.activeElement;
       if (event.shiftKey && activeEl === currentFirstFocusable) {
         event.preventDefault();
-        currentLastFocusable.focus();
+        focusElement(currentLastFocusable);
       } else if (!event.shiftKey && activeEl === currentLastFocusable) {
         event.preventDefault();
-        currentFirstFocusable.focus();
+        focusElement(currentFirstFocusable);
       }
     };
 
@@ -99,8 +112,8 @@ export default function useAccessibleModal({
         previousActiveElement &&
         typeof previousActiveElement.focus === 'function'
       ) {
-        previousActiveElement.focus();
+        focusElement(previousActiveElement);
       }
     };
-  }, [isOpen, onClose, modalRef, initialFocusRef]);
+  }, [isOpen, modalRef, initialFocusRef]);
 }

@@ -2,13 +2,19 @@ const {
   getProgressHistory,
   getRecentProgress,
   getExerciseProgress,
-  getExercisePersonalRecord,
   getProgressStats
 } = require('../services/progressService');
 
+const getFilterModel = (req) => {
+  if (req.method === 'POST') {
+    return req.body?.filters || req.body || {};
+  }
+  return req.query || {};
+};
+
 const getHistory = async (req, res, next) => {
   try {
-    const logs = await getProgressHistory(req.userId, req.query);
+    const logs = await getProgressHistory(req.userId, getFilterModel(req));
     res.json(logs);
   } catch (error) {
     next(error);
@@ -17,7 +23,7 @@ const getHistory = async (req, res, next) => {
 
 const getRecent = async (req, res, next) => {
   try {
-    const logs = await getRecentProgress(req.userId, req.query);
+    const logs = await getRecentProgress(req.userId, getFilterModel(req));
     res.json(logs);
   } catch (error) {
     next(error);
@@ -26,16 +32,7 @@ const getRecent = async (req, res, next) => {
 
 const getExercise = async (req, res, next) => {
   try {
-    const result = await getExerciseProgress(req.userId, req.params.id, req.query);
-    res.json(result);
-  } catch (error) {
-    next(error);
-  }
-};
-
-const getPersonalRecord = async (req, res, next) => {
-  try {
-    const result = await getExercisePersonalRecord(req.userId, req.params.id);
+    const result = await getExerciseProgress(req.userId, req.params.id, getFilterModel(req));
     res.json(result);
   } catch (error) {
     next(error);
@@ -55,6 +52,5 @@ module.exports = {
   getHistory,
   getRecent,
   getExercise,
-  getPersonalRecord,
   getStats
 };
