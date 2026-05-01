@@ -6,6 +6,7 @@ import progressService from '../../services/progressService';
 import useAccessibleModal from '../../hooks/useAccessibleModal';
 import ExerciseCard from '../log/ExerciseCard';
 import { isValidPositiveInteger } from '../../utils/inputValidation';
+import NotFound from '../shared/NotFound';
 
 function SaveIndicator({ status }) {
   if (status === 'saving') return <span className="text-xs text-warning">Saving</span>;
@@ -20,13 +21,14 @@ function ManualWorkoutLog() {
   const location = useLocation();
   const { workoutId } = useParams();
   const isEditMode = !!workoutId;
+  const routeWorkoutLogId = isValidPositiveInteger(workoutId) ? Number.parseInt(workoutId, 10) : null;
 
   const [exercises, setExercises] = useState([]);
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [workoutDate, setWorkoutDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [workoutName, setWorkoutName] = useState('');
   const [workoutNotes, setWorkoutNotes] = useState('');
-  const [workoutLogId, setWorkoutLogId] = useState(workoutId ? Number.parseInt(workoutId, 10) : null);
+  const [workoutLogId, setWorkoutLogId] = useState(routeWorkoutLogId);
   const [exerciseLogs, setExerciseLogs] = useState({});
   const [exerciseMeta, setExerciseMeta] = useState({});
   const [loading, setLoading] = useState(true);
@@ -34,6 +36,7 @@ function ManualWorkoutLog() {
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [pendingChanges, setPendingChanges] = useState(false);
   const [error, setError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [savePulse, setSavePulse] = useState(false);
 
@@ -81,13 +84,23 @@ function ManualWorkoutLog() {
       setPendingChanges(false);
       setSaveStatus('idle');
       setLastSavedAt(null);
-      setWorkoutLogId(workoutId ? Number.parseInt(workoutId, 10) : null);
+      setLoadError(null);
+      setWorkoutLogId(isEditMode ? routeWorkoutLogId : null);
+
+      if (isEditMode && !routeWorkoutLogId) {
+        setSelectedExercises([]);
+        setExerciseLogs({});
+        setWorkoutName('');
+        setWorkoutNotes('');
+        setLoadError('Workout log not found');
+        return;
+      }
 
       const exercisesData = await exerciseService.getAllExercises();
       setExercises(exercisesData);
 
       if (isEditMode) {
-        const workoutData = await progressService.getWorkoutLog(workoutId);
+        const workoutData = await progressService.getWorkoutLog(routeWorkoutLogId);
 
         setWorkoutName(workoutData.workoutName || workoutData.workoutDay?.dayName || '');
         setWorkoutDate(toDateInputValue(workoutData.completedDate));
@@ -125,7 +138,7 @@ function ManualWorkoutLog() {
         setWorkoutDate(format(new Date(), 'yyyy-MM-dd'));
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load workout');
+      setLoadError(err.response?.data?.message || 'Failed to load workout');
     } finally {
       setLoading(false);
     }
@@ -383,6 +396,10 @@ function ManualWorkoutLog() {
     );
   }
 
+  if (loadError) {
+    return <NotFound errorCode="401" />;
+  }
+
   return (
     <>
       <div className="space-y-5">
@@ -390,29 +407,35 @@ function ManualWorkoutLog() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.12em] text-app-muted">Live Logging</p>
-              <h1 className="text-2xl font-bold text-app-primary">{isEditMode ? 'Edit Workout' : 'Manual Workout Log'}</h1>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h1 className="text-2xl font-bold text-app-primary">{isEditMode ? 'Edit Workout' : 'Manual Workout Log'}</h1>
+                <div className="flex items-center gap-2">
+                  <SaveIndicator status={saveStatus} />
+                  {lastSavedAt && <span className="text-xs text-app-muted">{format(new Date(lastSavedAt), 'p')}</span>}
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <SaveIndicator status={saveStatus} />
-              {lastSavedAt && <span className="text-xs text-app-muted">{format(new Date(lastSavedAt), 'p')}</span>}
-              {workoutLogId && (
+              <div className="flex w-full flex-nowrap items-center gap-2 sm:w-auto">
+                {workoutLogId && (
+                  <button
+                    type="button"
+                    id="manual-workout-delete-button"
+                    onClick={handleDeleteWorkout}
+                    className="btn-outline flex-1 border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/15 sm:flex-none"
+                  >
+                    Delete
+                  </button>
+                )}
                 <button
-                  type="button"
-                  id="manual-workout-delete-button"
-                  onClick={handleDeleteWorkout}
-                  className="btn-outline border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/15"
+                  id="manual-workout-back-button"
+                  onClick={handleBack}
+                  className="btn-secondary flex-1 px-4 py-2 transition sm:flex-none"
                 >
-                  Delete
+                  Back
                 </button>
-              )}
-              <button
-                id="manual-workout-back-button"
-                onClick={handleBack}
-                className="w-full sm:w-auto px-4 py-2 btn-secondary transition"
-              >
-                Back
-              </button>
+              </div>
             </div>
           </div>
 

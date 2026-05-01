@@ -122,7 +122,7 @@ function Login() {
                 id="login-submit-button"
                 type="submit"
                 disabled={loading}
-                className={`btn-primary w-full ${loading ? 'cursor-not-allowed opacity-70' : ''}`}
+                className={`btn-outline w-full ${loading ? 'cursor-not-allowed opacity-70' : ''}`}
               >
                 {loading ? (
                   <span className="flex items-center">
