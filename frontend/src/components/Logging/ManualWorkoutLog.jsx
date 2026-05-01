@@ -6,6 +6,7 @@ import progressService from '../../services/progressService';
 import useAccessibleModal from '../../hooks/useAccessibleModal';
 import ExerciseCard from '../log/ExerciseCard';
 import { isValidPositiveInteger } from '../../utils/inputValidation';
+import NotFound from '../shared/NotFound';
 
 function SaveIndicator({ status }) {
   if (status === 'saving') return <span className="text-xs text-warning">Saving</span>;
@@ -20,13 +21,14 @@ function ManualWorkoutLog() {
   const location = useLocation();
   const { workoutId } = useParams();
   const isEditMode = !!workoutId;
+  const routeWorkoutLogId = isValidPositiveInteger(workoutId) ? Number.parseInt(workoutId, 10) : null;
 
   const [exercises, setExercises] = useState([]);
   const [selectedExercises, setSelectedExercises] = useState([]);
   const [workoutDate, setWorkoutDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [workoutName, setWorkoutName] = useState('');
   const [workoutNotes, setWorkoutNotes] = useState('');
-  const [workoutLogId, setWorkoutLogId] = useState(workoutId ? Number.parseInt(workoutId, 10) : null);
+  const [workoutLogId, setWorkoutLogId] = useState(routeWorkoutLogId);
   const [exerciseLogs, setExerciseLogs] = useState({});
   const [exerciseMeta, setExerciseMeta] = useState({});
   const [loading, setLoading] = useState(true);
@@ -34,6 +36,7 @@ function ManualWorkoutLog() {
   const [lastSavedAt, setLastSavedAt] = useState(null);
   const [pendingChanges, setPendingChanges] = useState(false);
   const [error, setError] = useState(null);
+  const [loadError, setLoadError] = useState(null);
   const [showExercisePicker, setShowExercisePicker] = useState(false);
   const [savePulse, setSavePulse] = useState(false);
 
@@ -81,13 +84,23 @@ function ManualWorkoutLog() {
       setPendingChanges(false);
       setSaveStatus('idle');
       setLastSavedAt(null);
-      setWorkoutLogId(workoutId ? Number.parseInt(workoutId, 10) : null);
+      setLoadError(null);
+      setWorkoutLogId(isEditMode ? routeWorkoutLogId : null);
+
+      if (isEditMode && !routeWorkoutLogId) {
+        setSelectedExercises([]);
+        setExerciseLogs({});
+        setWorkoutName('');
+        setWorkoutNotes('');
+        setLoadError('Workout log not found');
+        return;
+      }
 
       const exercisesData = await exerciseService.getAllExercises();
       setExercises(exercisesData);
 
       if (isEditMode) {
-        const workoutData = await progressService.getWorkoutLog(workoutId);
+        const workoutData = await progressService.getWorkoutLog(routeWorkoutLogId);
 
         setWorkoutName(workoutData.workoutName || workoutData.workoutDay?.dayName || '');
         setWorkoutDate(toDateInputValue(workoutData.completedDate));
@@ -125,7 +138,7 @@ function ManualWorkoutLog() {
         setWorkoutDate(format(new Date(), 'yyyy-MM-dd'));
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load workout');
+      setLoadError(err.response?.data?.message || 'Failed to load workout');
     } finally {
       setLoading(false);
     }
@@ -381,6 +394,10 @@ function ManualWorkoutLog() {
         <div className="card h-80 bg-surface" />
       </div>
     );
+  }
+
+  if (loadError) {
+    return <NotFound errorCode="401" />;
   }
 
   return (
