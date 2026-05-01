@@ -390,29 +390,35 @@ function ManualWorkoutLog() {
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.12em] text-app-muted">Live Logging</p>
-              <h1 className="text-2xl font-bold text-app-primary">{isEditMode ? 'Edit Workout' : 'Manual Workout Log'}</h1>
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h1 className="text-2xl font-bold text-app-primary">{isEditMode ? 'Edit Workout' : 'Manual Workout Log'}</h1>
+                <div className="flex items-center gap-2">
+                  <SaveIndicator status={saveStatus} />
+                  {lastSavedAt && <span className="text-xs text-app-muted">{format(new Date(lastSavedAt), 'p')}</span>}
+                </div>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <SaveIndicator status={saveStatus} />
-              {lastSavedAt && <span className="text-xs text-app-muted">{format(new Date(lastSavedAt), 'p')}</span>}
-              {workoutLogId && (
+              <div className="flex w-full flex-nowrap items-center gap-2 sm:w-auto">
+                {workoutLogId && (
+                  <button
+                    type="button"
+                    id="manual-workout-delete-button"
+                    onClick={handleDeleteWorkout}
+                    className="btn-outline flex-1 border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/15 sm:flex-none"
+                  >
+                    Delete
+                  </button>
+                )}
                 <button
-                  type="button"
-                  id="manual-workout-delete-button"
-                  onClick={handleDeleteWorkout}
-                  className="btn-outline border-red-500/40 bg-red-500/10 text-red-300 hover:bg-red-500/15"
+                  id="manual-workout-back-button"
+                  onClick={handleBack}
+                  className="btn-secondary flex-1 px-4 py-2 transition sm:flex-none"
                 >
-                  Delete
+                  Back
                 </button>
-              )}
-              <button
-                id="manual-workout-back-button"
-                onClick={handleBack}
-                className="w-full sm:w-auto px-4 py-2 btn-secondary transition"
-              >
-                Back
-              </button>
+              </div>
             </div>
           </div>
 
