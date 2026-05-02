@@ -103,7 +103,47 @@ const isAdmin = async (req, res, next) => {
   }
 };
 
+/**
+ * Body measurements feature authorization middleware.
+ * Must be used after authenticate middleware.
+ */
+const requireBodyMeasurementsFeature = async (req, res, next) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({
+        error: true,
+        message: 'Authentication required',
+        statusCode: 401
+      });
+    }
+
+    const userFeature = await prisma.userFeature.findUnique({
+      where: { userId: req.userId },
+      select: { bodyMeasurementsEnabled: true }
+    });
+
+    if (!userFeature?.bodyMeasurementsEnabled) {
+      return res.status(403).json({
+        error: true,
+        message: 'Body measurements feature is not enabled for this user',
+        statusCode: 403
+      });
+    }
+
+    next();
+  } catch (error) {
+    console.error('Feature authorization error:', error);
+
+    return res.status(403).json({
+      error: true,
+      message: 'Feature authorization failed',
+      statusCode: 403
+    });
+  }
+};
+
 module.exports = {
   authenticate,
-  isAdmin
+  isAdmin,
+  requireBodyMeasurementsFeature
 };

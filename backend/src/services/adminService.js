@@ -132,9 +132,90 @@ const getAdminStats = async () => {
   };
 };
 
+const listUserFeatures = async () => {
+  const users = await prisma.user.findMany({
+    orderBy: { username: 'asc' },
+    select: {
+      id: true,
+      username: true,
+      userType: true,
+      createdAt: true,
+      userFeature: {
+        select: {
+          bodyMeasurementsEnabled: true,
+          updatedAt: true
+        }
+      }
+    }
+  });
+
+  const missingFeatureUsers = users.filter((user) => !user.userFeature);
+  if (missingFeatureUsers.length > 0) {
+    await prisma.userFeature.createMany({
+      data: missingFeatureUsers.map((user) => ({ userId: user.id })),
+      skipDuplicates: true
+    });
+  }
+
+  return {
+    success: true,
+    users: users.map((user) => ({
+      id: user.id,
+      username: user.username,
+      userType: user.userType,
+      createdAt: user.createdAt,
+      features: {
+        bodyMeasurementsEnabled: !!user.userFeature?.bodyMeasurementsEnabled
+      }
+    }))
+  };
+};
+
+const updateUserFeature = async (userId, payload) => {
+  const parsedUserId = Number.parseInt(userId, 10);
+  if (!Number.isFinite(parsedUserId)) {
+    throw createHttpError(400, 'Invalid user id');
+  }
+
+  if (typeof payload.bodyMeasurementsEnabled !== 'boolean') {
+    throw createHttpError(400, 'bodyMeasurementsEnabled must be a boolean');
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: parsedUserId },
+    select: { id: true, username: true }
+  });
+
+  if (!user) {
+    throw createHttpError(404, 'User not found');
+  }
+
+  const userFeature = await prisma.userFeature.upsert({
+    where: { userId: parsedUserId },
+    update: {
+      bodyMeasurementsEnabled: payload.bodyMeasurementsEnabled
+    },
+    create: {
+      userId: parsedUserId,
+      bodyMeasurementsEnabled: payload.bodyMeasurementsEnabled
+    }
+  });
+
+  return {
+    success: true,
+    user: {
+      ...user,
+      features: {
+        bodyMeasurementsEnabled: userFeature.bodyMeasurementsEnabled
+      }
+    }
+  };
+};
+
 const clearAllData = async () => {
   await prisma.exerciseLog.deleteMany({});
   await prisma.workoutLog.deleteMany({});
+  await prisma.bodyMeasurement.deleteMany({});
   await prisma.workoutDayExercise.deleteMany({});
   await prisma.workoutDay.deleteMany({});
   await prisma.workoutPlan.deleteMany({});
@@ -151,5 +232,7 @@ module.exports = {
   importMuscleGroups,
   importExercises,
   getAdminStats,
+  listUserFeatures,
+  updateUserFeature,
   clearAllData
 };
