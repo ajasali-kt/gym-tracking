@@ -20,6 +20,130 @@ function iconPath(name) {
   );
 }
 
+function FeaturesManagement() {
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [savingUserId, setSavingUserId] = useState(null);
+  const [error, setError] = useState(null);
+
+  const fetchUserFeatures = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiClient.get('/admin/features/users');
+      setUsers(response.data.users || []);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load feature access');
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserFeatures();
+  }, []);
+
+  const toggleBodyMeasurements = async (user) => {
+    const nextValue = !user.features?.bodyMeasurementsEnabled;
+
+    try {
+      setSavingUserId(user.id);
+      setError(null);
+      await apiClient.put(`/admin/features/users/${user.id}`, {
+        bodyMeasurementsEnabled: nextValue
+      });
+      setUsers((prev) => prev.map((item) => (
+        item.id === user.id
+          ? { ...item, features: { ...item.features, bodyMeasurementsEnabled: nextValue } }
+          : item
+      )));
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to update feature access');
+    } finally {
+      setSavingUserId(null);
+    }
+  };
+
+  return (
+    <div className="card p-6">
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="text-xl font-semibold text-app-primary">Feature Access</h2>
+          <p className="mt-1 text-sm text-app-muted">Enable Body Measurements for selected users.</p>
+        </div>
+        <button
+          id="admin-refresh-features-button"
+          type="button"
+          onClick={fetchUserFeatures}
+          disabled={loading}
+          className="btn-secondary disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? 'Loading..' : 'Refresh'}
+        </button>
+      </div>
+
+      {error && (
+        <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+          {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="h-44 animate-pulse rounded-xl border border-app-subtle bg-surface" />
+      ) : users.length === 0 ? (
+        <div className="rounded-xl border border-app-subtle bg-surface p-5 text-sm text-app-muted">
+          No users found.
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="border-b border-app-subtle text-xs uppercase tracking-[0.12em] text-app-muted">
+              <tr>
+                <th className="px-3 py-3 font-medium">User</th>
+                <th className="px-3 py-3 font-medium">Role</th>
+                <th className="px-3 py-3 font-medium">Body Measurements</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-app-subtle">
+              {users.map((user) => {
+                const enabled = !!user.features?.bodyMeasurementsEnabled;
+                const saving = savingUserId === user.id;
+                return (
+                  <tr key={user.id}>
+                    <td className="px-3 py-4">
+                      <p className="font-semibold text-app-primary">{user.username}</p>
+                      <p className="text-xs text-app-muted">ID {user.id}</p>
+                    </td>
+                    <td className="px-3 py-4 text-app-muted">
+                      {user.userType === 1 ? 'Admin' : 'User'}
+                    </td>
+                    <td className="px-3 py-4">
+                      <button
+                        id={`admin-user-${user.id}-body-measurements-toggle`}
+                        type="button"
+                        onClick={() => toggleBodyMeasurements(user)}
+                        disabled={saving}
+                        className={`inline-flex min-h-[38px] min-w-[96px] items-center justify-center rounded-lg border px-3 py-2 text-xs font-semibold transition disabled:opacity-60 ${
+                          enabled
+                            ? 'border-green-500/40 bg-green-500/15 text-green-300'
+                            : 'border-app-subtle bg-surface text-app-muted'
+                        }`}
+                      >
+                        {saving ? 'Saving...' : enabled ? 'Enabled' : 'Disabled'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Admin() {
   const [activeTab, setActiveTab] = useState('data');
   const [muscleGroupsJson, setMuscleGroupsJson] = useState('');
@@ -193,6 +317,13 @@ function Admin() {
             >
               Share Links
             </button>
+            <button
+              id="admin-tab-features-button"
+              onClick={() => setActiveTab('features')}
+              className={`segment-btn ${activeTab === 'features' ? 'segment-btn-active' : ''}`}
+            >
+              Features
+            </button>
           </div>
         </div>
 
@@ -210,6 +341,8 @@ function Admin() {
 
       {activeTab === 'shares' ? (
         <SharesManagement />
+      ) : activeTab === 'features' ? (
+        <FeaturesManagement />
       ) : (
         <>
           <div className="card p-6">

@@ -19,6 +19,7 @@ const progressRoutes = require('./routes/progress');
 const adminRoutes = require('./routes/admin');
 const historyRoutes = require('./routes/history');
 const shareRoutes = require('./routes/share');
+const bodyMeasurementsRoutes = require('./routes/bodyMeasurements');
 
 // Import middleware
 const errorHandler = require('./middleware/errorHandler');
@@ -64,6 +65,7 @@ app.use('/api/dashboard', authenticate, dashboardRoutes);
 app.use('/api/logs', authenticate, loggingRoutes);
 app.use('/api/progress', authenticate, progressRoutes);
 app.use('/api/history', authenticate, historyRoutes);
+app.use('/api/body-measurements', authenticate, bodyMeasurementsRoutes);
 
 // API Routes - Share (public and protected)
 app.use('/api/share', shareRoutes);

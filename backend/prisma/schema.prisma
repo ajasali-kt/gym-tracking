@@ -27,9 +27,29 @@ model User {
   workoutPlans WorkoutPlan[]
   workoutLogs  WorkoutLog[]
   workoutShares WorkoutShare[]
+  userFeature UserFeature?
+  bodyMeasurements BodyMeasurement[]
 
   @@index([username])
   @@map("users")
+}
+
+// ============================================
+// Model 2: User Features
+// ============================================
+// Per-user feature switches. Future features can be added as boolean columns.
+model UserFeature {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique @map("user_id")
+  bodyMeasurementsEnabled Boolean @default(false) @map("body_measurements_enabled")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_features")
 }
 
 // ============================================
@@ -215,4 +235,27 @@ model WorkoutShare {
   @@index([expiresAt])
   @@index([createdAt])
   @@map("workout_shares")
+}
+
+// ============================================
+// Model 10: Body Measurements
+// ============================================
+// Records body weight and height for users over time
+model BodyMeasurement {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @map("user_id")
+  measuredDate DateTime @map("measured_date") @db.Date
+  weightKg     Float    @map("weight_kg")
+  heightCm     Float    @map("height_cm")
+  notes        String?  @db.Text
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, measuredDate])
+  @@index([userId])
+  @@index([measuredDate])
+  @@map("body_measurements")
 }

@@ -1,10 +1,13 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useCallback } from 'react';
 import { format, parseISO } from 'date-fns';
 import progressService from '../../services/progressService';
 import exerciseService from '../../services/exerciseService';
+import { useAuth } from '../../contexts/AuthContext';
 import StatCard from '../stats/StatCard';
 import ExerciseTrendChart from '../charts/ExerciseTrendChart';
+import BodyMeasurementsPanel from './BodyMeasurementsPanel';
 
 function iconPath(name) {
   const map = {
@@ -57,6 +60,7 @@ function getDateRangeParams(days) {
 }
 
 function Progress() {
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [stats, setStats] = useState(null);
@@ -66,6 +70,7 @@ function Progress() {
   const [exerciseProgress, setExerciseProgress] = useState([]);
   const [metric, setMetric] = useState('weight');
   const [selectedRange, setSelectedRange] = useState('30');
+  const [activeTab, setActiveTab] = useState('workout');
   const [deletingWorkoutId, setDeletingWorkoutId] = useState(null);
   const [expandedWorkouts, setExpandedWorkouts] = useState({});
   const rangeOptions = [
@@ -75,16 +80,35 @@ function Progress() {
     { key: '365', label: '1Y', days: 365 }
   ];
   const selectedRangeDays = rangeOptions.find((option) => option.key === selectedRange)?.days || 30;
+  const bodyMeasurementsEnabled = !!user?.features?.bodyMeasurementsEnabled;
+
+  useEffect(() => {
+    if (activeTab === 'body' && !bodyMeasurementsEnabled) {
+      setActiveTab('workout');
+    }
+  }, [activeTab, bodyMeasurementsEnabled]);
 
   useEffect(() => {
     fetchInitial();
   }, []);
 
+  const fetchExerciseProgress = useCallback(async (exerciseId) => {
+    try {
+      const response = await progressService.getExerciseProgress(exerciseId, {
+        ...getDateRangeParams(selectedRangeDays),
+        limit: 500
+      });
+      setExerciseProgress(response?.logs || []);
+    } catch {
+      setExerciseProgress([]);
+    }
+  }, [selectedRangeDays]);
+
   useEffect(() => {
-    if (selectedExercise) {
+    if (activeTab === 'workout' && selectedExercise) {
       fetchExerciseProgress(selectedExercise.id);
     }
-  }, [selectedExercise, selectedRangeDays]);
+  }, [activeTab, fetchExerciseProgress, selectedExercise]);
 
   const fetchInitial = async () => {
     try {
@@ -108,19 +132,11 @@ function Progress() {
     }
   };
 
-  const fetchExerciseProgress = async (exerciseId) => {
-    try {
-      const response = await progressService.getExerciseProgress(exerciseId, {
-        ...getDateRangeParams(selectedRangeDays),
-        limit: 500
-      });
-      setExerciseProgress(response?.logs || []);
-    } catch {
-      setExerciseProgress([]);
-    }
-  };
-
   useEffect(() => {
+    if (activeTab !== 'workout') {
+      return;
+    }
+
     const fetchRecentForRange = async () => {
       try {
         const recentData = await progressService.getRecentWorkouts({ ...getDateRangeParams(selectedRangeDays), limit: 200 });
@@ -131,7 +147,7 @@ function Progress() {
     };
 
     fetchRecentForRange();
-  }, [selectedRangeDays]);
+  }, [activeTab, selectedRangeDays]);
 
   const handleDeleteWorkout = async (workoutId) => {
     if (!confirm('Delete this workout log? This cannot be undone.')) {
@@ -177,6 +193,7 @@ function Progress() {
       };
     });
   }, [exerciseProgress]);
+  const hasExerciseProgress = exerciseProgress.length > 0;
 
   const selectedExerciseLogsByWorkout = useMemo(() => {
     const grouped = new Map();
@@ -219,6 +236,7 @@ function Progress() {
       }))
       .sort((a, b) => new Date(b.date) - new Date(a.date));
   }, [exerciseProgress]);
+  const hasSelectedExerciseWorkouts = selectedExerciseLogsByWorkout.length > 0;
 
   if (loading) {
     return <LoadingSkeleton />;
@@ -240,21 +258,47 @@ function Progress() {
           <p className="text-xs uppercase tracking-[0.16em] text-app-muted">Performance</p>
           <h1 className="text-3xl font-bold text-app-primary">Progress Tracking</h1>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {rangeOptions.map((range) => (
-            <button
-              key={range.key}
-              id={`progress-range-${range.key}-button`}
-              type="button"
-              onClick={() => setSelectedRange(range.key)}
-              className={`pill-btn ${selectedRange === range.key ? 'border-blue-500 text-blue-300 shadow-[0_0_0_1px_rgba(59,130,246,0.2)]' : ''}`}
-            >
-              {range.label}
-            </button>
-          ))}
+        <div className="flex w-full flex-wrap items-center justify-start gap-2 sm:w-auto sm:justify-end">
+          {bodyMeasurementsEnabled && (
+            <div className="segmented-control">
+              <button
+                id="progress-tab-workout-button"
+                type="button"
+                onClick={() => setActiveTab('workout')}
+                className={`segment-btn ${activeTab === 'workout' ? 'segment-btn-active' : ''}`}
+              >
+                Workout
+              </button>
+              <button
+                id="progress-tab-body-button"
+                type="button"
+                onClick={() => setActiveTab('body')}
+                className={`segment-btn ${activeTab === 'body' ? 'segment-btn-active' : ''}`}
+              >
+                Body
+              </button>
+            </div>
+          )}
+          <div className="flex basis-full flex-wrap gap-2 sm:basis-auto">
+            {rangeOptions.map((range) => (
+              <button
+                key={range.key}
+                id={`progress-range-${range.key}-button`}
+                type="button"
+                onClick={() => setSelectedRange(range.key)}
+                className={`pill-btn ${selectedRange === range.key ? 'border-blue-500 text-blue-300 shadow-[0_0_0_1px_rgba(59,130,246,0.2)]' : ''}`}
+              >
+                {range.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
+      {activeTab === 'body' && bodyMeasurementsEnabled ? (
+        <BodyMeasurementsPanel selectedRangeDays={selectedRangeDays} />
+      ) : (
+        <>
       <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total Workouts" value={stats?.totalWorkouts || 0} icon={iconPath('dumbbell')} />
         <StatCard label="Workouts This Month" value={workoutsThisMonth} icon={iconPath('calendar')} tone="amber" />
@@ -262,7 +306,7 @@ function Progress() {
         <StatCard label="Current Streak" value={`${stats?.currentStreak || 0} days`} icon={iconPath('flame')} tone="red" />
       </section>
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+      <section className={`grid grid-cols-1 gap-4 ${hasExerciseProgress ? 'xl:grid-cols-3' : ''}`}>
         <div className="card p-5 sm:p-6">
           <label className="label">Exercise</label>
           <select
@@ -289,17 +333,20 @@ function Progress() {
             <div className="rounded-xl border border-app-subtle bg-surface p-4">
               <p className="text-xs text-app-muted">Best Weight</p>
               <p className="text-2xl font-bold text-app-primary">
-                {exerciseProgress.length > 0 ? Math.max(...exerciseProgress.map((log) => Number.parseFloat(log.weightKg) || 0)) : 0} kg
+                {hasExerciseProgress ? Math.max(...exerciseProgress.map((log) => Number.parseFloat(log.weightKg) || 0)) : 0} kg
               </p>
             </div>
           </div>
         </div>
 
-        <div className="xl:col-span-2">
-          <ExerciseTrendChart data={chartData} metric={metric} onMetricChange={setMetric} />
-        </div>
+        {hasExerciseProgress && (
+          <div className="xl:col-span-2">
+            <ExerciseTrendChart data={chartData} metric={metric} onMetricChange={setMetric} />
+          </div>
+        )}
       </section>
 
+      {hasSelectedExerciseWorkouts && (
       <section className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-xl font-semibold text-app-primary">
@@ -308,12 +355,7 @@ function Progress() {
           <p className="text-xs text-app-muted">{selectedExerciseLogsByWorkout.length} logs</p>
         </div>
 
-        {!selectedExercise ? (
-          <div className="card p-6 text-app-muted">Select an exercise to view its recent workout entries.</div>
-        ) : selectedExerciseLogsByWorkout.length === 0 ? (
-          <div className="card p-6 text-app-muted">No logs found yet for this exercise.</div>
-        ) : (
-          <div className="grid grid-cols-1 gap-3">
+        <div className="grid grid-cols-1 gap-3">
             {selectedExerciseLogsByWorkout.slice(0, 10).map((group) => {
               return (
                 <article key={group.workoutLogId} className="card p-4">
@@ -346,8 +388,8 @@ function Progress() {
               );
             })}
           </div>
-        )}
       </section>
+      )}
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -457,6 +499,8 @@ function Progress() {
           </div>
         )}
       </section>
+        </>
+      )}
     </div>
   );
 }

@@ -25,14 +25,14 @@ const registerUser = async (payload) => {
   const user = await prisma.user.create({
     data: {
       username,
-      password: hashedPassword
+      password: hashedPassword,
+      userFeature: {
+        create: {
+          bodyMeasurementsEnabled: false
+        }
+      }
     },
-    select: {
-      id: true,
-      username: true,
-      userType: true,
-      createdAt: true
-    }
+    select: getUserSelect()
   });
 
   return {
@@ -64,12 +64,7 @@ const loginUser = async (payload) => {
   return {
     success: true,
     message: 'Login successful',
-    user: {
-      id: user.id,
-      username: user.username,
-      userType: user.userType,
-      createdAt: user.createdAt
-    },
+    user: await formatAuthUser(user.id),
     tokens: {
       accessToken: generateAccessToken(user.id, user.username),
       refreshToken: generateRefreshToken(user.id, user.username)
@@ -108,16 +103,50 @@ const logoutUser = async () => ({
   message: 'Logout successful'
 });
 
-const getCurrentUser = async (userId) => {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
+const getUserSelect = () => ({
+  id: true,
+  username: true,
+  userType: true,
+  createdAt: true,
+  userFeature: {
     select: {
-      id: true,
-      username: true,
-      userType: true,
-      createdAt: true
+      bodyMeasurementsEnabled: true
+    }
+  }
+});
+
+const ensureUserFeature = async (userId) => {
+  return prisma.userFeature.upsert({
+    where: { userId },
+    update: {},
+    create: { userId },
+    select: {
+      bodyMeasurementsEnabled: true
     }
   });
+};
+
+const formatAuthUser = async (userId) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: getUserSelect()
+  });
+
+  const userFeature = user.userFeature || await ensureUserFeature(user.id);
+
+  return {
+    id: user.id,
+    username: user.username,
+    userType: user.userType,
+    createdAt: user.createdAt,
+    features: {
+      bodyMeasurementsEnabled: !!userFeature.bodyMeasurementsEnabled
+    }
+  };
+};
+
+const getCurrentUser = async (userId) => {
+  const user = await formatAuthUser(userId);
 
   return {
     success: true,

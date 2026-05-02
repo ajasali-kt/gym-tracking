@@ -10,6 +10,8 @@ const {
   importMuscleGroupsData,
   importExercisesData,
   getStats,
+  getUserFeatures,
+  updateFeaturesForUser,
   clearAll
 } = require('../controllers/adminController');
 
@@ -18,6 +20,8 @@ const router = express.Router();
 router.post('/import/muscle-groups', authenticate, isAdmin, importMuscleGroupsData);
 router.post('/import/exercises', authenticate, isAdmin, importExercisesData);
 router.get('/stats', authenticate, isAdmin, getStats);
+router.get('/features/users', authenticate, isAdmin, getUserFeatures);
+router.put('/features/users/:userId', authenticate, isAdmin, updateFeaturesForUser);
 router.delete('/clear/all', authenticate, isAdmin, clearAll);
 
 router.get('/shares', authenticate, isAdmin, listShares);
