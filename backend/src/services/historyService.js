@@ -54,6 +54,7 @@ const getWorkoutHistory = async (userId, fromDate, toDate) => {
           exerciseId,
           exerciseName: exerciseLog.exercise.name,
           muscleGroup: exerciseLog.exercise.muscleGroup?.name || 'Unknown',
+          metricType: exerciseLog.exercise.metricType,
           sets: []
         };
       }
@@ -62,6 +63,9 @@ const getWorkoutHistory = async (userId, fromDate, toDate) => {
         setNumber: exerciseLog.setNumber,
         reps: exerciseLog.repsCompleted,
         weight: exerciseLog.weightKg,
+        distanceKm: exerciseLog.distanceKm,
+        durationMinutes: exerciseLog.durationMinutes,
+        paceMinutesPerKm: exerciseLog.paceMinutesPerKm,
         notes: exerciseLog.notes
       });
     });
@@ -83,7 +87,21 @@ const getWorkoutHistory = async (userId, fromDate, toDate) => {
   );
   const totalVolume = workoutLogs.reduce(
     (sum, log) => sum + log.exerciseLogs.reduce(
-      (exerciseSum, exerciseLog) => exerciseSum + (exerciseLog.repsCompleted * exerciseLog.weightKg),
+      (exerciseSum, exerciseLog) => exerciseSum + ((exerciseLog.repsCompleted || 0) * (exerciseLog.weightKg || 0)),
+      0
+    ),
+    0
+  );
+  const totalRunningDistanceKm = workoutLogs.reduce(
+    (sum, log) => sum + log.exerciseLogs.reduce(
+      (exerciseSum, exerciseLog) => exerciseSum + (exerciseLog.distanceKm || 0),
+      0
+    ),
+    0
+  );
+  const totalRunningDurationMinutes = workoutLogs.reduce(
+    (sum, log) => sum + log.exerciseLogs.reduce(
+      (exerciseSum, exerciseLog) => exerciseSum + (exerciseLog.durationMinutes || 0),
       0
     ),
     0
@@ -94,7 +112,7 @@ const getWorkoutHistory = async (userId, fromDate, toDate) => {
   workoutLogs.forEach(log => {
     log.exerciseLogs.forEach(exerciseLog => {
       const muscleGroupName = exerciseLog.exercise.muscleGroup?.name || 'Unknown';
-      const volume = exerciseLog.repsCompleted * exerciseLog.weightKg;
+      const volume = (exerciseLog.repsCompleted || 0) * (exerciseLog.weightKg || 0);
 
       if (!volumeByMuscleGroup[muscleGroupName]) {
         volumeByMuscleGroup[muscleGroupName] = 0;
@@ -109,6 +127,8 @@ const getWorkoutHistory = async (userId, fromDate, toDate) => {
     totalWorkouts,
     totalSets,
     totalVolume: Math.round(totalVolume * 100) / 100,
+    totalRunningDistanceKm: Math.round(totalRunningDistanceKm * 100) / 100,
+    totalRunningDurationMinutes: Math.round(totalRunningDurationMinutes * 100) / 100,
     volumeByMuscleGroup,
     workouts: timeline
   };

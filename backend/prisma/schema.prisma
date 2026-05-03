@@ -77,6 +77,7 @@ model Exercise {
   id              Int                  @id @default(autoincrement())
   name            String               @unique // e.g., "Bench Press"
   muscleGroupId   Int                  @map("muscle_group_id")
+  metricType      String               @default("STRENGTH") @map("metric_type") // STRENGTH or RUNNING
   description     String               @db.Text // Long description
   steps           Json                 // Array of instruction steps stored as JSON
   youtubeUrl      String?              @map("youtube_url") // Optional YouTube demo link
@@ -151,6 +152,8 @@ model WorkoutDayExercise {
   sets          Int         // Number of sets (e.g., 3, 4, 5)
   reps          String      // Reps (can be range like "8-12" or fixed like "10")
   restSeconds   Int         @map("rest_seconds") // Rest time between sets in seconds
+  targetDistanceKm Float?   @map("target_distance_km")
+  targetDurationMinutes Float? @map("target_duration_minutes")
   orderIndex    Int         @map("order_index") // Order of exercise in the day (1, 2, 3...)
   createdAt     DateTime    @default(now()) @map("created_at")
 
@@ -197,8 +200,11 @@ model ExerciseLog {
   workoutLogId   Int         @map("workout_log_id")
   exerciseId     Int         @map("exercise_id")
   setNumber      Int         @map("set_number") // Which set (1, 2, 3, etc.)
-  repsCompleted  Int         @map("reps_completed") // Actual reps performed
-  weightKg       Float       @map("weight_kg") // Weight used in kilograms
+  repsCompleted  Int?        @map("reps_completed") // Actual reps performed
+  weightKg       Float?      @map("weight_kg") // Weight used in kilograms
+  distanceKm     Float?      @map("distance_km")
+  durationMinutes Float?     @map("duration_minutes")
+  paceMinutesPerKm Float?    @map("pace_minutes_per_km")
   notes          String?     @db.Text // Optional notes (e.g., "felt easy", "struggled")
   createdAt      DateTime    @default(now()) @map("created_at")
 

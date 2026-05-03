@@ -35,10 +35,13 @@ function WorkoutLogger() {
       // Initialize exercise logs structure
       const initialLogs = {};
       data.workoutDayExercises?.forEach(assignment => {
-        initialLogs[assignment.exerciseId] = Array.from({ length: assignment.sets }, () => ({
+        const isRunning = assignment.exercise?.metricType === 'RUNNING';
+        initialLogs[assignment.exerciseId] = Array.from({ length: isRunning ? 1 : assignment.sets }, () => ({
           setNumber: 0,
           repsCompleted: '',
           weightKg: '',
+          distanceKm: assignment.targetDistanceKm ? String(assignment.targetDistanceKm) : '',
+          durationMinutes: assignment.targetDurationMinutes ? String(assignment.targetDurationMinutes) : '',
           notes: ''
         }));
       });
@@ -66,12 +69,18 @@ function WorkoutLogger() {
 
   const handleLogSet = async (exerciseId, setIndex) => {
     const setData = exerciseLogs[exerciseId][setIndex];
+    const assignment = (workoutDay.workoutDayExercises || []).find((item) => item.exerciseId === Number.parseInt(exerciseId, 10));
+    const isRunning = assignment?.exercise?.metricType === 'RUNNING';
     const repsValid = isValidPositiveInteger(setData.repsCompleted);
     const weightValue = Number.parseFloat(setData.weightKg);
     const weightValid = Number.isFinite(weightValue) && weightValue > 0;
+    const distanceKm = Number.parseFloat(setData.distanceKm);
+    const durationMinutes = Number.parseFloat(setData.durationMinutes);
+    const runningValid = Number.isFinite(distanceKm) && distanceKm > 0
+      && Number.isFinite(durationMinutes) && durationMinutes > 0;
 
-    if (!repsValid || !weightValid) {
-      alert('Please enter valid reps and weight');
+    if ((isRunning && !runningValid) || (!isRunning && (!repsValid || !weightValid))) {
+      alert(isRunning ? 'Please enter valid distance and duration' : 'Please enter valid reps and weight');
       return;
     }
 
@@ -79,8 +88,10 @@ function WorkoutLogger() {
       await progressService.logSet(workoutLog.id, {
         exerciseId: parseInt(exerciseId),
         setNumber: setIndex + 1,
-        repsCompleted: parseInt(setData.repsCompleted, 10),
-        weightKg: weightValue,
+        repsCompleted: isRunning ? undefined : parseInt(setData.repsCompleted, 10),
+        weightKg: isRunning ? undefined : weightValue,
+        distanceKm: isRunning ? distanceKm : undefined,
+        durationMinutes: isRunning ? durationMinutes : undefined,
         notes: setData.notes || null
       });
 
@@ -206,10 +217,24 @@ function WorkoutLogger() {
                       <div>
                         <h4 className="font-semibold text-gray-800">{assignment.exercise.name}</h4>
                         <p className="text-sm text-gray-600">
-                          {assignment.exercise.muscleGroup?.name}
+                          {assignment.exercise.metricType === 'RUNNING'
+                            ? `${assignment.targetDistanceKm || '-'} km - ${assignment.targetDurationMinutes || '-'} min`
+                            : assignment.exercise.muscleGroup?.name}
                         </p>
                       </div>
                     </div>
+                    {assignment.exercise.metricType === 'RUNNING' ? (
+                    <div className="flex items-center space-x-4 text-sm">
+                      <div className="text-center">
+                        <p className="text-gray-600">Distance</p>
+                        <p className="font-bold text-gray-800">{assignment.targetDistanceKm || '-'} km</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-gray-600">Duration</p>
+                        <p className="font-bold text-gray-800">{assignment.targetDurationMinutes || '-'} min</p>
+                      </div>
+                    </div>
+                    ) : (
                     <div className="flex items-center space-x-4 text-sm">
                       <div className="text-center">
                         <p className="text-gray-600">Sets</p>
@@ -224,6 +249,7 @@ function WorkoutLogger() {
                         <p className="font-bold text-gray-800">{assignment.restSeconds}s</p>
                       </div>
                     </div>
+                    )}
                   </div>
                 ))}
             </div>
@@ -349,6 +375,7 @@ function WorkoutLogger() {
                 key={setIndex}
                 setNumber={setIndex + 1}
                 setData={setData}
+                metricType={currentExercise.exercise.metricType}
                 idPrefix={`workout-logger-exercise-${currentExercise.exerciseId}-set-${setIndex + 1}`}
                 onUpdate={(field, value) => handleUpdateSet(currentExercise.exerciseId, setIndex, field, value)}
                 onLog={() => handleLogSet(currentExercise.exerciseId, setIndex)}
@@ -397,11 +424,12 @@ function WorkoutLogger() {
  * Set Logger Component
  * Log individual set with reps and weight
  */
-function SetLogger({ setNumber, setData, onUpdate, onLog, idPrefix }) {
+function SetLogger({ setNumber, setData, onUpdate, onLog, idPrefix, metricType = 'STRENGTH' }) {
   const [restTimer, setRestTimer] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const isRepsInvalid = !!setData.repsCompleted && !isValidPositiveInteger(setData.repsCompleted);
   const resolvedIdPrefix = idPrefix || `workout-logger-set-${setNumber}`;
+  const isRunning = metricType === 'RUNNING';
 
   useEffect(() => {
     if (restTimer) {
@@ -428,7 +456,7 @@ function SetLogger({ setNumber, setData, onUpdate, onLog, idPrefix }) {
   return (
     <div className={`p-4 rounded-lg border-2 ${setData.logged ? 'bg-green-50 border-green-300' : 'bg-gray-50 border-gray-300'}`}>
       <div className="flex items-center justify-between mb-3">
-        <h4 className="font-semibold text-gray-800">Set {setNumber}</h4>
+        <h4 className="font-semibold text-gray-800">{isRunning ? 'Run' : `Set ${setNumber}`}</h4>
         {setData.logged && (
           <span className="px-2 py-1 bg-green-600 text-white text-xs font-medium rounded">
             Logged ✓
@@ -436,6 +464,42 @@ function SetLogger({ setNumber, setData, onUpdate, onLog, idPrefix }) {
         )}
       </div>
 
+      {isRunning ? (
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Distance (km)
+          </label>
+          <input
+            type="number"
+            min="0.1"
+            step="0.1"
+            value={setData.distanceKm || ''}
+            onChange={(e) => onUpdate('distanceKm', e.target.value)}
+            disabled={setData.logged}
+            placeholder="e.g., 5"
+            inputMode="decimal"
+            className="input-field disabled:bg-gray-100"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Duration (min)
+          </label>
+          <input
+            type="number"
+            min="1"
+            step="0.5"
+            value={setData.durationMinutes || ''}
+            onChange={(e) => onUpdate('durationMinutes', e.target.value)}
+            disabled={setData.logged}
+            placeholder="e.g., 30"
+            inputMode="decimal"
+            className="input-field disabled:bg-gray-100"
+          />
+        </div>
+      </div>
+      ) : (
       <div className="grid grid-cols-2 gap-3 mb-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -469,6 +533,7 @@ function SetLogger({ setNumber, setData, onUpdate, onLog, idPrefix }) {
           />
         </div>
       </div>
+      )}
 
       <div className="mb-3">
         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -490,8 +555,12 @@ function SetLogger({ setNumber, setData, onUpdate, onLog, idPrefix }) {
           onClick={onLog}
           className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition"
         >
-          Log Set
+          {isRunning ? 'Log Run' : 'Log Set'}
         </button>
+      ) : isRunning ? (
+        <div className="px-4 py-2 bg-green-100 text-green-800 rounded-lg font-medium text-center">
+          Run logged
+        </div>
       ) : (
         <div className="flex space-x-2">
           {restTimer ? (

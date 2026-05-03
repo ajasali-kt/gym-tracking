@@ -58,6 +58,8 @@ function ManualWorkoutLog() {
     return `${year}-${month}-${day}`;
   };
 
+  const isRunningExercise = (exercise) => exercise?.metricType === 'RUNNING';
+
   useEffect(() => {
     fetchData();
   }, [workoutId]);
@@ -121,8 +123,10 @@ function ManualWorkoutLog() {
           groupedLogs[exerciseId].push({
             id: log.id,
             setNumber: log.setNumber,
-            repsCompleted: String(log.repsCompleted),
-            weightKg: String(log.weightKg),
+            repsCompleted: log.repsCompleted ? String(log.repsCompleted) : '',
+            weightKg: log.weightKg ? String(log.weightKg) : '',
+            distanceKm: log.distanceKm ? String(log.distanceKm) : '',
+            durationMinutes: log.durationMinutes ? String(log.durationMinutes) : '',
             notes: log.notes || ''
           });
         });
@@ -182,9 +186,25 @@ function ManualWorkoutLog() {
         setNumber: i + 1,
         repsCompleted: '',
         weightKg: '',
+        distanceKm: '',
+        durationMinutes: '',
         notes: ''
       }))
     }));
+    if (isRunningExercise(exercise)) {
+      setExerciseLogs((prev) => ({
+        ...prev,
+        [exercise.id]: [{
+          id: null,
+          setNumber: 1,
+          repsCompleted: '',
+          weightKg: '',
+          distanceKm: '',
+          durationMinutes: '',
+          notes: ''
+        }]
+      }));
+    }
 
     setShowExercisePicker(false);
     markDirty();
@@ -254,13 +274,27 @@ function ManualWorkoutLog() {
         const weightKg = Number.parseFloat(set.weightKg);
         const hasExistingId = set.id !== undefined && set.id !== null;
         const weightValid = Number.isFinite(weightKg) && weightKg > 0;
+        const isRunning = isRunningExercise(exercise);
+        const distanceKm = Number.parseFloat(set.distanceKm);
+        const durationMinutes = Number.parseFloat(set.durationMinutes);
+        const runningValid = Number.isFinite(distanceKm) && distanceKm > 0
+          && Number.isFinite(durationMinutes) && durationMinutes > 0;
 
-        if (hasExistingId && (!repsValid || !weightValid)) {
+        if (hasExistingId && ((isRunning && !runningValid) || (!isRunning && (!repsValid || !weightValid)))) {
           hasInvalidExistingSet = true;
           continue;
         }
 
-        if (repsValid && weightValid) {
+        if (isRunning && runningValid) {
+          validSets.push({
+            id: set.id || undefined,
+            exerciseId: exercise.id,
+            setNumber: 1,
+            distanceKm,
+            durationMinutes,
+            notes: set.notes || null
+          });
+        } else if (!isRunning && repsValid && weightValid) {
           validSets.push({
             id: set.id || undefined,
             exerciseId: exercise.id,
@@ -286,16 +320,16 @@ function ManualWorkoutLog() {
   };
 
   const applyCanonicalSetIds = (currentLogs, canonicalSets) => {
-    const canonicalByExerciseSet = new Map();
-    canonicalSets.forEach((set) => {
-      canonicalByExerciseSet.set(`${set.exerciseId}-${set.setNumber}`, set.id);
+      const canonicalByExerciseSet = new Map();
+      canonicalSets.forEach((set) => {
+      canonicalByExerciseSet.set(`${set.exerciseId}-${set.setNumber}`, set);
     });
 
     const updated = {};
     for (const [exerciseId, sets] of Object.entries(currentLogs)) {
       updated[exerciseId] = sets.map((set) => ({
         ...set,
-        id: canonicalByExerciseSet.get(`${Number.parseInt(exerciseId, 10)}-${set.setNumber}`) || null
+        id: canonicalByExerciseSet.get(`${Number.parseInt(exerciseId, 10)}-${set.setNumber}`)?.id || null
       }));
     }
     return updated;
@@ -363,7 +397,17 @@ function ManualWorkoutLog() {
     }
   };
 
-  const handleBack = () => {
+  const handleBack = async () => {
+    if (pendingChangesRef.current) {
+      if (autosaveTimerRef.current) {
+        clearTimeout(autosaveTimerRef.current);
+        autosaveTimerRef.current = null;
+      }
+
+      const saved = await logWorkout();
+      if (!saved) return;
+    }
+
     if (location.state?.from) {
       navigate(location.state.from);
       return;
@@ -522,7 +566,7 @@ function ManualWorkoutLog() {
                   onAddSet={() => handleAddSet(exercise.id)}
                   onRemoveSet={(setIndex) => handleRemoveSet(exercise.id, setIndex)}
                   onRemoveExercise={() => handleRemoveExercise(exercise.id)}
-                  suggestion={exerciseMeta[exercise.id]?.suggestion || null}
+                  suggestion={isRunningExercise(exercise) ? null : exerciseMeta[exercise.id]?.suggestion || null}
                   showSavedGlow={savePulse}
                   showPrBadge={showPrBadge}
                 />

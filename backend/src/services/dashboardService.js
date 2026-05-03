@@ -12,9 +12,9 @@ const toDateOnlyString = (dateValue) => {
   const parsed = new Date(dateValue);
   if (Number.isNaN(parsed.getTime())) return null;
 
-  const year = parsed.getFullYear();
-  const month = String(parsed.getMonth() + 1).padStart(2, '0');
-  const day = String(parsed.getDate()).padStart(2, '0');
+  const year = parsed.getUTCFullYear();
+  const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(parsed.getUTCDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
 
@@ -23,9 +23,9 @@ const dateOnlyToUtcTimestamp = (dateString) => {
   return Date.UTC(year, month - 1, day);
 };
 
-const dateOnlyStringToLocalDate = (dateString) => {
+const dateOnlyStringToUtcDate = (dateString) => {
   const [year, month, day] = dateString.split('-').map((value) => Number.parseInt(value, 10));
-  return new Date(year, month - 1, day);
+  return new Date(Date.UTC(year, month - 1, day));
 };
 
 const getCurrentDayNumber = (planStartDate, todayDate) => {
@@ -70,7 +70,7 @@ const getTodayWorkoutWithLog = async (userId, todayDate) => {
     };
   }
 
-  const today = dateOnlyStringToLocalDate(todayDate);
+  const today = dateOnlyStringToUtcDate(todayDate);
   const currentDayNumber = getCurrentDayNumber(activePlan.startDate, today);
 
   const todayWorkout = await prisma.workoutDay.findFirst({

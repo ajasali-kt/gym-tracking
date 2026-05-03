@@ -278,13 +278,18 @@ const importPlan = async (userId, payload) => {
         });
 
         if (exercise) {
+          const isRunning = exercise.metricType === 'RUNNING';
+          const parsedDistance = exerciseData.distanceKm || exerciseData.targetDistanceKm || null;
+          const parsedDuration = exerciseData.durationMinutes || exerciseData.targetDurationMinutes || exerciseData.duration || null;
           await tx.workoutDayExercise.create({
             data: {
               workoutDayId: workoutDay.id,
               exerciseId: exercise.id,
-              sets: exerciseData.sets || 3,
-              reps: exerciseData.reps ? exerciseData.reps.toString() : (exerciseData.duration || '10'),
-              restSeconds: 90,
+              sets: isRunning ? 1 : (exerciseData.sets || 3),
+              reps: isRunning ? 'Run' : (exerciseData.reps ? exerciseData.reps.toString() : (exerciseData.duration || '10')),
+              restSeconds: isRunning ? 0 : 90,
+              targetDistanceKm: parsedDistance ? Number.parseFloat(parsedDistance) : null,
+              targetDurationMinutes: parsedDuration ? Number.parseFloat(parsedDuration) : null,
               orderIndex: i + 1
             }
           });
