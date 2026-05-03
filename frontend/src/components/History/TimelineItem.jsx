@@ -3,8 +3,15 @@ import { format } from 'date-fns';
 
 function getWorkoutVolume(workout) {
   return workout.exercises.reduce((sum, exercise) => {
+    if (exercise.metricType === 'RUNNING') return sum;
     return sum + exercise.sets.reduce((setSum, set) => setSum + ((set.reps || 0) * (set.weight || 0)), 0);
   }, 0);
+}
+
+function getWorkoutDistance(workout) {
+  return workout.exercises.reduce((sum, exercise) => (
+    sum + exercise.sets.reduce((setSum, set) => setSum + (Number.parseFloat(set.distanceKm) || 0), 0)
+  ), 0);
 }
 
 function TimelineItem({
@@ -15,6 +22,7 @@ function TimelineItem({
   const [open, setOpen] = useState(defaultOpen);
   const isOpen = collapsible ? open : true;
   const volume = getWorkoutVolume(workout);
+  const distance = getWorkoutDistance(workout);
   const exerciseCount = workout.exercises.length;
   const workoutIdSafe = String(workout.id ?? workout.workoutLogId ?? workout.date).replace(/[^a-zA-Z0-9]+/g, '-');
 
@@ -36,8 +44,10 @@ function TimelineItem({
             </div>
             <div className="flex items-center gap-3">
               <div className="text-right">
-                <p className="text-xs text-app-muted">Volume</p>
-                <p className="text-base font-semibold text-app-primary">{Math.round(volume)} kg</p>
+                <p className="text-xs text-app-muted">{distance > 0 ? 'Distance' : 'Volume'}</p>
+                <p className="text-base font-semibold text-app-primary">
+                  {distance > 0 ? `${distance.toFixed(2)} km` : `${Math.round(volume)} kg`}
+                </p>
               </div>
               <svg
                 className={`h-5 w-5 text-app-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
@@ -62,8 +72,10 @@ function TimelineItem({
             <p className="text-sm text-app-muted">{exerciseCount} exercises</p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-app-muted">Volume</p>
-            <p className="text-base font-semibold text-app-primary">{Math.round(volume)} kg</p>
+            <p className="text-xs text-app-muted">{distance > 0 ? 'Distance' : 'Volume'}</p>
+            <p className="text-base font-semibold text-app-primary">
+              {distance > 0 ? `${distance.toFixed(2)} km` : `${Math.round(volume)} kg`}
+            </p>
           </div>
         </div>
       )}
@@ -81,12 +93,21 @@ function TimelineItem({
                   .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
                   .map((set) => (
                     <div key={`${exercise.exerciseId}-${set.setNumber}`} className="rounded-lg border border-app-subtle bg-surface px-3 py-2 text-sm text-app-primary">
+                      {exercise.metricType === 'RUNNING' ? (
+                      <div className="grid grid-cols-4 gap-2">
+                        <span>{set.distanceKm || '-'} km</span>
+                        <span>{set.durationMinutes || '-'} min</span>
+                        <span>{set.paceMinutesPerKm || '-'} min/km</span>
+                        <span>{set.notes || '-'}</span>
+                      </div>
+                      ) : (
                       <div className="grid grid-cols-4 gap-2">
                         <span>Set {set.setNumber || '-'}</span>
                         <span>{set.reps || '-'} reps</span>
                         <span>{set.weight || '-'} kg</span>
                         <span>{set.weight && set.reps ? `${Math.round(set.weight * set.reps)} vol` : '-'}</span>
                       </div>
+                      )}
                     </div>
                   ))}
               </div>

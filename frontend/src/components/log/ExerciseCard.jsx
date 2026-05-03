@@ -12,10 +12,15 @@ function ExerciseCard({
   showSavedGlow,
   showPrBadge
 }) {
+  const isRunning = exercise.metricType === 'RUNNING';
   const totalVolume = useMemo(
     () => sets.reduce((sum, set) => sum + ((Number.parseFloat(set.weightKg) || 0) * (Number.parseInt(set.repsCompleted, 10) || 0)), 0),
     [sets]
   );
+  const runningSet = sets[0] || {};
+  const distanceKm = Number.parseFloat(runningSet.distanceKm) || 0;
+  const durationMinutes = Number.parseFloat(runningSet.durationMinutes) || 0;
+  const pace = distanceKm > 0 && durationMinutes > 0 ? durationMinutes / distanceKm : null;
 
   return (
     <section className={`card p-4 sm:p-5 transition ${showSavedGlow ? 'save-glow' : ''}`}>
@@ -26,7 +31,7 @@ function ExerciseCard({
             {showPrBadge && <span className="badge-success">New PR</span>}
           </div>
           <p className="mt-1 text-xs text-app-muted">{exercise.muscleGroup?.name || 'General'}</p>
-          {suggestion && (
+          {suggestion && !isRunning && (
             <p className="mt-2 text-xs text-blue-300">
               Last time: {suggestion.weightKg}kg x {suggestion.repsCompleted}
             </p>
@@ -34,8 +39,19 @@ function ExerciseCard({
         </div>
 
         <div className="text-right">
-          <p className="text-xs text-app-muted">Total sets: {sets.length}</p>
-          <p className="mt-1 text-sm font-semibold text-app-primary">Volume: {Math.round(totalVolume)} kg</p>
+          {isRunning ? (
+            <>
+              <p className="text-xs text-app-muted">Distance: {distanceKm || '-'} km</p>
+              <p className="mt-1 text-sm font-semibold text-app-primary">
+                Pace: {pace ? `${pace.toFixed(2)} min/km` : '-'}
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-app-muted">Total sets: {sets.length}</p>
+              <p className="mt-1 text-sm font-semibold text-app-primary">Volume: {Math.round(totalVolume)} kg</p>
+            </>
+          )}
           <button
             id={`log-exercise-${exercise.id}-remove-button`}
             type="button"
@@ -48,9 +64,9 @@ function ExerciseCard({
       </div>
 
       <div className="grid grid-cols-12 gap-2 px-2 pb-2 text-[11px] uppercase tracking-[0.1em] text-app-muted sm:text-xs">
-        <div className="col-span-1 sm:col-span-2">Set</div>
-        <div className="col-span-3 sm:col-span-2">Reps</div>
-        <div className="col-span-3 sm:col-span-2">Weight</div>
+        <div className="col-span-1 sm:col-span-2">{isRunning ? 'Run' : 'Set'}</div>
+        <div className="col-span-3 sm:col-span-2">{isRunning ? 'Distance' : 'Reps'}</div>
+        <div className="col-span-3 sm:col-span-2">{isRunning ? 'Duration' : 'Weight'}</div>
         <div className="col-span-3 sm:col-span-4">Notes (Optional)</div>
         <div className="col-span-2 sm:col-span-2 text-right">Actions</div>
       </div>
@@ -65,12 +81,15 @@ function ExerciseCard({
             onUpdate={onUpdateSet}
             onRemove={() => onRemoveSet(setIndex)}
             showRemove={sets.length > 1}
+            metricType={exercise.metricType}
           />
         ))}
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-        <button id={`log-exercise-${exercise.id}-add-set-button`} type="button" onClick={onAddSet} className="btn-outline">+ Add Set</button>
+        {!isRunning && (
+          <button id={`log-exercise-${exercise.id}-add-set-button`} type="button" onClick={onAddSet} className="btn-outline">+ Add Set</button>
+        )}
       </div>
     </section>
   );

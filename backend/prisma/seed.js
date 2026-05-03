@@ -64,6 +64,14 @@ async function main() {
         name: 'Core',
         description: 'Abdominals, obliques - trunk stability and rotation'
       }
+    }),
+    prisma.muscleGroup.upsert({
+      where: { name: 'Cardio' },
+      update: {},
+      create: {
+        name: 'Cardio',
+        description: 'Cardiovascular endurance and conditioning'
+      }
     })
   ]);
 
@@ -635,8 +643,35 @@ async function main() {
 
     // CARDIO / MISCELLANEOUS
     {
+      name: 'Outdoor Running',
+      muscleGroupId: muscleGroups[6].id,
+      metricType: 'RUNNING',
+      description: 'Outdoor running session tracked by distance and duration.',
+      steps: [
+        'Warm up at an easy pace',
+        'Run the planned distance or duration',
+        'Keep effort controlled for the session goal',
+        'Cool down with easy walking or jogging'
+      ],
+      youtubeUrl: null
+    },
+    {
+      name: 'Treadmill Running',
+      muscleGroupId: muscleGroups[6].id,
+      metricType: 'RUNNING',
+      description: 'Treadmill running session tracked by distance and duration.',
+      steps: [
+        'Set a comfortable treadmill speed',
+        'Run the planned distance or duration',
+        'Use the safety clip when available',
+        'Cool down before stepping off the treadmill'
+      ],
+      youtubeUrl: null
+    },
+    {
       name: 'Treadmill / Stairmaster',
-      muscleGroupId: muscleGroups[5].id, // Assigning to Core as a general category
+      muscleGroupId: muscleGroups[6].id,
+      metricType: 'RUNNING',
       description: 'Cardio equipment for cardiovascular endurance and calorie burn.',
       steps: [
         'Choose your preferred cardio machine',
@@ -651,6 +686,7 @@ async function main() {
     {
       name: 'Incline Walk',
       muscleGroupId: muscleGroups[2].id, // Legs
+      metricType: 'STRENGTH',
       description: 'Low-impact cardio. Great for active recovery and fat burning.',
       steps: [
         'Set treadmill to incline (10-15 degrees)',
@@ -665,6 +701,7 @@ async function main() {
     {
       name: 'Full Body Stretching',
       muscleGroupId: muscleGroups[5].id,
+      metricType: 'STRENGTH',
       description: 'Complete stretching routine for flexibility and recovery.',
       steps: [
         'Start with neck and shoulder rolls',
@@ -685,8 +722,13 @@ async function main() {
       where: {
         name: exercise.name
       },
-      update: {},
-      create: exercise
+      update: {
+        metricType: exercise.metricType || 'STRENGTH'
+      },
+      create: {
+        ...exercise,
+        metricType: exercise.metricType || 'STRENGTH'
+      }
     });
     createdCount++;
   }

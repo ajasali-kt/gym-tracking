@@ -365,6 +365,7 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
   }
 
   const exercises = workoutDay.workoutDayExercises || [];
+  const isRunningAssignment = (assignment) => assignment.exercise?.metricType === 'RUNNING';
 
   return (
     <div className={`card overflow-hidden transition ${isToday ? 'border-white/15 ring-2 ring-white/10' : ''}`}>
@@ -435,11 +436,33 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
                     <div>
                       <h4 className="font-semibold text-app-primary">{assignment.exercise.name}</h4>
                       <p className="text-sm text-app-muted">
-                        {assignment.exercise.muscleGroup?.name}
+                        {isRunningAssignment(assignment)
+                          ? `${assignment.targetDistanceKm || '-'} km • ${assignment.targetDurationMinutes || '-'} min`
+                          : assignment.exercise.muscleGroup?.name}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-4 text-sm">
+                  {isRunningAssignment(assignment) ? (
+                    <div className="flex items-center space-x-4 text-sm">
+                      <div className="text-center">
+                        <p className="text-app-muted">Distance</p>
+                        <p className="font-bold text-app-primary">{assignment.targetDistanceKm || '-'} km</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-app-muted">Duration</p>
+                        <p className="font-bold text-app-primary">{assignment.targetDurationMinutes || '-'} min</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-app-muted">Pace</p>
+                        <p className="font-bold text-app-primary">
+                          {assignment.targetDistanceKm && assignment.targetDurationMinutes
+                            ? `${(assignment.targetDurationMinutes / assignment.targetDistanceKm).toFixed(2)} min/km`
+                            : '-'}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center space-x-4 text-sm">
                     <div className="text-center">
                       <p className="text-app-muted">Sets</p>
                       <p className="font-bold text-app-primary">{assignment.sets}</p>
@@ -453,6 +476,7 @@ function DayCard({ dayNumber, actualDate, isToday, workoutDay, onEdit, onDelete,
                       <p className="font-bold text-app-primary">{assignment.restSeconds}s</p>
                     </div>
                   </div>
+                  )}
                 </div>
               ))}
           </div>
@@ -671,9 +695,13 @@ function EditDayModal({ workoutDay, onClose }) {
 
   const handleAddExercise = async (exerciseData) => {
     const exerciseId = Number(exerciseData?.exerciseId);
+    const selected = exercises.find((exercise) => exercise.id === exerciseId);
+    const isRunning = selected?.metricType === 'RUNNING';
     const sets = Number(exerciseData?.sets);
     const reps = String(exerciseData?.reps ?? '').trim();
     const restSeconds = Number(exerciseData?.restSeconds);
+    const targetDistanceKm = Number.parseFloat(exerciseData?.targetDistanceKm);
+    const targetDurationMinutes = Number.parseFloat(exerciseData?.targetDurationMinutes);
     const orderIndex = Number(exerciseData?.orderIndex);
 
     if (!Number.isFinite(exerciseId)) {
@@ -685,7 +713,19 @@ function EditDayModal({ workoutDay, onClose }) {
       return;
     }
 
-    if (!Number.isFinite(sets) || !reps || !Number.isFinite(restSeconds) || !Number.isFinite(orderIndex)) {
+    if (isRunning) {
+      if (
+        (!Number.isFinite(targetDistanceKm) || targetDistanceKm <= 0) &&
+        (!Number.isFinite(targetDurationMinutes) || targetDurationMinutes <= 0)
+      ) {
+        openFeedbackPopup({
+          title: 'Add a running target',
+          bodyText: 'Please provide a target distance or target duration before adding the run.',
+          idBase: `edit-day-${workoutDay.id}-missing-running-fields`
+        });
+        return;
+      }
+    } else if (!Number.isFinite(sets) || !reps || !Number.isFinite(restSeconds) || !Number.isFinite(orderIndex)) {
       openFeedbackPopup({
         title: 'Missing required fields',
         bodyText: 'Please provide Sets, Reps, and Rest (sec) before adding the exercise.',
@@ -781,9 +821,23 @@ function EditDayModal({ workoutDay, onClose }) {
                     <div className="flex-1">
                       <h4 className="font-semibold text-app-primary">{assignment.exercise.name}</h4>
                       <p className="text-sm text-app-muted">
-                        {assignment.exercise.muscleGroup?.name}
+                        {assignment.exercise.metricType === 'RUNNING'
+                          ? `${assignment.targetDistanceKm || '-'} km • ${assignment.targetDurationMinutes || '-'} min`
+                          : assignment.exercise.muscleGroup?.name}
                       </p>
                     </div>
+                    {assignment.exercise.metricType === 'RUNNING' ? (
+                    <div className="flex items-center space-x-6 text-sm">
+                      <div className="text-center">
+                        <p className="text-app-muted">Km</p>
+                        <p className="font-bold text-app-primary">{assignment.targetDistanceKm || '-'}</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-app-muted">Min</p>
+                        <p className="font-bold text-app-primary">{assignment.targetDurationMinutes || '-'}</p>
+                      </div>
+                    </div>
+                    ) : (
                     <div className="flex items-center space-x-6 text-sm">
                       <div className="text-center">
                         <p className="text-app-muted">Sets</p>
@@ -798,6 +852,7 @@ function EditDayModal({ workoutDay, onClose }) {
                         <p className="font-bold text-app-primary">{assignment.restSeconds}s</p>
                       </div>
                     </div>
+                    )}
                   </div>
                     <button
                       id={`edit-day-assignment-${assignment.id}-remove-button`}
@@ -874,7 +929,9 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
     exerciseId: '',
     sets: 3,
     reps: '10',
-    restSeconds: 60
+    restSeconds: 60,
+    targetDistanceKm: '',
+    targetDurationMinutes: ''
   });
   const [selectedExercise, setSelectedExercise] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -902,16 +959,19 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
   const isRestInvalid =
     !!restString &&
     (!isValidPositiveInteger(restString) || (Number.isFinite(restNumber) && (restNumber < 30 || restNumber > 300)));
+  const isRunning = selectedExercise?.metricType === 'RUNNING';
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (isSetsInvalid || isRepsInvalid || isRestInvalid) return;
+    if (!isRunning && (isSetsInvalid || isRepsInvalid || isRestInvalid)) return;
     const orderIndex = existingExerciseIds.length + 1;
     onAdd({
       exerciseId: parseInt(formData.exerciseId),
       sets: parseInt(formData.sets),
       reps: formData.reps,
       restSeconds: parseInt(formData.restSeconds),
+      targetDistanceKm: formData.targetDistanceKm || undefined,
+      targetDurationMinutes: formData.targetDurationMinutes || undefined,
       orderIndex
     });
   };
@@ -987,6 +1047,42 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
             </div>
           )}
 
+          {isRunning ? (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="add-exercise-distance" className="block text-sm font-medium text-app-muted mb-2">
+                Distance (km)
+              </label>
+              <input
+                id="add-exercise-distance"
+                type="number"
+                min="0.1"
+                step="0.1"
+                value={formData.targetDistanceKm}
+                onChange={(e) => setFormData({ ...formData, targetDistanceKm: e.target.value })}
+                placeholder="e.g., 5"
+                inputMode="decimal"
+                className="input-field"
+              />
+            </div>
+            <div>
+              <label htmlFor="add-exercise-duration" className="block text-sm font-medium text-app-muted mb-2">
+                Duration (min)
+              </label>
+              <input
+                id="add-exercise-duration"
+                type="number"
+                min="1"
+                step="0.5"
+                value={formData.targetDurationMinutes}
+                onChange={(e) => setFormData({ ...formData, targetDurationMinutes: e.target.value })}
+                placeholder="e.g., 30"
+                inputMode="decimal"
+                className="input-field"
+              />
+            </div>
+          </div>
+          ) : (
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label htmlFor="add-exercise-sets" className="block text-sm font-medium text-app-muted mb-2">
@@ -1040,6 +1136,7 @@ function AddExerciseToDayModal({ exercises, existingExerciseIds, onClose, onAdd 
               />
             </div>
           </div>
+          )}
 
           <div className="flex flex-wrap justify-end gap-3 pt-4">
             <button

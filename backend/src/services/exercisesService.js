@@ -42,7 +42,7 @@ const getExerciseById = async (id) => {
 };
 
 const createExercise = async (payload) => {
-  const { name, muscleGroupId, description, steps, youtubeUrl } = payload;
+  const { name, muscleGroupId, metricType, description, steps, youtubeUrl } = payload;
 
   if (!name || !muscleGroupId || !description || !steps) {
     throw createHttpError(400, 'Missing required fields: name, muscleGroupId, description, steps');
@@ -56,6 +56,7 @@ const createExercise = async (payload) => {
     data: {
       name,
       muscleGroupId: Number.parseInt(muscleGroupId, 10),
+      metricType: metricType || 'STRENGTH',
       description,
       steps,
       youtubeUrl: youtubeUrl || null
@@ -72,11 +73,12 @@ const createExercise = async (payload) => {
 };
 
 const updateExercise = async (id, payload) => {
-  const { name, muscleGroupId, description, steps, youtubeUrl } = payload;
+  const { name, muscleGroupId, metricType, description, steps, youtubeUrl } = payload;
   const updateData = {};
 
   if (name !== undefined) updateData.name = name;
   if (muscleGroupId !== undefined) updateData.muscleGroupId = Number.parseInt(muscleGroupId, 10);
+  if (metricType !== undefined) updateData.metricType = metricType;
   if (description !== undefined) updateData.description = description;
   if (steps !== undefined) {
     if (!Array.isArray(steps) || steps.length === 0) {

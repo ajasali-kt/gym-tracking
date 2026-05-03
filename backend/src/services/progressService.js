@@ -23,10 +23,10 @@ const calculateExerciseStats = (logs) => {
   }
 
   const totalSets = logs.length;
-  const totalWeight = logs.reduce((sum, log) => sum + Number.parseFloat(log.weightKg), 0);
-  const totalReps = logs.reduce((sum, log) => sum + log.repsCompleted, 0);
-  const maxWeight = Math.max(...logs.map((log) => Number.parseFloat(log.weightKg)));
-  const maxReps = Math.max(...logs.map((log) => log.repsCompleted));
+  const totalWeight = logs.reduce((sum, log) => sum + (Number.parseFloat(log.weightKg) || 0), 0);
+  const totalReps = logs.reduce((sum, log) => sum + (log.repsCompleted || 0), 0);
+  const maxWeight = Math.max(...logs.map((log) => Number.parseFloat(log.weightKg) || 0));
+  const maxReps = Math.max(...logs.map((log) => log.repsCompleted || 0));
 
   return {
     totalSets,
@@ -129,7 +129,8 @@ const getRecentProgress = async (userId, query) => {
           exercise: {
             select: {
               id: true,
-              name: true
+              name: true,
+              metricType: true
             }
           }
         }
@@ -211,11 +212,15 @@ const getProgressStats = async (userId) => {
     },
     select: {
       weightKg: true,
-      repsCompleted: true
+      repsCompleted: true,
+      distanceKm: true,
+      durationMinutes: true
     }
   });
 
-  const totalVolume = allLogs.reduce((sum, log) => sum + (log.weightKg * log.repsCompleted), 0);
+  const totalVolume = allLogs.reduce((sum, log) => sum + ((log.weightKg || 0) * (log.repsCompleted || 0)), 0);
+  const totalRunningDistanceKm = allLogs.reduce((sum, log) => sum + (log.distanceKm || 0), 0);
+  const totalRunningDurationMinutes = allLogs.reduce((sum, log) => sum + (log.durationMinutes || 0), 0);
   const avgSetsPerWorkout = totalWorkouts > 0 ? totalSets / totalWorkouts : 0;
 
   const muscleGroupStats = await prisma.exerciseLog.groupBy({
@@ -263,6 +268,8 @@ const getProgressStats = async (userId) => {
       totalWorkouts,
       totalSets,
       totalVolume: Math.round(totalVolume * 100) / 100,
+      totalRunningDistanceKm: Math.round(totalRunningDistanceKm * 100) / 100,
+      totalRunningDurationMinutes: Math.round(totalRunningDurationMinutes * 100) / 100,
       averageSetsPerWorkout: Math.round(avgSetsPerWorkout * 10) / 10,
       mostTrainedMuscle,
       muscleGroupBreakdown: muscleGroupCounts,

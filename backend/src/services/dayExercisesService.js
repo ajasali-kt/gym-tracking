@@ -37,13 +37,23 @@ const deleteDayExerciseAssignment = async (assignmentId, userId) => {
 
 const updateDayExerciseAssignment = async (assignmentId, userId, payload) => {
   const parsedAssignmentId = await assertAssignmentOwnership(assignmentId, userId);
-  const { sets, reps, restSeconds, orderIndex } = payload;
+  const { sets, reps, restSeconds, orderIndex, targetDistanceKm, targetDurationMinutes } = payload;
   const updateData = {};
 
   if (sets !== undefined) updateData.sets = Number.parseInt(sets, 10);
   if (reps !== undefined) updateData.reps = reps.toString();
   if (restSeconds !== undefined) updateData.restSeconds = Number.parseInt(restSeconds, 10);
   if (orderIndex !== undefined) updateData.orderIndex = Number.parseInt(orderIndex, 10);
+  if (targetDistanceKm !== undefined) {
+    updateData.targetDistanceKm = targetDistanceKm === null || targetDistanceKm === ''
+      ? null
+      : Number.parseFloat(targetDistanceKm);
+  }
+  if (targetDurationMinutes !== undefined) {
+    updateData.targetDurationMinutes = targetDurationMinutes === null || targetDurationMinutes === ''
+      ? null
+      : Number.parseFloat(targetDurationMinutes);
+  }
 
   return prisma.workoutDayExercise.update({
     where: { id: parsedAssignmentId },

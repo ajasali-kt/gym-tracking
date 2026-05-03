@@ -48,6 +48,32 @@ function getWorkoutVolume(workout) {
   );
 }
 
+function getWorkoutDistance(workout) {
+  return (workout.exerciseLogs || []).reduce((sum, set) => sum + (Number.parseFloat(set.distanceKm) || 0), 0);
+}
+
+function isRunningLog(set) {
+  return set.exercise?.metricType === 'RUNNING' || Number.parseFloat(set.distanceKm) > 0;
+}
+
+function WorkoutMetricSummary({ volume, distance, showVolume, showDistance }) {
+  const metrics = [
+    showVolume && { label: 'Volume', value: `${Math.round(volume)} kg` },
+    showDistance && { label: 'Distance', value: `${distance.toFixed(2)} km` }
+  ].filter(Boolean);
+
+  return (
+    <div className="flex flex-wrap justify-end gap-3 text-right">
+      {metrics.map((item) => (
+        <div key={item.label}>
+          <p className="text-xs text-app-muted">{item.label}</p>
+          <p className="text-base font-semibold text-app-primary">{item.value}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function getDateRangeParams(days) {
   const end = new Date();
   const start = new Date();
@@ -303,7 +329,7 @@ function Progress() {
         <StatCard label="Total Workouts" value={stats?.totalWorkouts || 0} icon={iconPath('dumbbell')} />
         <StatCard label="Workouts This Month" value={workoutsThisMonth} icon={iconPath('calendar')} tone="amber" />
         <StatCard label="Total Volume" value={`${Math.round(stats?.totalVolume || 0).toLocaleString()} kg`} icon={iconPath('bolt')} tone="green" />
-        <StatCard label="Current Streak" value={`${stats?.currentStreak || 0} days`} icon={iconPath('flame')} tone="red" />
+        <StatCard label="Running Distance" value={`${stats?.totalRunningDistanceKm || 0} km`} icon={iconPath('flame')} tone="red" />
       </section>
 
       <section className={`grid grid-cols-1 gap-4 ${hasExerciseProgress ? 'xl:grid-cols-3' : ''}`}>
@@ -404,6 +430,9 @@ function Progress() {
             {recentWorkouts.map((workout) => {
               const volume = getWorkoutVolume(workout);
               const exerciseCount = new Set((workout.exerciseLogs || []).map((set) => set.exerciseId)).size;
+              const runningDistance = getWorkoutDistance(workout);
+              const hasRunningLogs = (workout.exerciseLogs || []).some(isRunningLog);
+              const hasStrengthLogs = (workout.exerciseLogs || []).some((set) => !isRunningLog(set));
               const isExpanded = !!expandedWorkouts[workout.id];
               const groupedExerciseLogs = (workout.exerciseLogs || []).reduce((acc, set) => {
                 const key = set.exerciseId || `unknown-${set.id}`;
@@ -433,10 +462,12 @@ function Progress() {
                         <p className="text-sm text-app-muted">{exerciseCount} exercises</p>
                       </div>
                       <div className="flex items-center gap-3">
-                        <div className="text-right">
-                          <p className="text-xs text-app-muted">Volume</p>
-                          <p className="text-base font-semibold text-app-primary">{Math.round(volume)} kg</p>
-                        </div>
+                        <WorkoutMetricSummary
+                          volume={volume}
+                          distance={runningDistance}
+                          showVolume={hasStrengthLogs || !hasRunningLogs}
+                          showDistance={hasRunningLogs}
+                        />
                         <svg
                           className={`h-5 w-5 text-app-muted transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                           viewBox="0 0 20 20"
@@ -463,6 +494,14 @@ function Progress() {
                               .sort((a, b) => (a.setNumber || 0) - (b.setNumber || 0))
                               .map((set) => (
                                 <div key={set.id} className="rounded-lg border border-app-subtle bg-surface px-3 py-2 text-sm text-app-primary">
+                                  {isRunningLog(set) ? (
+                                  <div className="grid grid-cols-4 gap-2">
+                                    <span>{set.distanceKm || '-'} km</span>
+                                    <span>{set.durationMinutes || '-'} min</span>
+                                    <span>{set.paceMinutesPerKm || '-'} min/km</span>
+                                    <span>{set.notes || '-'}</span>
+                                  </div>
+                                  ) : (
                                   <div className="grid grid-cols-4 gap-2">
                                     <span>Set {set.setNumber || '-'}</span>
                                     <span>{set.repsCompleted || '-'} reps</span>
@@ -470,6 +509,7 @@ function Progress() {
                                     <span>{set.weightKg && set.repsCompleted ? `${set.weightKg * set.repsCompleted} vol` : '-'}</span>
 
                                   </div>
+                                  )}
                                   {set.notes && <p className="mt-1 text-app-muted">{set.notes}</p>}
                                 </div>
                               ))}

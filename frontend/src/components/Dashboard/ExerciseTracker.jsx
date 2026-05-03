@@ -24,6 +24,8 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
         setNumber: i + 1,
         reps: '',
         time: '', // For time-based exercises (in minutes)
+        distanceKm: assignment.targetDistanceKm ? String(assignment.targetDistanceKm) : '',
+        durationMinutes: assignment.targetDurationMinutes ? String(assignment.targetDurationMinutes) : '',
         weight: '', // Supports ranges like "10-15"
         notes: ''
       });
@@ -44,7 +46,9 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
 
   // Determine if this is a time-based exercise
   // Time-based exercises: Cardio, Running, Cycling, Plank, etc.
-  const isTimeBased = exercise.category?.toLowerCase() === 'cardio' ||
+  const isRunning = exercise.metricType === 'RUNNING';
+  const isTimeBased = isRunning ||
+                      exercise.category?.toLowerCase() === 'cardio' ||
                       exercise.name?.toLowerCase().includes('run') ||
                       exercise.name?.toLowerCase().includes('plank') ||
                       exercise.name?.toLowerCase().includes('cardio') ||
@@ -67,6 +71,11 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
   };
 
   const isSetReadyForAutosave = (setData) => {
+    if (isRunning) {
+      const distance = parseWeightValue(setData.distanceKm);
+      const duration = parseWeightValue(setData.durationMinutes);
+      return distance !== null && duration !== null;
+    }
     if (isTimeBased) return false;
     return parseRepsValue(setData.reps) !== null && parseWeightValue(setData.weight) !== null;
   };
@@ -134,6 +143,8 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
             // Extract time from notes if it exists
             let time = '';
             let weight = '';
+            let distanceKm = log.distanceKm ? log.distanceKm.toString() : '';
+            let durationMinutes = log.durationMinutes ? log.durationMinutes.toString() : '';
             let cleanNotes = log.notes || '';
 
             // Parse notes for time (format: "Time: X min | notes" or just "Time: X min")
@@ -166,6 +177,8 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
               setNumber: log.setNumber,
               reps: log.repsCompleted > 0 ? log.repsCompleted.toString() : '',
               time: time,
+              distanceKm,
+              durationMinutes,
               weight: weight,
               notes: cleanNotes.trim()
             };
@@ -212,6 +225,8 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
       const hasChanged =
         currentSet.weight !== previousSet.weight ||
         currentSet.reps !== previousSet.reps ||
+        currentSet.distanceKm !== previousSet.distanceKm ||
+        currentSet.durationMinutes !== previousSet.durationMinutes ||
         currentSet.time !== previousSet.time ||
         currentSet.notes !== previousSet.notes;
 
@@ -283,11 +298,11 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
 
       const repsValue = parseRepsValue(setData.reps);
       const weightValue = parseWeightValue(setData.weight);
-      if (repsValue === null || weightValue === null) {
+      if (!isRunning && (repsValue === null || weightValue === null)) {
         return;
       }
 
-      // Build notes string only with time (for cardio) and user notes
+      // Build notes string only with time (for legacy cardio) and user notes
       let notesString = '';
       if (setData.time) {
         notesString += `Time: ${setData.time} min`;
@@ -297,19 +312,29 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
         notesString += setData.notes;
       }
 
-      const payload = {
-        exerciseId: exercise.id,
-        setNumber: setData.setNumber,
-        repsCompleted: repsValue,
-        weightKg: weightValue,
-        notes: notesString || null
-      };
+      const payload = isRunning
+        ? {
+          exerciseId: exercise.id,
+          setNumber: setData.setNumber,
+          distanceKm: Number.parseFloat(setData.distanceKm),
+          durationMinutes: Number.parseFloat(setData.durationMinutes),
+          notes: setData.notes || null
+        }
+        : {
+          exerciseId: exercise.id,
+          setNumber: setData.setNumber,
+          repsCompleted: repsValue,
+          weightKg: weightValue,
+          notes: notesString || null
+        };
 
       // If set already has an ID, update it; otherwise create new
       if (setData.id) {
         await workoutService.updateSet(setData.id, {
           repsCompleted: payload.repsCompleted,
           weightKg: payload.weightKg,
+          distanceKm: payload.distanceKm,
+          durationMinutes: payload.durationMinutes,
           notes: payload.notes
         });
       } else {
@@ -384,6 +409,8 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
         setNumber: (previousSets[previousSets.length - 1]?.setNumber || 0) + 1,
         reps: '',
         time: '',
+        distanceKm: '',
+        durationMinutes: '',
         weight: '',
         notes: ''
       }
@@ -424,31 +451,39 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
           </div>
           <div className="flex items-center gap-2 sm:gap-6 text-xs sm:text-sm flex-shrink-0">
             <div className="text-center hidden sm:block">
-              <p className="font-semibold text-app-primary">Sets</p>
-              <p className="text-app-muted">{assignment.sets}</p>
+              <p className="font-semibold text-app-primary">{isRunning ? 'Distance' : 'Sets'}</p>
+              <p className="text-app-muted">{isRunning ? `${assignment.targetDistanceKm || '-'} km` : assignment.sets}</p>
             </div>
             <div className="text-center hidden sm:block">
-              <p className="font-semibold text-app-primary">Reps</p>
-              <p className="text-app-muted">{assignment.reps}</p>
+              <p className="font-semibold text-app-primary">{isRunning ? 'Duration' : 'Reps'}</p>
+              <p className="text-app-muted">{isRunning ? `${assignment.targetDurationMinutes || '-'} min` : assignment.reps}</p>
             </div>
             <div className="text-center hidden sm:block">
-              <p className="font-semibold text-app-primary">Rest</p>
-              <p className="text-app-muted">{assignment.restSeconds || assignment.rest || 0}s</p>
+              <p className="font-semibold text-app-primary">{isRunning ? 'Pace' : 'Rest'}</p>
+              <p className="text-app-muted">
+                {isRunning && assignment.targetDistanceKm && assignment.targetDurationMinutes
+                  ? `${(assignment.targetDurationMinutes / assignment.targetDistanceKm).toFixed(2)}`
+                  : `${assignment.restSeconds || assignment.rest || 0}s`}
+              </p>
             </div>
             {/* Mobile metrics */}
             <div className="sm:hidden text-right">
               <div className="grid grid-cols-3 gap-2 text-[11px] text-gray-600">
                 <div>
                   <p className="font-semibold text-gray-700 leading-tight">Sets</p>
-                  <p className="leading-tight">{assignment.sets}</p>
+                  <p className="leading-tight">{isRunning ? `${assignment.targetDistanceKm || '-'}km` : assignment.sets}</p>
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-700 leading-tight">Reps</p>
-                  <p className="leading-tight">{assignment.reps}</p>
+                  <p className="font-semibold text-gray-700 leading-tight">{isRunning ? 'Min' : 'Reps'}</p>
+                  <p className="leading-tight">{isRunning ? assignment.targetDurationMinutes || '-' : assignment.reps}</p>
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-700 leading-tight">Rest</p>
-                  <p className="leading-tight">{assignment.restSeconds || assignment.rest || 0}s</p>
+                  <p className="font-semibold text-gray-700 leading-tight">{isRunning ? 'Pace' : 'Rest'}</p>
+                  <p className="leading-tight">
+                    {isRunning && assignment.targetDistanceKm && assignment.targetDurationMinutes
+                      ? (assignment.targetDurationMinutes / assignment.targetDistanceKm).toFixed(1)
+                      : `${assignment.restSeconds || assignment.rest || 0}s`}
+                  </p>
                 </div>
               </div>
             </div>
@@ -544,8 +579,41 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
                     <span className="hidden sm:inline">Set {set.setNumber}</span>
                   </div>
 
-                  {/* Time-based exercises: keep one row on mobile and desktop */}
-                  {isTimeBased ? (
+                  {isRunning ? (
+                    <>
+                      <div className="col-span-4 sm:col-span-4 flex items-center gap-1 sm:gap-2">
+                        <input
+                          type="number"
+                          min="0.1"
+                          step="0.1"
+                          placeholder="5"
+                          value={set.distanceKm}
+                          onChange={(e) => handleSetChange(setIndex, 'distanceKm', e.target.value)}
+                          className="input-field w-full text-sm !px-2 !py-2"
+                        />
+                        <span className="text-sm text-app-muted">km</span>
+                      </div>
+                      <div className="col-span-4 sm:col-span-3 flex items-center gap-1 sm:gap-2">
+                        <input
+                          type="number"
+                          min="1"
+                          step="0.5"
+                          placeholder="30"
+                          value={set.durationMinutes}
+                          onChange={(e) => handleSetChange(setIndex, 'durationMinutes', e.target.value)}
+                          className="input-field w-full text-sm !px-2 !py-2"
+                        />
+                        <span className="text-sm text-app-muted">min</span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Optional"
+                        value={set.notes}
+                        onChange={(e) => handleSetChange(setIndex, 'notes', e.target.value)}
+                        className="col-span-3 sm:col-span-4 input-field text-sm !px-2 !py-2"
+                      />
+                    </>
+                  ) : isTimeBased ? (
                     <>
                       <div className="col-span-4 sm:col-span-4 flex items-center gap-1 sm:gap-2">
                         <input
@@ -602,6 +670,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
             </div>
 
             <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+              {!isRunning && (
               <button
                 id={`exercise-tracker-${assignmentIdToken}-add-set-button`}
                 type="button"
@@ -610,6 +679,7 @@ function ExerciseTracker({ exercise, assignment, workoutLogId, workoutLogData, e
               >
                 + Add Set
               </button>
+              )}
             </div>
           </div>
 

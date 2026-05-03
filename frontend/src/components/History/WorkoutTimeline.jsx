@@ -13,7 +13,7 @@ const WorkoutTimeline = ({ data }) => {
     <div className="space-y-8">
       <div className="card p-4">
         <h2 className="mb-4 text-xl font-semibold text-app-primary">Summary</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="rounded-lg border border-blue-500/25 bg-blue-500/10 p-4">
             <p className="text-sm font-medium text-blue-300">Total Workouts</p>
             <p className="text-2xl font-bold text-app-primary">{data.totalWorkouts}</p>
@@ -25,6 +25,10 @@ const WorkoutTimeline = ({ data }) => {
           <div className="rounded-lg border border-blue-400/20 bg-blue-400/10 p-4">
             <p className="text-sm font-medium text-blue-200">Total Volume</p>
             <p className="text-2xl font-bold text-app-primary">{data.totalVolume.toLocaleString()} kg</p>
+          </div>
+          <div className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 p-4">
+            <p className="text-sm font-medium text-cyan-200">Running Distance</p>
+            <p className="text-2xl font-bold text-app-primary">{(data.totalRunningDistanceKm || 0).toLocaleString()} km</p>
           </div>
         </div>
 

@@ -52,6 +52,18 @@ const normalizeDate = (completedDate) => {
   return targetDate;
 };
 
+const isRunningExercise = (exercise) => exercise?.metricType === 'RUNNING';
+
+const parsePositiveFloat = (value) => {
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+const calculatePace = (durationMinutes, distanceKm) => {
+  if (!durationMinutes || !distanceKm) return null;
+  return Math.round((durationMinutes / distanceKm) * 100) / 100;
+};
+
 const logWorkout = async (userId, payload) => {
   const { workoutLogId, workoutName, completedDate, notes, sets } = payload;
 
@@ -67,20 +79,15 @@ const logWorkout = async (userId, payload) => {
     throw createHttpError(400, 'Missing required field: sets');
   }
 
-  const parsedSets = sets.map((set, index) => {
+  const baseSets = sets.map((set, index) => {
     const parsedExerciseId = Number.parseInt(set.exerciseId, 10);
     const parsedSetNumber = Number.parseInt(set.setNumber, 10);
-    const parsedReps = Number.parseInt(set.repsCompleted, 10);
-    const parsedWeight = Number.parseFloat(set.weightKg);
     const parsedId = set.id !== undefined && set.id !== null
       ? Number.parseInt(set.id, 10)
       : null;
 
-    if (!parsedExerciseId || !parsedSetNumber || !parsedReps || Number.isNaN(parsedWeight) || parsedWeight <= 0) {
-      throw createHttpError(
-        400,
-        `Invalid set at index ${index}: exerciseId, setNumber, repsCompleted, and weightKg > 0 are required`
-      );
+    if (!parsedExerciseId || !parsedSetNumber) {
+      throw createHttpError(400, `Invalid set at index ${index}: exerciseId and setNumber are required`);
     }
 
     if (parsedId !== null && Number.isNaN(parsedId)) {
@@ -91,9 +98,68 @@ const logWorkout = async (userId, payload) => {
       id: parsedId,
       exerciseId: parsedExerciseId,
       setNumber: parsedSetNumber,
+      repsCompleted: set.repsCompleted,
+      weightKg: set.weightKg,
+      distanceKm: set.distanceKm,
+      durationMinutes: set.durationMinutes,
+      notes: set.notes || null,
+      index
+    };
+  });
+
+  const exerciseIds = [...new Set(baseSets.map((set) => set.exerciseId))];
+  const exercises = await prisma.exercise.findMany({
+    where: { id: { in: exerciseIds } },
+    select: { id: true, metricType: true }
+  });
+  const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
+
+  const parsedSets = baseSets.map((set) => {
+    const exercise = exerciseById.get(set.exerciseId);
+    if (!exercise) {
+      throw createHttpError(400, `Invalid set at index ${set.index}: exercise not found`);
+    }
+
+    if (isRunningExercise(exercise)) {
+      const distanceKm = parsePositiveFloat(set.distanceKm);
+      const durationMinutes = parsePositiveFloat(set.durationMinutes);
+
+      if (distanceKm === null || durationMinutes === null) {
+        throw createHttpError(400, `Invalid run at index ${set.index}: distanceKm and durationMinutes > 0 are required`);
+      }
+
+      return {
+        id: set.id,
+        exerciseId: set.exerciseId,
+        setNumber: set.setNumber,
+        repsCompleted: null,
+        weightKg: null,
+        distanceKm,
+        durationMinutes,
+        paceMinutesPerKm: calculatePace(durationMinutes, distanceKm),
+        notes: set.notes
+      };
+    }
+
+    const parsedReps = Number.parseInt(set.repsCompleted, 10);
+    const parsedWeight = Number.parseFloat(set.weightKg);
+    if (!parsedReps || Number.isNaN(parsedWeight) || parsedWeight <= 0) {
+      throw createHttpError(
+        400,
+        `Invalid set at index ${set.index}: repsCompleted and weightKg > 0 are required`
+      );
+    }
+
+    return {
+      id: set.id,
+      exerciseId: set.exerciseId,
+      setNumber: set.setNumber,
       repsCompleted: parsedReps,
       weightKg: parsedWeight,
-      notes: set.notes || null
+      distanceKm: null,
+      durationMinutes: null,
+      paceMinutesPerKm: null,
+      notes: set.notes
     };
   });
 
@@ -102,7 +168,6 @@ const logWorkout = async (userId, payload) => {
 
   const result = await prisma.$transaction(async (tx) => {
     let targetWorkoutLogId = null;
-    let targetWorkoutLog = null;
 
     if (workoutLogId !== undefined && workoutLogId !== null) {
       const parsedWorkoutLogId = Number.parseInt(workoutLogId, 10);
@@ -122,7 +187,6 @@ const logWorkout = async (userId, payload) => {
       }
 
       targetWorkoutLogId = parsedWorkoutLogId;
-      targetWorkoutLog = existingLog;
     } else {
       const created = await tx.workoutLog.create({
         data: {
@@ -135,18 +199,13 @@ const logWorkout = async (userId, payload) => {
         }
       });
       targetWorkoutLogId = created.id;
-      targetWorkoutLog = created;
     }
 
-    const isEditingPlannedWorkout = targetWorkoutLog && targetWorkoutLog.workoutDayId !== null;
     const workoutUpdateData = {
+      workoutName: trimmedWorkoutName,
+      completedDate: normalizedDate,
       notes: notes || null
     };
-
-    if (!isEditingPlannedWorkout) {
-      workoutUpdateData.workoutName = trimmedWorkoutName;
-      workoutUpdateData.completedDate = normalizedDate;
-    }
 
     await tx.workoutLog.update({
       where: { id: targetWorkoutLogId },
@@ -173,6 +232,9 @@ const logWorkout = async (userId, payload) => {
             setNumber: set.setNumber,
             repsCompleted: set.repsCompleted,
             weightKg: set.weightKg,
+            distanceKm: set.distanceKm,
+            durationMinutes: set.durationMinutes,
+            paceMinutesPerKm: set.paceMinutesPerKm,
             notes: set.notes
           }
         });
@@ -194,6 +256,9 @@ const logWorkout = async (userId, payload) => {
             data: {
               repsCompleted: set.repsCompleted,
               weightKg: set.weightKg,
+              distanceKm: set.distanceKm,
+              durationMinutes: set.durationMinutes,
+              paceMinutesPerKm: set.paceMinutesPerKm,
               notes: set.notes
             }
           });
@@ -207,6 +272,9 @@ const logWorkout = async (userId, payload) => {
               setNumber: set.setNumber,
               repsCompleted: set.repsCompleted,
               weightKg: set.weightKg,
+              distanceKm: set.distanceKm,
+              durationMinutes: set.durationMinutes,
+              paceMinutesPerKm: set.paceMinutesPerKm,
               notes: set.notes
             }
           });
@@ -322,16 +390,14 @@ const getWorkoutLogById = async (userId, id) => {
 };
 
 const addWorkoutSet = async (userId, id, payload) => {
-  const { exerciseId, setNumber, repsCompleted, weightKg, notes } = payload;
-  if (!exerciseId || !setNumber || !repsCompleted || weightKg === undefined) {
-    throw createHttpError(400, 'Missing required fields: exerciseId, setNumber, repsCompleted, weightKg');
+  const { exerciseId, setNumber, repsCompleted, weightKg, distanceKm, durationMinutes, notes } = payload;
+  if (!exerciseId || !setNumber) {
+    throw createHttpError(400, 'Missing required fields: exerciseId, setNumber');
   }
 
   const parsedId = Number.parseInt(id, 10);
   const parsedExerciseId = Number.parseInt(exerciseId, 10);
   const parsedSetNumber = Number.parseInt(setNumber, 10);
-  const parsedRepsCompleted = Number.parseInt(repsCompleted, 10);
-  const parsedWeightKg = Number.parseFloat(weightKg);
 
   if (!Number.isInteger(parsedExerciseId) || parsedExerciseId <= 0) {
     throw createHttpError(400, 'Invalid exerciseId');
@@ -339,13 +405,6 @@ const addWorkoutSet = async (userId, id, payload) => {
   if (!Number.isInteger(parsedSetNumber) || parsedSetNumber <= 0) {
     throw createHttpError(400, 'Invalid setNumber');
   }
-  if (!Number.isInteger(parsedRepsCompleted) || parsedRepsCompleted <= 0) {
-    throw createHttpError(400, 'Invalid repsCompleted');
-  }
-  if (!Number.isFinite(parsedWeightKg) || parsedWeightKg <= 0) {
-    throw createHttpError(400, 'Invalid weightKg');
-  }
-
   const workoutLog = await prisma.workoutLog.findFirst({
     where: {
       id: parsedId,
@@ -355,6 +414,48 @@ const addWorkoutSet = async (userId, id, payload) => {
 
   if (!workoutLog) {
     throw createHttpError(404, 'Workout log not found');
+  }
+
+  const exercise = await prisma.exercise.findUnique({
+    where: { id: parsedExerciseId }
+  });
+
+  if (!exercise) {
+    throw createHttpError(404, 'Exercise not found');
+  }
+
+  let logData;
+  if (isRunningExercise(exercise)) {
+    const parsedDistanceKm = parsePositiveFloat(distanceKm);
+    const parsedDurationMinutes = parsePositiveFloat(durationMinutes);
+    if (parsedDistanceKm === null || parsedDurationMinutes === null) {
+      throw createHttpError(400, 'Invalid running log: distanceKm and durationMinutes > 0 are required');
+    }
+    logData = {
+      repsCompleted: null,
+      weightKg: null,
+      distanceKm: parsedDistanceKm,
+      durationMinutes: parsedDurationMinutes,
+      paceMinutesPerKm: calculatePace(parsedDurationMinutes, parsedDistanceKm),
+      notes: notes || null
+    };
+  } else {
+    const parsedRepsCompleted = Number.parseInt(repsCompleted, 10);
+    const parsedWeightKg = Number.parseFloat(weightKg);
+    if (!Number.isInteger(parsedRepsCompleted) || parsedRepsCompleted <= 0) {
+      throw createHttpError(400, 'Invalid repsCompleted');
+    }
+    if (!Number.isFinite(parsedWeightKg) || parsedWeightKg <= 0) {
+      throw createHttpError(400, 'Invalid weightKg');
+    }
+    logData = {
+      repsCompleted: parsedRepsCompleted,
+      weightKg: parsedWeightKg,
+      distanceKm: null,
+      durationMinutes: null,
+      paceMinutesPerKm: null,
+      notes: notes || null
+    };
   }
 
   return prisma.$transaction(async (tx) => {
@@ -374,9 +475,7 @@ const addWorkoutSet = async (userId, id, payload) => {
       await tx.exerciseLog.update({
         where: { id: targetSetId },
         data: {
-          repsCompleted: parsedRepsCompleted,
-          weightKg: parsedWeightKg,
-          notes: notes || null
+          ...logData
         }
       });
 
@@ -395,9 +494,7 @@ const addWorkoutSet = async (userId, id, payload) => {
           workoutLogId: parsedId,
           exerciseId: parsedExerciseId,
           setNumber: parsedSetNumber,
-          repsCompleted: parsedRepsCompleted,
-          weightKg: parsedWeightKg,
-          notes: notes || null
+          ...logData
         },
         select: { id: true }
       });
@@ -480,7 +577,7 @@ const deleteWorkoutLog = async (userId, id) => {
 
 const updateExerciseSet = async (userId, setId, payload) => {
   const parsedSetId = Number.parseInt(setId, 10);
-  const { repsCompleted, weightKg, notes } = payload;
+  const { repsCompleted, weightKg, distanceKm, durationMinutes, notes } = payload;
 
   const existingSet = await prisma.exerciseLog.findFirst({
     where: {
@@ -488,6 +585,9 @@ const updateExerciseSet = async (userId, setId, payload) => {
       workoutLog: {
         userId
       }
+    },
+    include: {
+      exercise: true
     }
   });
 
@@ -496,8 +596,24 @@ const updateExerciseSet = async (userId, setId, payload) => {
   }
 
   const updateData = {};
-  if (repsCompleted !== undefined) updateData.repsCompleted = Number.parseInt(repsCompleted, 10);
-  if (weightKg !== undefined) updateData.weightKg = Number.parseFloat(weightKg);
+  if (isRunningExercise(existingSet.exercise)) {
+    const nextDistanceKm = distanceKm !== undefined ? parsePositiveFloat(distanceKm) : existingSet.distanceKm;
+    const nextDurationMinutes = durationMinutes !== undefined ? parsePositiveFloat(durationMinutes) : existingSet.durationMinutes;
+    if (nextDistanceKm === null || nextDurationMinutes === null) {
+      throw createHttpError(400, 'Invalid running log: distanceKm and durationMinutes > 0 are required');
+    }
+    updateData.repsCompleted = null;
+    updateData.weightKg = null;
+    updateData.distanceKm = nextDistanceKm;
+    updateData.durationMinutes = nextDurationMinutes;
+    updateData.paceMinutesPerKm = calculatePace(nextDurationMinutes, nextDistanceKm);
+  } else {
+    if (repsCompleted !== undefined) updateData.repsCompleted = Number.parseInt(repsCompleted, 10);
+    if (weightKg !== undefined) updateData.weightKg = Number.parseFloat(weightKg);
+    updateData.distanceKm = null;
+    updateData.durationMinutes = null;
+    updateData.paceMinutesPerKm = null;
+  }
   if (notes !== undefined) updateData.notes = notes;
 
   return prisma.exerciseLog.update({
